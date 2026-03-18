@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback, createContext, useContext } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, createContext, useContext } from "react";
 
 // ─── GOLF COURSE API CONFIG ───────────────────────────────────────────────────
 // Sign up free at https://golfcourseapi.com — paste your key here
@@ -431,12 +431,12 @@ function useCourseSearch() {
       setLoading(true);
       try {
         const res = await fetch(
-          `${GOLF_API_BASE}/courses?search=${encodeURIComponent(val)}`,
+          `${GOLF_API_BASE}/courses?search=${encodeURIComponent(val)}&limit=20`,
           { headers: { Authorization: `Key ${GOLF_API_KEY}` } }
         );
         const data = await res.json();
         // API returns { courses: [...] }
-        setResults((data.courses || []).slice(0, 8));
+        setResults((data.courses || []).slice(0, 20));
       } catch { setResults([]); }
       finally { setLoading(false); }
     }, 400);
