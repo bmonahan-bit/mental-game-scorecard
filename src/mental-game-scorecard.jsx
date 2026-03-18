@@ -431,7 +431,7 @@ function useCourseSearch() {
       setLoading(true);
       try {
         const res = await fetch(
-          `${GOLF_API_BASE}/courses?search=${encodeURIComponent(val)}&limit=20`,
+          `${GOLF_API_BASE}/search?search_query=${encodeURIComponent(val)}`,
           { headers: { Authorization: `Key ${GOLF_API_KEY}` } }
         );
         const data = await res.json();
