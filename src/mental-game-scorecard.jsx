@@ -106,7 +106,7 @@ function LiveClock({ P }) {
   const m = String(time.getMinutes()).padStart(2,"0");
   const ampm = time.getHours()>=12?"PM":"AM";
   return (
-    <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:3,padding:"5px 8px",borderRadius:10,border:`1.5px solid transparent`,flexShrink:0}}>
+    <div style={{display:"flex",alignItems:"center",gap:3,flexShrink:0}}>
       <span style={{fontSize:13,fontWeight:800,color:P.white,letterSpacing:0.5}}>{h}:{m}</span>
       <span style={{fontSize:9,fontWeight:700,color:P.muted}}>{ampm}</span>
     </div>
@@ -1217,10 +1217,14 @@ export default function App() {
   React.useEffect(()=>{
     if(tipDone) return;
     const key = TIP_REF_KEYS[tipStep];
-    const el = tipRefs[key]?.current;
-    if(!el) return;
-    const r = el.getBoundingClientRect();
-    setTipRect({top:r.top-4, left:r.left-4, width:r.width+8, height:r.height+8});
+    // Use rAF to ensure DOM has painted before measuring
+    const frame = requestAnimationFrame(()=>{
+      const el = tipRefs[key]?.current;
+      if(!el) return;
+      const r = el.getBoundingClientRect();
+      setTipRect({top:r.top-4, left:r.left-4, width:r.width+8, height:r.height+8});
+    });
+    return ()=>cancelAnimationFrame(frame);
   },[tipStep, tipDone]);
   function nextTip(){const next=tipStep+1;setTipStep(next);try{localStorage.setItem("mgp_tip_step",next);}catch{}}
   function skipTips(){setTipStep(TOTAL_TIPS);try{localStorage.setItem("mgp_tip_step",TOTAL_TIPS);}catch{}}
@@ -1601,6 +1605,13 @@ export default function App() {
           const cardWidth=Math.min(window.innerWidth*0.88,340);
           const cardLeft=(window.innerWidth-cardWidth)/2;
           const hl=tipRect?{top:tipRect.top-6,left:tipRect.left-6,width:tipRect.width+12,height:tipRect.height+12}:{top:0,left:0,width:0,height:0};
+          const cardEstHeight=200;
+          const belowTop = tipRect ? hl.top+hl.height+14 : window.innerHeight*0.4;
+          const aboveTop = tipRect ? hl.top-14-cardEstHeight : window.innerHeight*0.4;
+          // Clamp so card never goes off bottom or top
+          const clampedBelowTop = Math.min(belowTop, window.innerHeight-cardEstHeight-16);
+          const clampedAboveTop = Math.max(aboveTop, 16);
+          const cardTop = t.cardPos==="below" ? clampedBelowTop : clampedAboveTop;
           return(
             <div style={{position:"fixed",inset:0,zIndex:991,pointerEvents:"none"}}>
               <div onClick={skipTips} style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.75)",pointerEvents:"auto"}}/>
@@ -1613,7 +1624,7 @@ export default function App() {
               }}/>}
               <div style={{
                 position:"absolute",left:cardLeft,width:cardWidth,
-                ...(tipRect ? (t.cardPos==="below" ? {top:hl.top+hl.height+14} : {top:hl.top-14,transform:"translateY(-100%)"}) : {top:"40%",transform:"translateY(-50%)"}),
+                top:cardTop,
                 background:P.card,borderRadius:16,padding:"16px 18px 14px",
                 border:`1.5px solid ${P.green}66`,
                 boxShadow:"0 12px 40px rgba(0,0,0,0.6)",
@@ -1729,15 +1740,17 @@ export default function App() {
         </div>
         <div style={{padding:"0 12px 4px",display:"flex",gap:6,alignItems:"center"}}>
           <input type="date" value={roundDate} onChange={e=>setRoundDate(e.target.value)} style={{...S.input,flex:"0 0 auto",width:136,fontSize:12,padding:"6px 8px"}}/>
-          <LiveClock P={P}/>
+          <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <LiveClock P={P}/>
+          </div>
           {loadingWeather && (
-            <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:5,padding:"5px 8px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.card}}>
+            <div style={{display:"flex",alignItems:"center",gap:5,padding:"5px 8px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.card,flexShrink:0}}>
               <div style={{width:10,height:10,borderRadius:"50%",border:`2px solid ${P.border}`,borderTopColor:P.accent,animation:"spin 0.7s linear infinite"}}/>
               <span style={{fontSize:11,color:P.muted,fontWeight:500}}>Weather...</span>
             </div>
           )}
           {weather && !loadingWeather && (
-            <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:5,padding:"5px 8px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.card}}>
+            <div style={{display:"flex",alignItems:"center",gap:5,padding:"5px 8px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.card,flexShrink:0}}>
               <Icons.Sun color={P.gold} size={14}/>
               <span style={{fontSize:12,fontWeight:700,color:P.white}}>{weather.temp}°F</span>
               <span style={{fontSize:11,color:P.muted}}>{weatherLabel(weather.code)}</span>
@@ -1746,7 +1759,7 @@ export default function App() {
             </div>
           )}
           {!weather && !loadingWeather && courseData && (
-            <div style={{marginLeft:"auto",padding:"5px 8px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.card,fontSize:11,color:P.muted}}>
+            <div style={{padding:"5px 8px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.card,fontSize:11,color:P.muted,flexShrink:0}}>
               No location data
             </div>
           )}
