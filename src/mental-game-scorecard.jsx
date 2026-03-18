@@ -96,6 +96,23 @@ const Icons = {
 };
 
 // ─── BALLOON CANVAS (streak 3) ───
+function LiveClock({ P }) {
+  const [time, setTime] = React.useState(()=>new Date());
+  React.useEffect(()=>{
+    const t = setInterval(()=>setTime(new Date()), 1000);
+    return()=>clearInterval(t);
+  },[]);
+  const h = time.getHours()%12||12;
+  const m = String(time.getMinutes()).padStart(2,"0");
+  const ampm = time.getHours()>=12?"PM":"AM";
+  return (
+    <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:3,padding:"5px 8px",borderRadius:10,border:`1.5px solid transparent`,flexShrink:0}}>
+      <span style={{fontSize:13,fontWeight:800,color:P.white,letterSpacing:0.5}}>{h}:{m}</span>
+      <span style={{fontSize:9,fontWeight:700,color:P.muted}}>{ampm}</span>
+    </div>
+  );
+}
+
 function BalloonCanvas({ active, onDone }) {
   const canvasRef = useRef(null);
   const animRef = useRef(null);
@@ -430,16 +447,27 @@ function useCourseSearch() {
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
       try {
+        // Try exact query first, then append wildcard for partial matching
         const res = await fetch(
-          `${GOLF_API_BASE}/search?search_query=${encodeURIComponent(val)}`,
+          `${GOLF_API_BASE}/search?search_query=${encodeURIComponent(val + "*")}`,
           { headers: { Authorization: `Key ${GOLF_API_KEY}` } }
         );
         const data = await res.json();
-        // API returns { courses: [...] }
-        setResults((data.courses || []).slice(0, 20));
+        const courses = data.courses || [];
+        // If wildcard returns nothing, try without it
+        if (courses.length === 0) {
+          const res2 = await fetch(
+            `${GOLF_API_BASE}/search?search_query=${encodeURIComponent(val)}`,
+            { headers: { Authorization: `Key ${GOLF_API_KEY}` } }
+          );
+          const data2 = await res2.json();
+          setResults((data2.courses || []).slice(0, 20));
+        } else {
+          setResults(courses.slice(0, 20));
+        }
       } catch { setResults([]); }
       finally { setLoading(false); }
-    }, 400);
+    }, 300);
   }, []);
 
   const loadCourse = useCallback(async (courseId) => {
@@ -474,6 +502,15 @@ function CourseSearchBar({ P, S, courseName, setCourseName, onCourseLoaded, sele
   // sync external courseData
   useEffect(() => { setLocalCourseData(courseData); }, [courseData]);
 
+  // Flatten male/female tees into a single array
+  function flattenTees(course) {
+    if (!course?.tees) return [];
+    if (Array.isArray(course.tees)) return course.tees;
+    const male = (course.tees.male || []).map(t => ({...t, gender:"Male"}));
+    const female = (course.tees.female || []).map(t => ({...t, gender:"Female"}));
+    return [...male, ...female];
+  }
+
   async function handleSelect(course) {
     setCourseName(course.club_name);
     setOpen(false);
@@ -484,19 +521,28 @@ function CourseSearchBar({ P, S, courseName, setCourseName, onCourseLoaded, sele
     });
     const data = await res.json();
     const full = data.course || null;
+    if (!full) return;
+    // Attach flat tees for easy access
+    full._tees = flattenTees(full);
     setLocalCourseData(full);
     setCourseData(full);
     // Default to first tee
-    if (full?.tees?.length > 0) {
-      const firstTee = full.tees[0];
-      setSelectedTee(firstTee.tee_name);
-      onCourseLoaded(full, firstTee.tee_name);
+    if (full._tees.length > 0) {
+      const firstTee = full._tees[0];
+      setSelectedTee(firstTee.tee_name + (firstTee.gender ? ` (${firstTee.gender})` : ""));
+      onCourseLoaded(full, firstTee.tee_name, firstTee.gender);
     }
   }
 
-  function handleTeeSelect(teeName) {
-    setSelectedTee(teeName);
-    if (localCourseData) onCourseLoaded(localCourseData, teeName);
+  function handleTeeSelect(val) {
+    setSelectedTee(val);
+    if (localCourseData) {
+      // val format: "TeeeName (Gender)" or just "TeeName"
+      const match = val.match(/^(.+?)(?: \((Male|Female)\))?$/);
+      const teeName = match?.[1] || val;
+      const gender = match?.[2] || null;
+      onCourseLoaded(localCourseData, teeName, gender);
+    }
   }
 
   function handleClearCourse() {
@@ -546,8 +592,10 @@ function CourseSearchBar({ P, S, courseName, setCourseName, onCourseLoaded, sele
                   onMouseEnter={e=>e.currentTarget.style.background=P.cardAlt}
                   onMouseLeave={e=>e.currentTarget.style.background="transparent"}
                 >
-                  <span style={{ fontSize:14, fontWeight:600, color:P.white }}>{c.club_name}</span>
-                  <span style={{ fontSize:11, color:P.muted, marginTop:1 }}>{[c.city, c.state_name, c.country_name].filter(Boolean).join(", ")}</span>
+                  <span style={{ fontSize:14, fontWeight:600, color:P.white }}>
+                    {c.club_name}{c.course_name && c.course_name !== c.club_name ? ` — ${c.course_name}` : ""}
+                  </span>
+                  <span style={{ fontSize:11, color:P.muted, marginTop:1 }}>{[c.location?.city, c.location?.state, c.location?.country].filter(Boolean).join(", ")}</span>
                 </button>
               ))}
             </div>
@@ -559,37 +607,36 @@ function CourseSearchBar({ P, S, courseName, setCourseName, onCourseLoaded, sele
           )}
         </div>
       ) : (
-        /* Loaded course — compact single row with inline tee select */
+        /* Loaded course — full name left, tee+caddie stacked right */
         <div style={{ background:P.card, borderRadius:10, border:`1.5px solid ${P.green}44`, padding:"6px 10px" }}>
           <div style={{ display:"flex", alignItems:"center", gap:8 }}>
             <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontSize:13, fontWeight:700, color:P.white, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{localCourseData.club_name}</div>
-              <div style={{ fontSize:10, color:P.muted }}>
-                {[localCourseData.location?.city, localCourseData.location?.state].filter(Boolean).join(", ")}
-              </div>
+              <div style={{ fontSize:13, fontWeight:700, color:P.white, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{localCourseData.club_name}{localCourseData.course_name && localCourseData.course_name !== localCourseData.club_name ? ` — ${localCourseData.course_name}` : ""}</div>
+              <div style={{ fontSize:10, color:P.muted }}>{[localCourseData.location?.city, localCourseData.location?.state].filter(Boolean).join(", ")}</div>
             </div>
-            {/* Compact tee dropdown */}
-            {localCourseData.tees?.length > 0 && (
-              <select
-                value={selectedTee || ""}
-                onChange={e => handleTeeSelect(e.target.value)}
-                style={{ background:P.inputBg, color:P.white, border:`1.5px solid ${P.border}`, borderRadius:8, fontSize:12, fontWeight:600, padding:"4px 8px", cursor:"pointer", outline:"none", flexShrink:0 }}
-              >
-                {localCourseData.tees.map(t => (
-                  <option key={t.tee_name} value={t.tee_name}>
-                    {t.tee_name}{t.total_yards ? ` · ${t.total_yards}y` : ""}
-                    {t.slope_rating ? ` · S${t.slope_rating}` : ""}
-                  </option>
-                ))}
-              </select>
-            )}
-            {setInGameCaddie && (
-              <button onClick={()=>setInGameCaddie(!inGameCaddie)} {...pp()} title="In-Game Caddie" style={{display:"flex",alignItems:"center",gap:4,padding:"3px 8px",borderRadius:6,border:`1.5px solid ${inGameCaddie?"#006747":P.border}`,background:inGameCaddie?"#00674715":"transparent",cursor:"pointer",flexShrink:0,transition:"all 0.15s"}}>
-                <Icons.Brain color={inGameCaddie?"#006747":P.muted} size={12}/>
-                <span style={{fontSize:10,fontWeight:700,color:inGameCaddie?"#006747":P.muted}}>Caddie</span>
-                <div style={{width:22,height:12,borderRadius:6,background:inGameCaddie?"#006747":P.border,position:"relative",transition:"background 0.2s",flexShrink:0}}><div style={{width:8,height:8,borderRadius:"50%",background:"#fff",position:"absolute",top:2,left:inGameCaddie?12:2,transition:"left 0.2s",boxShadow:"0 1px 2px rgba(0,0,0,0.2)"}}/></div>
-              </button>
-            )}
+            {/* Tee + Caddie stacked */}
+            <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0,alignItems:"flex-end"}}>
+              {localCourseData?._tees?.length > 0 && (
+                <select
+                  value={selectedTee || ""}
+                  onChange={e => handleTeeSelect(e.target.value)}
+                  style={{ background:P.inputBg, color:P.white, border:`1.5px solid ${P.border}`, borderRadius:8, fontSize:11, fontWeight:600, padding:"3px 6px", cursor:"pointer", outline:"none" }}
+                >
+                  {localCourseData._tees.map(t => {
+                    const val = t.tee_name + (t.gender ? ` (${t.gender})` : "");
+                    const label = t.tee_name + (t.gender === "Female" ? " (W)" : "");
+                    return <option key={val} value={val}>{label}</option>;
+                  })}
+                </select>
+              )}
+              {setInGameCaddie && (
+                <button onClick={()=>setInGameCaddie(!inGameCaddie)} {...pp()} style={{display:"flex",alignItems:"center",gap:4,padding:"2px 6px",borderRadius:6,border:`1.5px solid ${inGameCaddie?"#006747":P.border}`,background:inGameCaddie?"#00674715":"transparent",cursor:"pointer",transition:"all 0.15s"}}>
+                  <Icons.Brain color={inGameCaddie?"#006747":P.muted} size={11}/>
+                  <span style={{fontSize:10,fontWeight:700,color:inGameCaddie?"#006747":P.muted}}>Caddie</span>
+                  <div style={{width:20,height:11,borderRadius:6,background:inGameCaddie?"#006747":P.border,position:"relative",transition:"background 0.2s",flexShrink:0}}><div style={{width:7,height:7,borderRadius:"50%",background:"#fff",position:"absolute",top:2,left:inGameCaddie?11:2,transition:"left 0.2s",boxShadow:"0 1px 2px rgba(0,0,0,0.2)"}}/></div>
+                </button>
+              )}
+            </div>
             <button onClick={handleClearCourse} {...pp()} style={{ background:"transparent", border:`1px solid ${P.border}`, borderRadius:6, color:P.muted, fontSize:11, padding:"3px 7px", cursor:"pointer", fontWeight:600, flexShrink:0 }}>✕</button>
           </div>
           {loadingCourse && <div style={{ fontSize:11, color:P.muted, marginTop:4 }}>Loading...</div>}
@@ -1238,9 +1285,12 @@ export default function App() {
   function toggleTheme() { const next=!darkMode; setDarkMode(next); try{localStorage.setItem(THEME_KEY,next?"dark":"light");}catch{} }
 
   // Called when user selects a course + tee — auto-populates par and yardage
-  function onCourseLoaded(course, teeName) {
+  function onCourseLoaded(course, teeName, gender) {
     if (!course || !teeName) return;
-    const tee = course.tees?.find(t => t.tee_name === teeName);
+    // Find tee in flattened list or nested structure
+    const flat = course._tees || [];
+    const tee = flat.find(t => t.tee_name === teeName && (!gender || t.gender === gender))
+               || flat.find(t => t.tee_name === teeName);
     if (!tee?.holes) return;
     setScores(prev => {
       const n = JSON.parse(JSON.stringify(prev));
@@ -1679,26 +1729,25 @@ export default function App() {
         </div>
         <div style={{padding:"0 12px 4px",display:"flex",gap:6,alignItems:"center"}}>
           <input type="date" value={roundDate} onChange={e=>setRoundDate(e.target.value)} style={{...S.input,flex:"0 0 auto",width:136,fontSize:12,padding:"6px 8px"}}/>
+          <LiveClock P={P}/>
           {loadingWeather && (
-            <div style={{flex:1,display:"flex",alignItems:"center",gap:5,padding:"6px 10px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.card}}>
+            <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:5,padding:"5px 8px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.card}}>
               <div style={{width:10,height:10,borderRadius:"50%",border:`2px solid ${P.border}`,borderTopColor:P.accent,animation:"spin 0.7s linear infinite"}}/>
               <span style={{fontSize:11,color:P.muted,fontWeight:500}}>Weather...</span>
             </div>
           )}
           {weather && !loadingWeather && (
-            <div style={{flex:1,display:"flex",alignItems:"center",gap:6,padding:"6px 10px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.card}}>
-              <WeatherIcon code={weather.code} size={16}/>
+            <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:5,padding:"5px 8px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.card}}>
+              <Icons.Sun color={P.gold} size={14}/>
               <span style={{fontSize:12,fontWeight:700,color:P.white}}>{weather.temp}°F</span>
               <span style={{fontSize:11,color:P.muted}}>{weatherLabel(weather.code)}</span>
-              <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:3}}>
-                <span style={{fontSize:11,color:P.muted,fontWeight:600}}>{weather.wind}mph</span>
-                <span style={{fontSize:10,color:P.accent,fontWeight:700,background:P.accent+"15",padding:"2px 4px",borderRadius:4}}>{weather.windDir}</span>
-              </div>
+              <span style={{fontSize:11,color:P.muted,fontWeight:600,marginLeft:2}}>{weather.wind}mph</span>
+              <span style={{fontSize:10,color:P.accent,fontWeight:700,background:P.accent+"15",padding:"2px 4px",borderRadius:4}}>{weather.windDir}</span>
             </div>
           )}
-          {!weather && !loadingWeather && (
-            <div style={{flex:1,padding:"6px 10px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.card,fontSize:11,color:P.muted}}>
-              {courseData ? "No location data" : "Select course for weather"}
+          {!weather && !loadingWeather && courseData && (
+            <div style={{marginLeft:"auto",padding:"5px 8px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.card,fontSize:11,color:P.muted}}>
+              No location data
             </div>
           )}
         </div>
@@ -1750,6 +1799,14 @@ export default function App() {
           {/* Spacer */}
           <div style={{flex:1}}/>
 
+          {/* YARDS */}
+          {scores[currentHole].yardage && (
+            <div style={{textAlign:"center",flexShrink:0}}>
+              <div style={{fontSize:7,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:2}}>YDS</div>
+              <div style={{fontSize:16,fontWeight:800,color:P.white,minWidth:38,textAlign:"center"}}>{scores[currentHole].yardage}</div>
+            </div>
+          )}
+
           {/* PAR */}
           <div style={{textAlign:"center",flexShrink:0}}>
             <div style={{fontSize:7,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:2}}>PAR</div>
@@ -1762,6 +1819,15 @@ export default function App() {
             <input value={scores[currentHole].strokeScore} onChange={e=>updateField("strokeScore",e.target.value.replace(/\D/g,"").slice(0,2))} style={{...S.miniInput,width:42,fontSize:16,borderRadius:notation?.circle?"50%":notation?.square?"4px":"8px",borderColor:notation?.diff&&notation.diff!==0?(notation.diff<0?P.green:P.red):undefined,borderWidth:notation?.diff&&Math.abs(notation.diff)>=2?"3px":"1.5px",borderStyle:notation?.diff&&Math.abs(notation.diff)>=2?"double":"solid"}} inputMode="numeric"/>
           </div>
 
+          {/* FIR / GIR */}
+          <div style={{textAlign:"center",flexShrink:0}}>
+            <div style={{fontSize:7,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:2}}>FIR / GIR</div>
+            <div style={{display:"flex",gap:5,height:36,background:P.card,borderRadius:9,border:`1.5px solid ${P.border}`,padding:"0 8px",alignItems:"center"}}>
+              <button onClick={()=>updateField("fairway",scores[currentHole].fairway===true?null:true)} {...pp()} style={{height:22,padding:"0 10px",borderRadius:6,border:`1.5px solid ${scores[currentHole].fairway===true?P.green:P.border}`,background:scores[currentHole].fairway===true?P.green+"20":"transparent",color:scores[currentHole].fairway===true?P.green:P.muted,fontSize:11,fontWeight:700,cursor:"pointer"}}>FIR</button>
+              <button onClick={()=>updateField("gir",scores[currentHole].gir===true?null:true)} {...pp()} style={{height:22,padding:"0 10px",borderRadius:6,border:`1.5px solid ${scores[currentHole].gir===true?P.accent:P.border}`,background:scores[currentHole].gir===true?P.accent+"20":"transparent",color:scores[currentHole].gir===true?P.accent:P.muted,fontSize:11,fontWeight:700,cursor:"pointer"}}>GIR</button>
+            </div>
+          </div>
+
           {/* PUTTS */}
           <div style={{textAlign:"center",flexShrink:0}}>
             <div style={{fontSize:7,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:2}}>PUTTS</div>
@@ -1769,15 +1835,6 @@ export default function App() {
               <button onClick={()=>updateField("putts",Math.max(0,(parseInt(scores[currentHole].putts)||0)-1)||"")} style={{width:20,height:20,borderRadius:5,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}} {...pp()}>−</button>
               <span style={{fontSize:17,fontWeight:800,color:scores[currentHole].putts?P.white:P.muted,minWidth:18,textAlign:"center"}}>{scores[currentHole].putts||"—"}</span>
               <button onClick={()=>updateField("putts",(parseInt(scores[currentHole].putts)||0)+1)} style={{width:20,height:20,borderRadius:5,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}} {...pp()}>+</button>
-            </div>
-          </div>
-
-          {/* FIR / GIR */}
-          <div style={{textAlign:"center",flexShrink:0}}>
-            <div style={{fontSize:7,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:2}}>FIR / GIR</div>
-            <div style={{display:"flex",gap:5,height:36,background:P.card,borderRadius:9,border:`1.5px solid ${P.border}`,padding:"0 8px",alignItems:"center"}}>
-              <button onClick={()=>updateField("fairway",scores[currentHole].fairway===true?null:true)} {...pp()} style={{height:22,padding:"0 10px",borderRadius:6,border:`1.5px solid ${scores[currentHole].fairway===true?P.green:P.border}`,background:scores[currentHole].fairway===true?P.green+"20":"transparent",color:scores[currentHole].fairway===true?P.green:P.muted,fontSize:11,fontWeight:700,cursor:"pointer"}}>FIR</button>
-              <button onClick={()=>updateField("gir",scores[currentHole].gir===true?null:true)} {...pp()} style={{height:22,padding:"0 10px",borderRadius:6,border:`1.5px solid ${scores[currentHole].gir===true?P.accent:P.border}`,background:scores[currentHole].gir===true?P.accent+"20":"transparent",color:scores[currentHole].gir===true?P.accent:P.muted,fontSize:11,fontWeight:700,cursor:"pointer"}}>GIR</button>
             </div>
           </div>
 
