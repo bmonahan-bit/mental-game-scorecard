@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback, createContext, useContext } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback, createContext, useContext } from "react";
 
 // ─── GOLF COURSE API CONFIG ───────────────────────────────────────────────────
 // Sign up free at https://golfcourseapi.com — paste your key here
