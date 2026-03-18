@@ -946,7 +946,7 @@ async function shareRound(r) { const text=buildShareText(r); if(navigator.share)
 // ─── STYLE HELPERS ───
 function mkStyles(P) {
   return {
-    shell: { height:"100dvh", background:P.bg, color:P.white, fontFamily:"'Avenir Next','SF Pro Display',-apple-system,sans-serif", display:"flex", flexDirection:"column", maxWidth:480, margin:"0 auto", position:"relative", overflow:"hidden" },
+    shell: { height:"100dvh", background:P.bg, color:P.white, fontFamily:"'Avenir Next','SF Pro Display',-apple-system,sans-serif", display:"flex", flexDirection:"column", maxWidth:480, width:"100%", margin:"0 auto", position:"relative", overflowX:"hidden", overflowY:"hidden" },
     iconBtn: { width:38, height:38, borderRadius:10, border:`1.5px solid ${P.border}`, background:P.card, color:P.white, fontSize:17, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 1px 3px rgba(0,0,0,0.06)", transition:"transform 0.1s ease" },
     input: { flex:1, padding:"10px 12px", borderRadius:10, border:`1.5px solid ${P.border}`, background:P.inputBg, color:P.white, fontSize:15, outline:"none", fontWeight:500 },
     miniInput: { padding:"5px", borderRadius:8, border:`1.5px solid ${P.border}`, background:P.inputBg, color:P.white, fontSize:17, textAlign:"center", outline:"none", fontWeight:700, width:44 },
@@ -1583,7 +1583,7 @@ export default function App() {
 
   return (
     <ThemeCtx.Provider value={P}>
-      <div style={{...S.shell,overflow:tipDone?undefined:"hidden"}}>
+      <div style={{...S.shell,overflow:"hidden"}}>
         <ConfettiCanvas active={showConfetti} onDone={()=>setShowConfetti(false)}/>
         <BalloonCanvas active={showBalloons} onDone={()=>setShowBalloons(false)}/>
         <FlameCanvas active={showFlame} onDone={()=>setShowFlame(false)}/>
@@ -1724,7 +1724,7 @@ export default function App() {
           </div>
         </div>
 
-        <div ref={tipRefs.course}>
+        <div ref={tipRefs.course} style={{flexShrink:0}}>
         <CourseSearchBar
           P={P} S={S}
           courseName={courseName}
@@ -1738,7 +1738,7 @@ export default function App() {
           setInGameCaddie={setInGameCaddie}
         />
         </div>
-        <div style={{padding:"0 12px 4px",display:"flex",gap:6,alignItems:"center"}}>
+        <div style={{padding:"0 12px 4px",display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
           <input type="date" value={roundDate} onChange={e=>setRoundDate(e.target.value)} style={{...S.input,flex:"0 0 auto",width:136,fontSize:12,padding:"6px 8px"}}/>
           <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center"}}>
             <LiveClock P={P}/>
@@ -1766,7 +1766,7 @@ export default function App() {
         </div>
 
         {/* Hole Grid */}
-        <div ref={tipRefs.grid} style={{padding:"0 10px 2px"}}>
+        <div ref={tipRefs.grid} style={{padding:"0 10px 2px",flexShrink:0}}>
           {[0,9].map(start=>(
             <div key={start} style={{display:"grid",gridTemplateColumns:"repeat(9, 1fr)",gap:2,marginBottom:start===0?2:0}}>
               {Array.from({length:9},(_,j)=>{
@@ -1797,7 +1797,7 @@ export default function App() {
           const runningPar = scoredHoles.reduce((s,h)=>s+(parseInt(h.par)||0),0);
           const runningDiff = scoredHoles.length > 0 ? runningStroke - runningPar : null;
           return (
-        <div ref={tipRefs.scoreRow} key={animKey} style={{padding:"2px 10px 6px",display:"flex",alignItems:"center",gap:8,animation:"fadeSlide 0.25s ease-out"}}>
+        <div ref={tipRefs.scoreRow} key={animKey} style={{padding:"2px 10px 4px",display:"flex",alignItems:"center",gap:8,animation:"fadeSlide 0.25s ease-out",flexShrink:0}}>
 
           {/* Hole N — left */}
           <div style={{flexShrink:0,marginRight:2}}>
@@ -1858,7 +1858,7 @@ export default function App() {
         <div ref={tipRefs.matchup}>
         <div style={{padding:"0 10px 2px"}}>
           {/* Toggle header — matches grid column layout */}
-          <button onClick={()=>setMatchupOpen(o=>!o)} {...pp()} style={{width:"100%",display:"grid",gridTemplateColumns:"40px 1fr 52px 1fr 40px",alignItems:"center",gap:3,padding:"3px 4px",background:"transparent",border:"none",cursor:"pointer",transition:"transform 0.1s"}}>
+          <button onClick={()=>setMatchupOpen(o=>!o)} {...pp()} style={{width:"100%",display:"grid",gridTemplateColumns:"36px 1fr 48px 1fr 36px",alignItems:"center",gap:2,padding:"3px 2px",background:"transparent",border:"none",cursor:"pointer",transition:"transform 0.1s"}}>
             <div style={{textAlign:"center",fontSize:9,fontWeight:800,letterSpacing:1.5,color:P.green}}>
               {!matchupOpen&&hT>0?<span style={{fontSize:12,fontWeight:900,color:P.green}}>{hT}</span>:""}
             </div>
@@ -1874,12 +1874,12 @@ export default function App() {
           </button>
         </div>
 
-        {matchupOpen&&<div style={{flex:1,overflowY:"auto",padding:"0 10px 4px",animation:"fadeIn 0.15s ease-out"}}>
+        {matchupOpen&&<div style={{flex:1,overflowY:"auto",overflowX:"hidden",padding:"0 10px 4px",animation:"fadeIn 0.15s ease-out"}}>
           {MATCHUPS.map(({hero,verb,bandit},idx)=>{
             const heroColor = {"Love":"#dc2626","Acceptance":"#ca8a04","Commitment":"#16a34a","Vulnerability":"#7c3aed","Grit":"#2563eb"}[hero] || P.green;
             const hActive = hH[hero]===1, bActive = hB[bandit]===1;
             return (
-            <div key={idx} style={{display:"grid",gridTemplateColumns:"40px 1fr 52px 1fr 40px",alignItems:"center",gap:3,marginBottom:2,padding:"4px 4px",borderRadius:10,background:hActive?heroColor+"10":bActive?P.red+"08":idx%2===0?P.card:"transparent",border:`1px solid ${hActive?heroColor+"33":bActive?P.red+"22":"transparent"}`,transition:"all 0.18s ease"}}>
+            <div key={idx} style={{display:"grid",gridTemplateColumns:"36px 1fr 48px 1fr 36px",alignItems:"center",gap:2,marginBottom:2,padding:"4px 2px",borderRadius:10,background:hActive?heroColor+"10":bActive?P.red+"08":idx%2===0?P.card:"transparent",border:`1px solid ${hActive?heroColor+"33":bActive?P.red+"22":"transparent"}`,transition:"all 0.18s ease"}}>
               <button onClick={()=>setScore("heroes",hero,1)} style={{...toggleBtn(P,"green",hActive),width:32,height:32,borderColor:hActive?heroColor:P.greenDim,background:hActive?heroColor:"transparent",boxShadow:hActive?`0 0 12px ${heroColor}44`:"none"}} {...pp()}>{hActive?<Icons.Check color="#fff" size={13}/>:""}</button>
               <div style={{fontSize:13,color:hActive?heroColor:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{hero}</div>
               <div style={{textAlign:"center",fontSize:12,color:P.muted,fontStyle:"italic",fontWeight:600}}>{verb}</div>
@@ -1958,7 +1958,7 @@ export default function App() {
           {holeNoteOpen&&<div style={{marginTop:4,animation:"fadeIn 0.2s ease-out"}}><textarea value={scores[currentHole].holeNote} onChange={e=>updateField("holeNote",e.target.value)} placeholder={`Hole ${currentHole+1} notes...`} rows={2} style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:13,outline:"none",resize:"none",lineHeight:1.4}}/></div>}
         </div>
         {/* Navigation + actions merged */}
-        <div style={{padding:"4px 12px 12px",display:"flex",gap:6,borderTop:`1px solid ${P.border}`,background:P.bg,alignItems:"center"}}>
+        <div style={{padding:"4px 12px 12px",display:"flex",gap:6,borderTop:`1px solid ${P.border}`,background:P.bg,alignItems:"center",flexShrink:0}}>
           <button onClick={()=>goToHole(Math.max(0,currentHole-1))} disabled={currentHole===0} style={{...navBtnS(P,currentHole===0),padding:"10px 14px"}} {...pp()}>←</button>
           <button onClick={saveRound} style={{...actionBtnS(P,P.muted),flex:"none",padding:"10px 10px",fontSize:12}} {...pp()}>Save</button>
           <button onClick={()=>{const hasData=scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0));if(!hasData){showToast("No data yet — log some heroes or bandits first.", "warn");return;}shareRound({course:courseName||"Unnamed Course",date:roundDate,scores,notes:postRoundNotes,totalPar:getTotalPar(scores),totalStroke:getTotalStroke(scores),...getRoundTotals(scores).total});}} style={{...actionBtnS(P,P.accent),flex:"none",padding:"10px 10px",fontSize:12}} {...pp()}>Share</button>
