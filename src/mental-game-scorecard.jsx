@@ -946,7 +946,7 @@ async function shareRound(r) { const text=buildShareText(r); if(navigator.share)
 // ─── STYLE HELPERS ───
 function mkStyles(P) {
   return {
-    shell: { height:"100vh", background:P.bg, color:P.white, fontFamily:"'Avenir Next','SF Pro Display',-apple-system,sans-serif", display:"flex", flexDirection:"column", maxWidth:480, margin:"0 auto", position:"relative", overflow:"hidden" },
+    shell: { height:"100dvh", background:P.bg, color:P.white, fontFamily:"'Avenir Next','SF Pro Display',-apple-system,sans-serif", display:"flex", flexDirection:"column", maxWidth:480, margin:"0 auto", position:"relative", overflow:"hidden" },
     iconBtn: { width:38, height:38, borderRadius:10, border:`1.5px solid ${P.border}`, background:P.card, color:P.white, fontSize:17, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 1px 3px rgba(0,0,0,0.06)", transition:"transform 0.1s ease" },
     input: { flex:1, padding:"10px 12px", borderRadius:10, border:`1.5px solid ${P.border}`, background:P.inputBg, color:P.white, fontSize:15, outline:"none", fontWeight:500 },
     miniInput: { padding:"5px", borderRadius:8, border:`1.5px solid ${P.border}`, background:P.inputBg, color:P.white, fontSize:17, textAlign:"center", outline:"none", fontWeight:700, width:44 },
@@ -1713,7 +1713,7 @@ export default function App() {
             OFFLINE — data saves locally, all features available
           </div>
         )}
-        <div style={{padding:"6px 12px 3px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{padding:"4px 12px 2px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <button onClick={nav("home")} style={S.iconBtn} {...pp()}><Icons.Home color={P.muted} size={17}/></button>
           <div style={{textAlign:"center"}}><div style={{fontSize:17,fontWeight:800,color:P.white}}>Scorecard</div></div>
           <div style={{display:"flex",gap:4}}>
@@ -1766,7 +1766,7 @@ export default function App() {
         </div>
 
         {/* Hole Grid */}
-        <div ref={tipRefs.grid} style={{padding:"0 10px 4px"}}>
+        <div ref={tipRefs.grid} style={{padding:"0 10px 2px"}}>
           {[0,9].map(start=>(
             <div key={start} style={{display:"grid",gridTemplateColumns:"repeat(9, 1fr)",gap:2,marginBottom:start===0?2:0}}>
               {Array.from({length:9},(_,j)=>{
@@ -1879,12 +1879,12 @@ export default function App() {
             const heroColor = {"Love":"#dc2626","Acceptance":"#ca8a04","Commitment":"#16a34a","Vulnerability":"#7c3aed","Grit":"#2563eb"}[hero] || P.green;
             const hActive = hH[hero]===1, bActive = hB[bandit]===1;
             return (
-            <div key={idx} style={{display:"grid",gridTemplateColumns:"40px 1fr 52px 1fr 40px",alignItems:"center",gap:3,marginBottom:3,padding:"6px 4px",borderRadius:10,background:hActive?heroColor+"10":bActive?P.red+"08":idx%2===0?P.card:"transparent",border:`1px solid ${hActive?heroColor+"33":bActive?P.red+"22":"transparent"}`,transition:"all 0.18s ease"}}>
-              <button onClick={()=>setScore("heroes",hero,1)} style={{...toggleBtn(P,"green",hActive),width:36,height:36,borderColor:hActive?heroColor:P.greenDim,background:hActive?heroColor:"transparent",boxShadow:hActive?`0 0 12px ${heroColor}44`:"none"}} {...pp()}>{hActive?<Icons.Check color="#fff" size={13}/>:""}</button>
-              <div style={{fontSize:14,color:hActive?heroColor:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{hero}</div>
+            <div key={idx} style={{display:"grid",gridTemplateColumns:"40px 1fr 52px 1fr 40px",alignItems:"center",gap:3,marginBottom:2,padding:"4px 4px",borderRadius:10,background:hActive?heroColor+"10":bActive?P.red+"08":idx%2===0?P.card:"transparent",border:`1px solid ${hActive?heroColor+"33":bActive?P.red+"22":"transparent"}`,transition:"all 0.18s ease"}}>
+              <button onClick={()=>setScore("heroes",hero,1)} style={{...toggleBtn(P,"green",hActive),width:32,height:32,borderColor:hActive?heroColor:P.greenDim,background:hActive?heroColor:"transparent",boxShadow:hActive?`0 0 12px ${heroColor}44`:"none"}} {...pp()}>{hActive?<Icons.Check color="#fff" size={13}/>:""}</button>
+              <div style={{fontSize:13,color:hActive?heroColor:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{hero}</div>
               <div style={{textAlign:"center",fontSize:12,color:P.muted,fontStyle:"italic",fontWeight:600}}>{verb}</div>
-              <div style={{fontSize:14,color:bActive?P.red:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{bandit}</div>
-              <button onClick={()=>setScore("bandits",bandit,1)} style={{...toggleBtn(P,"red",bActive),width:44,height:44,borderRadius:10}} {...pp()}>{bActive?<Icons.Check color="#fff" size={13}/>:""}</button>
+              <div style={{fontSize:13,color:bActive?P.red:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{bandit}</div>
+              <button onClick={()=>setScore("bandits",bandit,1)} style={{...toggleBtn(P,"red",bActive),width:32,height:32,borderRadius:10}} {...pp()}>{bActive?<Icons.Check color="#fff" size={13}/>:""}</button>
             </div>
           );})}
         </div>}
@@ -3329,7 +3329,7 @@ function RoundEditView({round, onSave, onBack, S}) {
               <div style={{fontSize:13,color:hActive?hColor:P.white,fontWeight:700,textAlign:"center"}}>{hero}</div>
               <div style={{textAlign:"center",fontSize:11,color:P.muted,fontStyle:"italic",fontWeight:600}}>{verb}</div>
               <div style={{fontSize:13,color:bActive?P.red:P.white,fontWeight:700,textAlign:"center"}}>{bandit}</div>
-              <button onClick={()=>toggleBandit(bandit)} style={{...toggleBtn(P,"red",bActive),width:44,height:44,borderRadius:10}} {...pp()}>{bActive?<Icons.Check color="#fff" size={13}/>:""}</button>
+              <button onClick={()=>toggleBandit(bandit)} style={{...toggleBtn(P,"red",bActive),width:32,height:32,borderRadius:10}} {...pp()}>{bActive?<Icons.Check color="#fff" size={13}/>:""}</button>
             </div>
           );
         })}
@@ -5110,9 +5110,9 @@ function OnboardingFlow({onFinish,P,S}){
   ];
   const slide=slides[cur]; const isLast=cur===slides.length-1; const Ic=Icons[slide.IconKey];
 
-  return <div style={{height:"100vh",display:"flex",flexDirection:"column",background:P.bg,fontFamily:"'Avenir Next','SF Pro Display',-apple-system,sans-serif",maxWidth:480,margin:"0 auto",overflow:"hidden"}}>
+  return <div style={{height:"100dvh",display:"flex",flexDirection:"column",background:P.bg,fontFamily:"'Avenir Next','SF Pro Display',-apple-system,sans-serif",maxWidth:480,margin:"0 auto",overflow:"hidden"}}>
     {/* Header */}
-    <div style={{background:dm?"linear-gradient(175deg,#09090b 0%,#141416 60%,#1c1c1f 100%)":"linear-gradient(175deg,#1a1f16 0%,#2a3020 100%)",padding:"14px 20px 24px",flexShrink:0,position:"relative",overflow:"hidden"}}>
+    <div style={{background:dm?"linear-gradient(175deg,#09090b 0%,#141416 60%,#1c1c1f 100%)":"linear-gradient(175deg,#1a1f16 0%,#2a3020 100%)",padding:"10px 20px 14px",flexShrink:0,position:"relative",overflow:"hidden"}}>
       <div style={{position:"absolute",top:-30,right:-40,width:140,height:140,borderRadius:"50%",border:"1px solid rgba(255,255,255,0.04)"}}/>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,position:"relative",zIndex:1}}>
         <button onClick={onFinish} {...pp()} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:"6px 14px",fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.45)",cursor:"pointer"}}>Skip</button>
@@ -5120,15 +5120,15 @@ function OnboardingFlow({onFinish,P,S}){
         <div style={{width:52}}/>
       </div>
       <div key={cur} style={{animation:"headerIn 0.35s cubic-bezier(0.16,1,0.3,1)",position:"relative",zIndex:1}}>
-        <div style={{width:52,height:52,borderRadius:14,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:10}}><Ic color={slide.iconColor||"rgba(255,255,255,0.75)"} size={24}/></div>
+        <div style={{width:40,height:40,borderRadius:12,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:8}}><Ic color={slide.iconColor||"rgba(255,255,255,0.75)"} size={24}/></div>
         {slide.subtitle&&<div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:"rgba(255,255,255,0.35)",textTransform:"uppercase",marginBottom:4}}>{slide.subtitle}</div>}
-        <div style={{fontSize:26,fontWeight:900,lineHeight:1.12,letterSpacing:-0.5,color:"#fff",whiteSpace:"pre-line"}}>{slide.title}</div>
+        <div style={{fontSize:22,fontWeight:900,lineHeight:1.12,letterSpacing:-0.5,color:"#fff",whiteSpace:"pre-line"}}>{slide.title}</div>
       </div>
     </div>
     {/* Slide content */}
-    <div key={cur+"c"} style={{flex:1,overflow:"auto",padding:"16px 18px 12px",background:P.bg,animation:`slideIn 0.3s cubic-bezier(0.16,1,0.3,1)`}}>{slide.render()}</div>
+    <div key={cur+"c"} style={{flex:1,overflow:"auto",padding:"12px 18px 8px",background:P.bg,animation:`slideIn 0.3s cubic-bezier(0.16,1,0.3,1)`}}>{slide.render()}</div>
     {/* Footer nav */}
-    <div style={{padding:"10px 20px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",borderTop:`1px solid ${P.border}`,background:P.bg,flexShrink:0}}>
+    <div style={{padding:"8px 20px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",borderTop:`1px solid ${P.border}`,background:P.bg,flexShrink:0}}>
       <button onClick={()=>{if(cur>0){setDir(-1);setCur(c=>c-1);}}} {...pp()} style={{width:42,height:42,borderRadius:12,border:`1.5px solid ${P.border}`,background:P.card,display:"flex",alignItems:"center",justifyContent:"center",cursor:cur===0?"default":"pointer",opacity:cur===0?0.3:1}}><Icons.Back color={P.muted} size={16}/></button>
       <div style={{width:42}}/>
       {isLast
