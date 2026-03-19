@@ -1889,8 +1889,6 @@ export default function App() {
           );})}
         </div>}
 
-        </div>{/* end matchup ref wrapper */}
-
         {/* Carry-forward intention reminder */}
         {carryForward&&currentHole===0&&(
           <div style={{margin:"0 12px 4px",padding:"8px 12px",borderRadius:9,background:"#ca8a0410",border:"1px solid #ca8a0430",display:"flex",alignItems:"flex-start",gap:8}}>
@@ -1947,8 +1945,10 @@ export default function App() {
         )}
         </div>{/* end mentalBar ref wrapper */}
 
-        {/* Step 6 ref: Hole Note + Nav together */}
-        <div ref={tipRefs.nav}>
+        </div>{/* end matchup ref wrapper — scrollable area ends here */}
+
+        {/* Step 6 ref: Hole Note + Nav — fixed at bottom */}
+        <div ref={tipRefs.nav} style={{flexShrink:0,borderTop:`1px solid ${P.border}`,background:P.bg}}>
         {/* Hole Note */}
         <div style={{padding:"0 12px 3px"}}>
           <button onClick={()=>setHoleNoteOpen(!holeNoteOpen)} style={{width:"100%",padding:"6px 12px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.card,color:P.white,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",transition:"transform 0.1s ease"}} {...pp()}>
@@ -1958,7 +1958,7 @@ export default function App() {
           {holeNoteOpen&&<div style={{marginTop:4,animation:"fadeIn 0.2s ease-out"}}><textarea value={scores[currentHole].holeNote} onChange={e=>updateField("holeNote",e.target.value)} placeholder={`Hole ${currentHole+1} notes...`} rows={2} style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:13,outline:"none",resize:"none",lineHeight:1.4}}/></div>}
         </div>
         {/* Navigation + actions merged */}
-        <div style={{padding:"4px 12px 12px",display:"flex",gap:6,borderTop:`1px solid ${P.border}`,background:P.bg,alignItems:"center",flexShrink:0}}>
+        <div style={{padding:"4px 12px 12px",display:"flex",gap:6,alignItems:"center"}}>
           <button onClick={()=>goToHole(Math.max(0,currentHole-1))} disabled={currentHole===0} style={{...navBtnS(P,currentHole===0),padding:"10px 14px"}} {...pp()}>←</button>
           <button onClick={saveRound} style={{...actionBtnS(P,P.muted),flex:"none",padding:"10px 10px",fontSize:12}} {...pp()}>Save</button>
           <button onClick={()=>{const hasData=scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0));if(!hasData){showToast("No data yet — log some heroes or bandits first.", "warn");return;}shareRound({course:courseName||"Unnamed Course",date:roundDate,scores,notes:postRoundNotes,totalPar:getTotalPar(scores),totalStroke:getTotalStroke(scores),...getRoundTotals(scores).total});}} style={{...actionBtnS(P,P.accent),flex:"none",padding:"10px 10px",fontSize:12}} {...pp()}>Share</button>
