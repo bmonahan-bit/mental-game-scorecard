@@ -2521,13 +2521,13 @@ export default function App() {
           return (
         <div ref={tipRefs.scoreRow} key={animKey} style={{padding:"2px 6px 4px",display:"flex",alignItems:"center",gap:5,animation:"fadeSlide 0.25s ease-out",flexShrink:0}}>
 
-          {/* Hole N + yardage takes all remaining left space */}
-          <div style={{flex:1,minWidth:0}}>
+          {/* Hole N — left */}
+          <div style={{flex:1,minWidth:0,paddingTop:12}}>
             {notation&&notation.diff!==0&&<div style={{fontSize:9,fontWeight:700,color:notation.diff<0?P.green:P.red,letterSpacing:0.5,marginBottom:1}}>{notation.label}</div>}
             <div style={{display:"flex",alignItems:"baseline",gap:6,flexWrap:"nowrap"}}>
               {streak>=3&&<div style={{display:"flex",alignItems:"center",gap:2,padding:"2px 6px",borderRadius:20,background:P.green+"15",border:`1px solid ${P.green}33`}}><Icons.Fire color={P.green} size={11}/><span style={{fontSize:10,fontWeight:700,color:P.green}}>{streak}</span></div>}
               <span style={{fontSize:22,fontWeight:900,lineHeight:1,color:P.white,whiteSpace:"nowrap"}}>Hole {currentHole+1}</span>
-              {scores[currentHole].yardage&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",marginLeft:6}}><span style={{fontSize:15,fontWeight:700,color:P.muted,lineHeight:1}}>{scores[currentHole].yardage}</span><span style={{fontSize:9,color:P.muted,fontWeight:600,letterSpacing:0.5,marginTop:1}}>yds</span></div>}
+              {scores[currentHole].yardage&&<span style={{fontSize:13,fontWeight:600,color:P.muted,whiteSpace:"nowrap",marginLeft:16}}>{scores[currentHole].yardage} yds</span>}
               {runningDiff!==null&&<span style={{fontSize:12,fontWeight:700,color:runningDiff<0?P.green:runningDiff>0?P.red:P.gold,whiteSpace:"nowrap"}}>{runningDiff>0?"+":""}{runningDiff===0?"E":runningDiff}</span>}
             </div>
           </div>
@@ -2569,6 +2569,7 @@ export default function App() {
         {/* Matchup Grid — collapsible */}
         <div ref={tipRefs.matchup} style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minHeight:0}}>
         <div style={{padding:"0 10px 2px",flexShrink:0}}>
+
           {/* Toggle header — matches grid column layout */}
           <button onClick={()=>setMatchupOpen(o=>!o)} {...pp()} style={{width:"100%",display:"grid",gridTemplateColumns:"36px 1fr 48px 1fr 36px",alignItems:"center",gap:2,padding:"3px 2px",background:"transparent",border:"none",cursor:"pointer",transition:"transform 0.1s"}}>
             <div style={{textAlign:"center",fontSize:9,fontWeight:800,letterSpacing:1.5,color:P.green}}>
@@ -2586,12 +2587,12 @@ export default function App() {
           </button>
         </div>
 
-        {matchupOpen&&<div style={{flex:1,overflowY:"auto",overflowX:"hidden",padding:"0 10px 4px",animation:"fadeIn 0.15s ease-out"}}>
+        {matchupOpen&&<div style={{flex:1,overflowY:"auto",overflowX:"hidden",padding:"0 10px 4px",animation:"fadeIn 0.15s ease-out",display:"flex",flexDirection:"column",justifyContent:"space-evenly"}}>
           {MATCHUPS.map(({hero,verb,bandit},idx)=>{
             const heroColor = P.green;
             const hActive = hH[hero]===1, bActive = hB[bandit]===1;
             return (
-            <div key={idx} style={{display:"grid",gridTemplateColumns:"36px 1fr 48px 1fr 36px",alignItems:"center",gap:2,marginBottom:2,padding:"4px 2px",borderRadius:10,background:hActive?heroColor+"10":bActive?P.red+"08":idx%2===0?P.card:"transparent",border:`1px solid ${hActive?heroColor+"33":bActive?P.red+"22":"transparent"}`,transition:"all 0.18s ease"}}>
+            <div key={idx} style={{display:"grid",gridTemplateColumns:"36px 1fr 48px 1fr 36px",alignItems:"center",gap:2,padding:"6px 2px",borderRadius:10,background:hActive?heroColor+"10":bActive?P.red+"08":idx%2===0?P.card:"transparent",border:`1px solid ${hActive?heroColor+"33":bActive?P.red+"22":"transparent"}`,transition:"all 0.18s ease"}}>
               <button onClick={()=>setScore("heroes",hero,1)} aria-label={`${hero} hero`} aria-pressed={hActive} style={{...toggleBtn(P,"green",hActive),width:32,height:32,borderColor:hActive?heroColor:P.greenDim,background:hActive?heroColor:"transparent",boxShadow:hActive?`0 0 12px ${heroColor}44`:"none"}}>{hActive?<Icons.Check color="#fff" size={13}/>:""}</button>
               <div style={{fontSize:13,color:hActive?heroColor:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{hero}</div>
               <div style={{textAlign:"center",fontSize:12,color:P.muted,fontStyle:"italic",fontWeight:600}}>{verb}</div>
@@ -2618,31 +2619,31 @@ export default function App() {
           const holeHeroes=hH?Object.values(hH).filter(v=>v>0).length:0;
           const holeBandits=hB?Object.values(hB).filter(v=>v>0).length:0;
           return (
-          <div style={{margin:"0 12px 4px",padding:"10px 14px",borderRadius:12,background:total.net>0?P.green+"12":total.net<0?P.red+"12":P.card,border:`1.5px solid ${total.net>0?P.green+"44":total.net<0?P.red+"44":P.border}`,display:"flex",alignItems:"center",gap:6,transition:"all 0.3s ease"}}>
-            <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
-              <img src={darkMode?HEROES_LOGO_WHITE:HEROES_LOGO_DARK} alt="Heroes" style={{width:60,height:60,objectFit:"contain",flexShrink:0}}/>
+          <div style={{margin:"0 12px 4px",padding:"8px 12px",borderRadius:12,background:total.net>0?P.green+"12":total.net<0?P.red+"12":P.card,border:`1.5px solid ${total.net>0?P.green+"44":total.net<0?P.red+"44":P.border}`,display:"flex",alignItems:"center",gap:6,transition:"all 0.3s ease"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
+              <img src={darkMode?HEROES_LOGO_WHITE:HEROES_LOGO_DARK} alt="Heroes" style={{width:44,height:44,objectFit:"contain",flexShrink:0}}/>
               <div>
-                <div style={{fontSize:9,color:P.green,letterSpacing:1,fontWeight:700,marginBottom:2}}>HEROES</div>
-                <div style={{display:"flex",alignItems:"baseline",gap:5}}>
-                  <span style={{fontSize:36,fontWeight:900,color:P.green,lineHeight:1}}>{hT}</span>
-                  {holeHeroes>0&&<span style={{fontSize:11,fontWeight:700,color:P.green,background:P.green+"20",padding:"1px 5px",borderRadius:8}}>+{holeHeroes}</span>}
+                <div style={{fontSize:9,color:P.green,letterSpacing:1,fontWeight:700,marginBottom:1}}>HEROES</div>
+                <div style={{display:"flex",alignItems:"baseline",gap:4}}>
+                  <span style={{fontSize:30,fontWeight:900,color:P.green,lineHeight:1}}>{hT}</span>
+                  {holeHeroes>0&&<span style={{fontSize:10,fontWeight:700,color:P.green,background:P.green+"20",padding:"1px 5px",borderRadius:8}}>+{holeHeroes}</span>}
                 </div>
               </div>
             </div>
             <div style={{textAlign:"center",flexShrink:0}}>
-              <div style={{fontSize:9,color:P.muted,letterSpacing:2,fontWeight:700,marginBottom:2}}>MENTAL NET</div>
-              <div style={{fontSize:42,fontWeight:900,lineHeight:1,color:total.net>0?P.green:total.net<0?P.red:P.gold,textShadow:total.net!==0?`0 0 20px ${total.net>0?P.green:P.red}44`:"none",transition:"all 0.2s"}}>{total.net>0?"+":""}{total.net}</div>
-              {rd!==null&&<div style={{fontSize:10,fontWeight:700,color:rd<0?P.green:rd>0?P.red:P.gold,marginTop:2}}>{rd>0?"+":""}{rd===0?"E par":rd+" vs par"}</div>}
+              <div style={{fontSize:8,color:P.muted,letterSpacing:1.5,fontWeight:700,marginBottom:1,display:"flex",alignItems:"center",gap:3,justifyContent:"center"}}>MENTAL NET <span onClick={()=>showToast("Mental Net = Heroes minus Bandits. Positive means your mind helped more than it hurt.","info",4000)} style={{width:13,height:13,borderRadius:"50%",border:`1px solid ${P.border}`,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:7,color:P.muted,cursor:"pointer",flexShrink:0}}>?</span></div>
+              <div style={{fontSize:36,fontWeight:900,lineHeight:1,color:total.net>0?P.green:total.net<0?P.red:P.gold,textShadow:total.net!==0?`0 0 20px ${total.net>0?P.green:P.red}44`:"none",transition:"all 0.2s"}}>{total.net>0?"+":""}{total.net}</div>
+              {rd!==null&&<div style={{fontSize:10,fontWeight:700,color:rd<0?P.green:rd>0?P.red:P.gold,marginTop:1}}>{rd>0?"+":""}{rd===0?"E par":rd+" vs par"}</div>}
             </div>
-            <div style={{display:"flex",alignItems:"center",gap:10,flex:1,justifyContent:"flex-end"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,flex:1,justifyContent:"flex-end"}}>
               <div style={{textAlign:"right"}}>
-                <div style={{fontSize:9,color:P.red,letterSpacing:1,fontWeight:700,marginBottom:2}}>BANDITS</div>
-                <div style={{display:"flex",alignItems:"baseline",gap:5,justifyContent:"flex-end"}}>
-                  {holeBandits>0&&<span style={{fontSize:11,fontWeight:700,color:P.red,background:P.red+"20",padding:"1px 5px",borderRadius:8}}>+{holeBandits}</span>}
-                  <span style={{fontSize:36,fontWeight:900,color:P.red,lineHeight:1}}>{bT}</span>
+                <div style={{fontSize:9,color:P.red,letterSpacing:1,fontWeight:700,marginBottom:1}}>BANDITS</div>
+                <div style={{display:"flex",alignItems:"baseline",gap:4,justifyContent:"flex-end"}}>
+                  {holeBandits>0&&<span style={{fontSize:10,fontWeight:700,color:P.red,background:P.red+"20",padding:"1px 5px",borderRadius:8}}>+{holeBandits}</span>}
+                  <span style={{fontSize:30,fontWeight:900,color:P.red,lineHeight:1}}>{bT}</span>
                 </div>
               </div>
-              <img src={darkMode?BANDIT_LOGO_WHITE:BANDIT_LOGO_DARK} alt="Bandits" style={{width:60,height:60,objectFit:"contain",flexShrink:0}}/>
+              <img src={darkMode?BANDIT_LOGO_WHITE:BANDIT_LOGO_DARK} alt="Bandits" style={{width:44,height:44,objectFit:"contain",flexShrink:0}}/>
             </div>
           </div>
           );
