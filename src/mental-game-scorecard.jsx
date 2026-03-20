@@ -81,6 +81,7 @@ const Icons = {
   Check: ({ color, size = 13 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
   Skull: ({ color, size = 18 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="10" r="7"/><circle cx="9.5" cy="10" r="1" fill={color}/><circle cx="14.5" cy="10" r="1" fill={color}/><path d="M10 15h4"/><path d="M9 17v3"/><path d="M15 17v3"/></svg>,
   Undo: ({ color, size = 16 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"/></svg>,
+  Share: ({ color, size = 16 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>,
   Fire: ({ color, size = 16 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>,
   Trophy: ({ color, size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4a2 2 0 0 0-2 2v1a4 4 0 0 0 4 4h1"/><path d="M18 9h2a2 2 0 0 1 2 2v1a4 4 0 0 1-4 4h-1"/><path d="M8 21h8"/><path d="M12 17v4"/><path d="M8 3h8l1 6a5 5 0 0 1-10 0z"/></svg>,
   TrendUp: ({ color, size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
@@ -96,6 +97,20 @@ const Icons = {
 };
 
 // ─── BALLOON CANVAS (streak 3) ───
+function SaveBtn({P, onSave}) {
+  const [saved, setSaved] = React.useState(false);
+  function handle() {
+    onSave();
+    setSaved(true);
+    setTimeout(()=>setSaved(false), 1500);
+  }
+  return (
+    <button onClick={handle} {...pp()} style={{flex:"none",padding:"10px 10px",fontSize:12,borderRadius:10,border:`1.5px solid ${saved?P.green:P.border}`,background:saved?P.green+"20":P.card,color:saved?P.green:P.muted,fontWeight:700,cursor:"pointer",transition:"all 0.2s",minWidth:48}}>
+      {saved?"✓":"Save"}
+    </button>
+  );
+}
+
 function LiveClock({ P }) {
   const [time, setTime] = React.useState(()=>new Date());
   React.useEffect(()=>{
@@ -465,7 +480,11 @@ function useCourseSearch() {
         } else {
           setResults(courses.slice(0, 20));
         }
-      } catch { setResults([]); }
+      } catch(e) {
+        // Offline or API error — fail silently, user can still enter course name manually
+        setResults([]);
+        setLoading(false);
+      }
       finally { setLoading(false); }
     }, 300);
   }, []);
@@ -696,6 +715,19 @@ function windDirLabel(deg) {
   return dirs[Math.round(deg / 45) % 8];
 }
 
+function weatherIcon(code) {
+  if (code == null) return "☀️";
+  if (code === 0) return "☀️";
+  if (code <= 2) return "🌤";
+  if (code <= 3) return "☁️";
+  if (code <= 49) return "🌫";
+  if (code <= 59) return "🌦";
+  if (code <= 69) return "🌧";
+  if (code <= 79) return "❄️";
+  if (code <= 84) return "🌨";
+  if (code <= 99) return "⛈";
+  return "☀️";
+}
 function weatherLabel(code) {
   if (code == null) return "";
   if (code === 0) return "Clear";
@@ -1182,7 +1214,7 @@ export default function App() {
   const [view, setView] = useState("home");
   const [scores, setScores] = useState(initScores);
   const [currentHole, setCurrentHole] = useState(0);
-  const [courseName, setCourseName] = useState("");
+  const [courseName, setCourseName] = useState(()=>{try{return JSON.parse(localStorage.getItem("mgp_settings")||"{}")?.favCourse||"";}catch{return ""}});
   const [roundDate, setRoundDate] = useState(new Date().toISOString().split("T")[0]);
   const [animKey, setAnimKey] = useState(0);
   const [savedRounds, setSavedRounds] = useState([]);
@@ -1238,6 +1270,11 @@ export default function App() {
   const [completedRound, setCompletedRound] = useState(null);
   const [showOpenRoundModal, setShowOpenRoundModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isPro, setIsPro] = useState(()=>{try{return localStorage.getItem("mgp_pro")==="true";}catch{return false;}});
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [showCancelPro, setShowCancelPro] = useState(false);
+  const [showRateApp, setShowRateApp] = useState(false);
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [streakBanner, setStreakBanner] = useState(null); // {count}
   const [showConfetti, setShowConfetti] = useState(false);
   const [showFireworks, setShowFireworks] = useState(false);
@@ -1284,8 +1321,27 @@ export default function App() {
     })();
   }, []);
 
-  function finishOnboarding(){setShowOnboarding(false);try{localStorage.setItem("mgp_onboarded","true");}catch{}}
-  function persistRounds(rounds) { setSavedRounds(rounds); try{localStorage.setItem(STORAGE_KEY,JSON.stringify(rounds));const nm=checkNewMilestones(rounds);if(nm.length>0)setNewMilestone(nm[0]);}catch{} }
+  function finishOnboarding(){
+    setShowOnboarding(false);
+    try{localStorage.setItem("mgp_onboarded","true");}catch{}
+    if(!isPro) setShowPaywall(true);
+  }
+  function unlockPro(plan) {
+    // TODO: wire to Stripe/Apple IAP — for now sets flag directly for testing
+    setIsPro(true);
+    setShowPaywall(false);
+    try{localStorage.setItem("mgp_pro","true");localStorage.setItem("mgp_pro_plan",plan);localStorage.setItem("mgp_pro_date",new Date().toISOString());}catch{}
+    showToast("Welcome to Mental Game Pro!", "success", 3000);
+  }
+  function persistRounds(rounds) {
+    setSavedRounds(rounds);
+    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(rounds));const nm=checkNewMilestones(rounds);if(nm.length>0)setNewMilestone(nm[0]);}catch{}
+    // Rate app prompt after 3rd completed round
+    try {
+      const rated = localStorage.getItem("mgp_rated");
+      if(!rated && rounds.length===3) setTimeout(()=>setShowRateApp(true), 2000);
+    } catch {}
+  }
   function toggleTheme() { const next=!darkMode; setDarkMode(next); try{localStorage.setItem(THEME_KEY,next?"dark":"light");}catch{} }
 
   // Called when user selects a course + tee — auto-populates par and yardage
@@ -1348,6 +1404,7 @@ export default function App() {
         else break;
       }
       if (streak >= 3) {
+        vibrate(streak >= 5 ? [20,60,20,60,20] : [15,40,15]);
         setStreakBanner({ count: streak });
         setTimeout(() => setStreakBanner(null), 3000);
         if (streak >= 6) setShowStarburst(true);
@@ -1424,6 +1481,7 @@ export default function App() {
         else break;
       }
       if (streak >= 3) {
+        vibrate(streak >= 5 ? [20,60,20,60,20] : [15,40,15]);
         setStreakBanner({ count: streak });
         setTimeout(() => setStreakBanner(null), 3000);
         if (streak >= 6) setShowStarburst(true);
@@ -1436,13 +1494,16 @@ export default function App() {
   }
 
   function saveRound() {
-    // save proceeds — confirmation removed in favour of toast feedback
     const hasData = scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0));
     if (!hasData) { showToast("No data yet — log some heroes or bandits first.", "warn"); return; }
     if (!courseName.trim()) { const name=prompt("What course are you playing?"); if(name&&name.trim()) setCourseName(name.trim()); }
-    const round = { id:Date.now(), course:courseName||"Unnamed Course", date:roundDate, scores:JSON.parse(JSON.stringify(scores)), totalPar:getTotalPar(scores), totalStroke:getTotalStroke(scores), notes:postRoundNotes, preRoundMeta:JSON.parse(JSON.stringify(preRoundMeta)), ...getRoundTotals(scores).total };
-    persistRounds([round, ...savedRounds]);
-    showToast("Draft saved!", "success");
+    // Overwrite existing draft for same date+course to prevent duplicates
+    const course = courseName||"Unnamed Course";
+    const existing = savedRounds.find(r=>r.date===roundDate&&r.course===course);
+    const round = { id:existing?.id||Date.now(), course, date:roundDate, scores:JSON.parse(JSON.stringify(scores)), totalPar:getTotalPar(scores), totalStroke:getTotalStroke(scores), notes:postRoundNotes, preRoundMeta:JSON.parse(JSON.stringify(preRoundMeta)), ...getRoundTotals(scores).total };
+    persistRounds(existing ? savedRounds.map(r=>r.id===existing.id?round:r) : [round, ...savedRounds]);
+    vibrate([10,20,10]);
+    showToast(existing ? "Draft updated!" : "Draft saved!", "success");
   }
 
   function saveDraftAndStartNew() {
@@ -1484,7 +1545,7 @@ export default function App() {
   }
 
   function deleteRound(id) { persistRounds(savedRounds.filter(r=>r.id!==id)); if(selectedRound?.id===id)setSelectedRound(null); }
-  function startNewRound() { if(window.__confirmNewRound||confirm("Start a new round? Your current round will be lost unless you've saved it.")){window.__confirmNewRound=false;setScores(initScores());setCurrentHole(0);setCourseName("");setRoundDate(new Date().toISOString().split("T")[0]);setPostRoundNotes("");setHoleNoteOpen(false);setCourseData(null);setSelectedTee(null);try{const cf=localStorage.getItem("mgp_carry_forward");if(cf)setCarryForward(cf);}catch{}setView(settings.preroundChecklist!==false?"preround":"play");} }
+  function startNewRound() { const roundHasData=scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts); if(roundHasData){setShowOpenRoundModal(true);return;} setScores(initScores());setCurrentHole(0);setCourseName(settings?.favCourse||"");setRoundDate(new Date().toISOString().split("T")[0]);setPostRoundNotes("");setHoleNoteOpen(false);setCourseData(null);setSelectedTee(settings?.favTee||null);try{const cf=localStorage.getItem("mgp_carry_forward");if(cf)setCarryForward(cf);}catch{}setView(settings.preroundChecklist!==false?"preround":"play"); }
 
   const nav=(v)=>()=>setView(v);
   function ToastLayer() {
@@ -1556,18 +1617,61 @@ export default function App() {
     );
   }
 
+  // ─── GLOBAL MODALS ───
+  function CancelProModal() {
+    if(!showCancelPro) return null;
+    return (
+      <div style={{position:"fixed",inset:0,zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",padding:"0 20px"}}>
+        <div style={{background:P.card,borderRadius:20,padding:"24px 20px",width:"100%",maxWidth:360,border:`1.5px solid ${P.border}`}}>
+          <div style={{textAlign:"center",marginBottom:20}}>
+            <div style={{fontSize:18,fontWeight:900,color:P.white,marginBottom:8}}>Cancel Subscription?</div>
+            <div style={{fontSize:14,color:P.muted,lineHeight:1.6}}>You'll lose access to all Pro features at the end of your billing period. Your round history will still be saved.</div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            <button onClick={()=>{setIsPro(false);try{localStorage.removeItem("mgp_pro");}catch{}setShowCancelPro(false);showToast("Subscription cancelled","info");}} {...pressProps()} style={{width:"100%",padding:"13px",borderRadius:12,border:`1.5px solid ${P.red}44`,background:P.red+"12",color:P.red,fontSize:14,fontWeight:700,cursor:"pointer"}}>Yes, Cancel</button>
+            <button onClick={()=>setShowCancelPro(false)} {...pressProps()} style={{width:"100%",padding:"13px",borderRadius:12,border:`1.5px solid ${P.border}`,background:P.green,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer"}}>Keep Pro Access</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function RateAppModal() {
+    if(!showRateApp) return null;
+    function dismiss(rated) {
+      setShowRateApp(false);
+      try{localStorage.setItem("mgp_rated", rated?"yes":"dismissed");}catch{}
+    }
+    return (
+      <div style={{position:"fixed",inset:0,zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",padding:"0 20px"}}>
+        <div style={{background:P.card,borderRadius:20,padding:"28px 24px",width:"100%",maxWidth:360,border:`1.5px solid ${P.border}`,textAlign:"center"}}>
+          <div style={{fontSize:40,marginBottom:12}}>⛳</div>
+          <div style={{fontSize:20,fontWeight:900,color:P.white,marginBottom:8}}>Enjoying the app?</div>
+          <div style={{fontSize:14,color:P.muted,lineHeight:1.6,marginBottom:24}}>You've completed 3 rounds. If you're finding it useful, a rating helps others discover it!</div>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            <button onClick={()=>{dismiss(true);/* TODO: open App Store rating */}} {...pressProps()} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:"#16a34a",color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer"}}>Rate the App</button>
+            <button onClick={()=>dismiss(false)} {...pressProps()} style={{width:"100%",padding:"10px",borderRadius:12,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:13,fontWeight:600,cursor:"pointer"}}>Maybe Later</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ─── ROUTING ───
-  if (showOnboarding) return <ThemeCtx.Provider value={P}><ToastLayer/><OpenRoundModal/><OnboardingFlow onFinish={finishOnboarding} P={P} S={S}/></ThemeCtx.Provider>;
-  if (view==="home") return <ThemeCtx.Provider value={P}><ToastLayer/><OpenRoundModal/><HomeScreen onNav={navTo} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} user={user} setUser={setUser} showLogin={showLogin} setShowLogin={setShowLogin} savedRounds={savedRounds} settings={settings} /></ThemeCtx.Provider>;
+  if (showOnboarding) return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><OpenRoundModal/><OnboardingFlow onFinish={finishOnboarding} P={P} S={S}/></ThemeCtx.Provider>;
+  if (showPaywall) return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><PaywallView onUnlock={unlockPro} onBack={()=>setShowPaywall(false)} P={P} S={S}/></ThemeCtx.Provider>;
+  if (view==="home") return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><OpenRoundModal/><HomeScreen onNav={(v)=>{if(!isPro){setShowPaywall(true);return;}navTo(v);}} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} user={user} setUser={setUser} showLogin={showLogin} setShowLogin={setShowLogin} savedRounds={savedRounds} settings={settings} isPro={isPro} /></ThemeCtx.Provider>;
   if (view==="checklist") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist onBack={nav("home")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",new Date().toISOString().split("T")[0]);const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setView("play");}} S={S} lastIntention={carryForward} preRoundMeta={preRoundMeta} setPreRoundMeta={setPreRoundMeta} settings={settings} /></ThemeCtx.Provider>;
   if (view==="preround") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist onBack={nav("home")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",new Date().toISOString().split("T")[0]);const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setView("play");}} S={S} lastIntention={carryForward} preRoundMeta={preRoundMeta} setPreRoundMeta={setPreRoundMeta} settings={settings} /></ThemeCtx.Provider>;
   if (view==="caddie") return <ThemeCtx.Provider value={P}><ToastLayer/><InnerCaddieView onBack={nav(prevView)} S={S} /></ThemeCtx.Provider>;
+  if (view==="coach" || window.location.hash==="#coach") return <ThemeCtx.Provider value={P}><ToastLayer/><CoachDashboardView onBack={()=>{window.location.hash="";nav("home")();}} S={S}/></ThemeCtx.Provider>;
   if (view==="guide") return <ThemeCtx.Provider value={P}><ToastLayer/><OnboardingFlow onFinish={nav("home")} P={P} S={S}/></ThemeCtx.Provider>;
   if (view==="transform") return <ThemeCtx.Provider value={P}><ToastLayer/><TransformView onBack={nav("home")} S={S} P={P}/></ThemeCtx.Provider>;
   if (view==="dashboard") return <ThemeCtx.Provider value={P}><ToastLayer/><DashboardView rounds={savedRounds} onBack={nav("home")} S={S} onSelectRound={r=>{setSelectedRound(r);setView("rounddetail");}}/></ThemeCtx.Provider>;
   if (view==="history") return <ThemeCtx.Provider value={P}><ToastLayer/><HistoryView rounds={savedRounds} onBack={()=>{setView("home");setSelectedRound(null);}} onDelete={deleteRound} selectedRound={selectedRound} setSelectedRound={setSelectedRound} onShare={shareRound} onEdit={r=>{setEditingRound(r);setView("editround");}} S={S} /></ThemeCtx.Provider>;
   if (view==="rounddetail") return <ThemeCtx.Provider value={P}><ToastLayer/><RoundDetailView round={selectedRound} onBack={nav("dashboard")} onShare={shareRound} S={S} /></ThemeCtx.Provider>;
-  if (view==="settings") return <ThemeCtx.Provider value={P}><ToastLayer/><SettingsView settings={settings} updateSetting={updateSetting} darkMode={darkMode} toggleTheme={toggleTheme} onBack={nav("home")} S={S} savedRounds={savedRounds} inGameCaddie={inGameCaddie} setInGameCaddie={setInGameCaddie} onResetTour={()=>{try{localStorage.removeItem("mgp_tip_step");}catch{}setTipStep(0);setView("play");}} /></ThemeCtx.Provider>;
+  if (showPrivacyPolicy) return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><PrivacyPolicyView onBack={()=>setShowPrivacyPolicy(false)} S={S}/></ThemeCtx.Provider>;
+  if (view==="settings") return <ThemeCtx.Provider value={P}><ToastLayer/><SettingsView settings={settings} updateSetting={updateSetting} darkMode={darkMode} toggleTheme={toggleTheme} onBack={nav("home")} S={S} savedRounds={savedRounds} inGameCaddie={inGameCaddie} setInGameCaddie={setInGameCaddie} onResetTour={()=>{try{localStorage.removeItem("mgp_tip_step");}catch{}setTipStep(0);setView("play");}} isPro={isPro} onManageSubscription={()=>setShowPaywall(true)} onCancelPro={()=>setShowCancelPro(true)} onPrivacyPolicy={()=>setShowPrivacyPolicy(true)} /></ThemeCtx.Provider>;
   if (view==="scorecard") return <ThemeCtx.Provider value={P}><ToastLayer/><ScorecardView scores={scores} front={front} back={back} total={total} courseName={courseName} roundDate={roundDate} onBack={nav("play")} onSelectHole={h=>{setCurrentHole(h);setView("play");}} S={S} handicap={settings.handicap} /></ThemeCtx.Provider>;
   if (view==="editround") return <ThemeCtx.Provider value={P}><ToastLayer/><RoundEditView round={editingRound} onSave={updatedRound=>{persistRounds(savedRounds.map(r=>r.id===updatedRound.id?updatedRound:r));setEditingRound(null);setView("history");}} onBack={()=>{setEditingRound(null);setView("history");}} S={S} /></ThemeCtx.Provider>;
   if (view==="badges") return <ThemeCtx.Provider value={P}><ToastLayer/><BadgesView rounds={savedRounds} onBack={nav("home")} S={S} /></ThemeCtx.Provider>;
@@ -1593,7 +1697,7 @@ export default function App() {
         {!tipDone&&(()=>{
           const tips=[
             {step:1,title:"Add Your Course",body:"Search for your course to auto-fill hole data and yardages. The In-Game Caddie toggle also lives here.",icon:"Flag",cardPos:"below"},
-            {step:2,title:"Hole Grid",body:"Tap any hole to jump to it. Coloured dots show mental activity — green for heroes, red for bandits.",icon:"Grid",cardPos:"below"},
+            {step:2,title:"Hole Grid",body:"Tap any hole to jump to it. Colored dots show mental activity — green for heroes, red for bandits.",icon:"Grid",cardPos:"below"},
             {step:3,title:"PAR, SCORE & STATS",body:"Enter par and your stroke score. Running score vs par shows on the left. Log putts, FIR and GIR on the right.",icon:"Flag",cardPos:"below"},
             {step:4,title:"Heroes & Bandits",body:"After each hole, tap which Heroes showed up and which Bandits crept in. This is the heart of your mental game.",icon:"Shield",cardPos:"above"},
             {step:5,title:"Mental Score Bar",body:"Your live Mental Net — Heroes minus Bandits. Tap MENTAL SCORE to collapse it and save space.",icon:"Chart",cardPos:"above"},
@@ -1709,8 +1813,9 @@ export default function App() {
         )}
 
         {isOffline && (
-          <div style={{background:"#92400e",padding:"4px 12px",textAlign:"center",fontSize:11,fontWeight:700,color:"#fef3c7",letterSpacing:0.5}}>
-            OFFLINE — data saves locally, all features available
+          <div style={{background:"#92400e",padding:"5px 12px",textAlign:"center",fontSize:11,fontWeight:700,color:"#fef3c7",letterSpacing:0.5,display:"flex",alignItems:"center",justifyContent:"center",gap:6,flexShrink:0}}>
+            <div style={{width:6,height:6,borderRadius:"50%",background:"#fbbf24",flexShrink:0}}/>
+            OFFLINE — all data saves locally, syncs when back online
           </div>
         )}
         <div style={{padding:"4px 12px 2px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -1751,10 +1856,9 @@ export default function App() {
           )}
           {weather && !loadingWeather && (
             <div style={{display:"flex",alignItems:"center",gap:5,padding:"5px 8px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.card,flexShrink:0}}>
-              <Icons.Sun color={P.gold} size={14}/>
+              <span style={{fontSize:16,lineHeight:1}}>{weatherIcon(weather.code)}</span>
               <span style={{fontSize:12,fontWeight:700,color:P.white}}>{weather.temp}°F</span>
               <span style={{fontSize:11,color:P.muted}}>{weatherLabel(weather.code)}</span>
-              <span style={{fontSize:11,color:P.muted,fontWeight:600,marginLeft:2}}>{weather.wind}mph</span>
               <span style={{fontSize:10,color:P.accent,fontWeight:700,background:P.accent+"15",padding:"2px 4px",borderRadius:4}}>{weather.windDir}</span>
             </div>
           )}
@@ -1809,16 +1913,13 @@ export default function App() {
             </div>
           </div>
 
+          {/* Yardage below hole name */}
+          {scores[currentHole].yardage && (
+            <div style={{fontSize:11,fontWeight:700,color:P.muted,marginTop:1}}>{scores[currentHole].yardage} yds</div>
+          )}
+
           {/* Spacer */}
           <div style={{flex:1}}/>
-
-          {/* YARDS */}
-          {scores[currentHole].yardage && (
-            <div style={{textAlign:"center",flexShrink:0}}>
-              <div style={{fontSize:7,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:2}}>YDS</div>
-              <div style={{fontSize:16,fontWeight:800,color:P.white,minWidth:38,textAlign:"center"}}>{scores[currentHole].yardage}</div>
-            </div>
-          )}
 
           {/* PAR */}
           <div style={{textAlign:"center",flexShrink:0}}>
@@ -1957,17 +2058,28 @@ export default function App() {
           </button>
           {holeNoteOpen&&<div style={{marginTop:4,animation:"fadeIn 0.2s ease-out"}}><textarea value={scores[currentHole].holeNote} onChange={e=>updateField("holeNote",e.target.value)} placeholder={`Hole ${currentHole+1} notes...`} rows={2} style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:13,outline:"none",resize:"none",lineHeight:1.4}}/></div>}
         </div>
-        {/* Navigation + actions merged */}
-        <div style={{padding:"4px 12px 12px",display:"flex",gap:6,alignItems:"center"}}>
-          <button onClick={()=>goToHole(Math.max(0,currentHole-1))} disabled={currentHole===0} style={{...navBtnS(P,currentHole===0),padding:"10px 14px"}} {...pp()}>←</button>
-          <button onClick={saveRound} style={{...actionBtnS(P,P.muted),flex:"none",padding:"10px 10px",fontSize:12}} {...pp()}>Save</button>
-          <button onClick={()=>{const hasData=scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0));if(!hasData){showToast("No data yet — log some heroes or bandits first.", "warn");return;}shareRound({course:courseName||"Unnamed Course",date:roundDate,scores,notes:postRoundNotes,totalPar:getTotalPar(scores),totalStroke:getTotalStroke(scores),...getRoundTotals(scores).total});}} style={{...actionBtnS(P,P.accent),flex:"none",padding:"10px 10px",fontSize:12}} {...pp()}>Share</button>
-          <button onClick={startNewRound} style={{...actionBtnS(P,P.muted),flex:"none",padding:"10px 10px",fontSize:12}} {...pp()}>New</button>
+        {/* Navigation + actions */}
+        <div style={{padding:"4px 10px 10px",display:"flex",gap:5,alignItems:"center"}}>
+          {/* Back */}
+          <button onClick={()=>goToHole(Math.max(0,currentHole-1))} disabled={currentHole===0} style={{...navBtnS(P,currentHole===0),padding:"10px 12px",flexShrink:0}} {...pp()}>←</button>
+          {/* Save */}
+          <button onClick={saveRound} {...pp()} style={{flexShrink:0,display:"flex",alignItems:"center",gap:4,padding:"9px 10px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.card,color:P.muted,fontSize:11,fontWeight:700,cursor:"pointer"}}>
+            <Icons.Clipboard color={P.muted} size={12}/>Save
+          </button>
+          {/* Share */}
+          <button onClick={()=>{const hasData=scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0));if(!hasData){showToast("No data yet — log some heroes or bandits first.", "warn");return;}shareRound({course:courseName||"Unnamed Course",date:roundDate,scores,notes:postRoundNotes,totalPar:getTotalPar(scores),totalStroke:getTotalStroke(scores),...getRoundTotals(scores).total});}} {...pp()} style={{flexShrink:0,display:"flex",alignItems:"center",gap:4,padding:"9px 10px",borderRadius:10,border:`1.5px solid ${P.accent}44`,background:P.accent+"10",color:P.accent,fontSize:11,fontWeight:700,cursor:"pointer"}}>
+            <Icons.Share color={P.accent} size={12}/>Share
+          </button>
+          {/* New */}
+          <button onClick={startNewRound} {...pp()} style={{flexShrink:0,display:"flex",alignItems:"center",gap:4,padding:"9px 10px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.card,color:P.muted,fontSize:11,fontWeight:700,cursor:"pointer"}}>
+            <Icons.Flag color={P.muted} size={12}/>New
+          </button>
           <div style={{flex:1}}/>
+          {/* Finish or Forward */}
           {currentHole===17?(
-            <button onClick={completeRound} {...pp()} style={{padding:"10px 14px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green+"12",color:P.green,fontSize:13,fontWeight:700,cursor:"pointer",transition:"transform 0.1s ease"}}>Finish ✓</button>
+            <button onClick={completeRound} {...pp()} style={{padding:"10px 14px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green+"12",color:P.green,fontSize:13,fontWeight:700,cursor:"pointer",transition:"transform 0.1s ease",flexShrink:0}}>Finish ✓</button>
           ):(
-            <button onClick={advanceHole} style={{...navBtnS(P,false),padding:"10px 14px"}} {...pp()}>→</button>
+            <button onClick={advanceHole} style={{...navBtnS(P,false),padding:"10px 12px",flexShrink:0}} {...pp()}>→</button>
           )}
         </div>
         </div>{/* end nav ref wrapper */}
@@ -2009,7 +2121,7 @@ function LoginModal({P,onClose,onLogin}) {
 // ═══════════════════════════════════════
 // HOME
 // ═══════════════════════════════════════
-function HomeScreen({onNav,roundCount,themeToggle,S,user,setUser,showLogin,setShowLogin,savedRounds,settings}) {
+function HomeScreen({onNav,roundCount,themeToggle,S,user,setUser,showLogin,setShowLogin,savedRounds,settings,isPro}) {
   const P=useTheme();
   const darkMode = P.bg === "#09090b";
   const [loaded,setLoaded]=useState(false);
@@ -2073,7 +2185,7 @@ function HomeScreen({onNav,roundCount,themeToggle,S,user,setUser,showLogin,setSh
       {/* Top bar */}
       <div style={{padding:"16px 20px 0",display:"flex",justifyContent:"space-between",alignItems:"center",position:"relative",zIndex:2}}>
         {user?(
-          <button onClick={()=>{if(window.confirm("Sign out?"))setUser(null);}} style={{display:"flex",alignItems:"center",gap:8,background:overlay1,border:`1px solid ${overlay2}`,borderRadius:10,padding:"6px 12px",cursor:"pointer"}} {...pp()}>
+          <button onClick={()=>setUser(null)} style={{display:"flex",alignItems:"center",gap:8,background:overlay1,border:`1px solid ${overlay2}`,borderRadius:10,padding:"6px 12px",cursor:"pointer"}} {...pp()}>
             <div style={{width:24,height:24,borderRadius:"50%",background:overlay2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:textHigh}}>{user.name[0].toUpperCase()}</div>
             <span style={{fontSize:12,color:textMid,fontWeight:500}}>{user.name}</span>
           </button>
@@ -2137,11 +2249,11 @@ function HomeScreen({onNav,roundCount,themeToggle,S,user,setUser,showLogin,setSh
           const bestNet=Math.max(...savedRounds.map(r=>r.net));
           const bestStroke=Math.min(...savedRounds.filter(r=>r.totalStroke>0).map(r=>r.totalStroke));
           const streak=(()=>{let best=0;savedRounds.forEach(r=>{if(!r.scores)return;let cur=0;r.scores.forEach(h=>{const hv=Object.values(h.heroes).reduce((a,c)=>a+c,0),bv=Object.values(h.bandits).reduce((a,c)=>a+c,0);if(hv+bv>0&&hv>bv){cur++;best=Math.max(best,cur);}else cur=0;});});return best;})();
-          return <div style={{display:"flex",gap:8,marginBottom:12,opacity:loaded?1:0,transition:"opacity 0.6s ease 0.6s"}}>
+          return <div style={{display:"flex",gap:8,marginBottom:12,width:"100%",maxWidth:320,opacity:loaded?1:0,transition:"opacity 0.6s ease 0.6s"}}>
             {[{label:"Best Net",val:(bestNet>0?"+":"")+bestNet,color:P.green},{label:"Best Score",val:bestStroke||"—",color:P.white},{label:"Best Streak",val:streak,color:P.gold}].map((s,i)=>(
-              <div key={i} style={{flex:1,textAlign:"center",padding:"8px 4px",borderRadius:12,background:P.card,border:`1px solid ${P.border}`}}>
-                <div style={{fontSize:8,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:3}}>{s.label}</div>
-                <div style={{fontSize:16,fontWeight:900,color:s.color}}>{s.val}</div>
+              <div key={i} style={{flex:1,textAlign:"center",padding:"10px 6px",borderRadius:12,background:P.card,border:`1px solid ${P.border}`,minWidth:0}}>
+                <div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:0.5,marginBottom:4,whiteSpace:"nowrap"}}>{s.label}</div>
+                <div style={{fontSize:18,fontWeight:900,color:s.color,lineHeight:1}}>{s.val}</div>
               </div>
             ))}
           </div>;
@@ -2223,7 +2335,7 @@ function PreRoundChecklist({onBack,onStartRound,S,lastIntention,preRoundMeta,set
           vibrate(30);
           setTimeout(()=>setPulse(false),1200);
         }
-        if(next>=TOTAL_DURATION){
+        vibrate([10,30,10]); if(next>=TOTAL_DURATION){
           clearInterval(timerRef.current);
           setTimerActive(false);
           setTimerComplete(true);
@@ -2592,7 +2704,7 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onSe
         <table style={{borderCollapse:"collapse",fontSize:11,minWidth:"100%"}}>
           <thead>
             <tr>
-              {["#","Par","Scr",...(hasHCP?["HCP"]:[]),"Putts","Rtn","FIR","GIR","H","B","Net",...(hcpAllowance&&hasHCP?["Nett"]:[])].map(h=>(
+              {["#","Par","Scr",...(hasHCP?["HCP"]:[]),"Putts","FIR","GIR","H","B","Net",...(hcpAllowance&&hasHCP?["Nett"]:[])].map(h=>(
                 <th key={h} style={{padding:"5px 4px",textAlign:"center",color:P.muted,borderBottom:`1.5px solid ${P.border}`,fontSize:9,fontWeight:700,whiteSpace:"nowrap",position:"sticky",top:0,background:P.bg,zIndex:1}}>{h}</th>
               ))}
             </tr>
@@ -2691,13 +2803,7 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onSe
           </tbody>
         </table>
       </div>
-      {/* Legend */}
-      <div style={{padding:"6px 12px 12px",display:"flex",gap:12,flexWrap:"wrap",justifyContent:"center"}}>
-        {[{l:"FIR",desc:"Fairway in Regulation"},{l:"GIR",desc:"Green in Regulation"}].map(({l,desc})=>(
-          <div key={l} style={{fontSize:10,color:P.muted,fontWeight:500}}><span style={{fontWeight:700,color:P.white}}>{l}</span> {desc}</div>
-        ))}
-        <div style={{fontSize:10,color:P.muted,fontWeight:500,width:"100%",textAlign:"center"}}>Tap any hole to edit</div>
-      </div>
+      <div style={{padding:"4px 12px 10px",textAlign:"center",fontSize:10,color:P.muted}}>Tap any hole to edit</div>
     </div>
   );
 }
@@ -2802,7 +2908,7 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
 
                 {isC&&<div style={{fontSize:11,color:P.red,fontWeight:600,padding:"0 16px 10px",animation:"fadeIn 0.2s ease-out"}}>Tap ✓ again to confirm delete</div>}
                 {exp&&r.scores&&(
-                  <div style={{marginTop:10,borderTop:`1px solid ${P.border}`,paddingTop:10,animation:"fadeIn 0.2s ease-out"}}>
+                  <div style={{borderTop:`1px solid ${P.border}`,padding:"10px 14px 14px",animation:"fadeIn 0.2s ease-out",maxHeight:500,overflowY:"auto"}}>
 
                     {/* Pre-round meta */}
                     {r.preRoundMeta&&(
@@ -2847,7 +2953,7 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                       <div style={{marginBottom:10}}>
                         <div style={{overflowX:"auto"}}>
                           <table style={{width:"100%",borderCollapse:"collapse",fontSize:10}}>
-                            <thead><tr>{["#","Par","Scr","Putts","Rtn","FIR","GIR","H","B","Net"].map(h=><th key={h} style={{padding:"4px 2px",textAlign:"center",color:P.muted,borderBottom:`1px solid ${P.border}`,fontSize:8,fontWeight:700,whiteSpace:"nowrap"}}>{h}</th>)}</tr></thead>
+                            <thead><tr>{["#","Par","Scr","Putts","FIR","GIR","H","B","Net"].map(h=><th key={h} style={{padding:"4px 2px",textAlign:"center",color:P.muted,borderBottom:`1px solid ${P.border}`,fontSize:8,fontWeight:700,whiteSpace:"nowrap"}}>{h}</th>)}</tr></thead>
                             <tbody>
                               {Array.from({length:18},(_,i)=>{
                                 const s=getHoleStats(r.scores,i);
@@ -2973,7 +3079,7 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
 // ═══════════════════════════════════════
 // SETTINGS VIEW
 // ═══════════════════════════════════════
-function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,savedRounds,inGameCaddie,setInGameCaddie,onResetTour}) {
+function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,savedRounds,inGameCaddie,setInGameCaddie,onResetTour,isPro,onManageSubscription,onCancelPro,onPrivacyPolicy}) {
   const P = useTheme();
   const pp = pressProps;
 
@@ -3010,11 +3116,11 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
   const avgNet = roundCount ? (savedRounds.reduce((s,r)=>s+r.net,0)/roundCount).toFixed(1) : null;
   const dm = P.bg === "#09090b";
 
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+
   function clearAllData() {
-    if (confirm("Delete all saved rounds? This cannot be undone.")) {
-      try { localStorage.removeItem("mental_game_rounds"); } catch {}
-      window.location.reload();
-    }
+    try { localStorage.removeItem("mental_game_rounds"); } catch {}
+    window.location.reload();
   }
 
   return (
@@ -3127,8 +3233,56 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
 
         <Section title="Data" danger>
           <Row label="Clear All Round Data" sub="Permanently delete all saved rounds" last>
-            <button onClick={clearAllData} {...pp()} style={{padding:"7px 14px",borderRadius:9,border:`1.5px solid ${P.red}44`,background:P.red+"10",color:P.red,fontSize:12,fontWeight:700,cursor:"pointer"}}>Delete</button>
+            <button onClick={()=>setShowDeleteConfirm(true)} {...pp()} style={{padding:"7px 14px",borderRadius:9,border:`1.5px solid ${P.red}44`,background:P.red+"10",color:P.red,fontSize:12,fontWeight:700,cursor:"pointer"}}>Delete</button>
           </Row>
+        </Section>
+
+        <Section title="Legal">
+          <Row label="Privacy Policy" sub="How we handle your data">
+            <button onClick={onPrivacyPolicy} {...pp()} style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,cursor:"pointer"}}>View</button>
+          </Row>
+          <Row label="Terms of Service" sub="Rules for using the app" last>
+            <button onClick={onPrivacyPolicy} {...pp()} style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,cursor:"pointer"}}>View</button>
+          </Row>
+        </Section>
+
+        {/* Delete confirm modal */}
+        {showDeleteConfirm&&(
+          <div style={{position:"fixed",inset:0,zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",padding:"0 20px"}}>
+            <div style={{background:P.card,borderRadius:20,padding:"24px 20px",width:"100%",maxWidth:360,border:`1.5px solid ${P.red}33`,textAlign:"center"}}>
+              <div style={{width:48,height:48,borderRadius:14,background:P.red+"18",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}><Icons.Skull color={P.red} size={22}/></div>
+              <div style={{fontSize:17,fontWeight:900,color:P.white,marginBottom:8}}>Delete All Data?</div>
+              <div style={{fontSize:13,color:P.muted,lineHeight:1.6,marginBottom:20}}>This permanently deletes all {savedRounds.length} saved rounds, badges, and history. This cannot be undone.</div>
+              <div style={{display:"flex",gap:10}}>
+                <button onClick={()=>setShowDeleteConfirm(false)} {...pp()} style={{flex:1,padding:"12px",borderRadius:10,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:14,fontWeight:600,cursor:"pointer"}}>Cancel</button>
+                <button onClick={clearAllData} {...pp()} style={{flex:1,padding:"12px",borderRadius:10,border:"none",background:P.red,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer"}}>Delete All</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <Section title="Subscription">
+          <div style={{padding:"14px 0",borderBottom:`1px solid ${P.border}`}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div>
+                <div style={{fontSize:14,fontWeight:700,color:P.white}}>Mental Game Pro</div>
+                <div style={{fontSize:11,color:isPro?"#16a34a":P.muted,fontWeight:600,marginTop:2}}>{isPro?"Active — full access":"Not subscribed"}</div>
+              </div>
+              {isPro?(
+                <div style={{display:"flex",alignItems:"center",gap:6,padding:"4px 10px",borderRadius:20,background:"#16a34a18",border:"1px solid #16a34a44"}}>
+                  <div style={{width:6,height:6,borderRadius:"50%",background:"#16a34a"}}/>
+                  <span style={{fontSize:11,fontWeight:700,color:"#16a34a"}}>PRO</span>
+                </div>
+              ):(
+                <button onClick={onManageSubscription} {...pp()} style={{padding:"7px 14px",borderRadius:9,border:"none",background:"#16a34a",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer"}}>Subscribe</button>
+              )}
+            </div>
+          </div>
+          {isPro&&(
+            <Row label="Manage Subscription" sub="Update payment or cancel in App Store" last>
+              <button onClick={onCancelPro} {...pp()} style={{padding:"7px 14px",borderRadius:9,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,fontWeight:600,cursor:"pointer"}}>Cancel</button>
+            </Row>
+          )}
         </Section>
 
         <div style={{textAlign:"center",paddingTop:8}}>
@@ -3151,77 +3305,171 @@ function generateShareCard(round, darkMode) {
   canvas.width = 1080; canvas.height = 1080;
   const ctx = canvas.getContext("2d");
   const bg = darkMode ? "#09090b" : "#f6f7f4";
-  const fg = darkMode ? "#f8fafc" : "#1a1f16";
-  const muted = darkMode ? "#6b7280" : "#9ca3af";
+  const card = darkMode ? "#141416" : "#ffffff";
+  const fg = darkMode ? "#f8fafc" : "#0f172a";
+  const muted = darkMode ? "#6b7280" : "#94a3b8";
+  const border = darkMode ? "#27272a" : "#e2e8f0";
   const green = "#16a34a", red = "#dc2626", gold = "#ca8a04";
   const net = round.net || 0;
   const netColor = net > 0 ? green : net < 0 ? red : gold;
+  const f = (x) => Math.round(x); // shorthand
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.lineTo(x+w-r, y); ctx.arcTo(x+w, y, x+w, y+r, r);
+    ctx.lineTo(x+w, y+h-r); ctx.arcTo(x+w, y+h, x+w-r, y+h, r);
+    ctx.lineTo(x+r, y+h); ctx.arcTo(x, y+h, x, y+h-r, r);
+    ctx.lineTo(x, y+r); ctx.arcTo(x, y, x+r, y, r);
+    ctx.closePath();
+  }
 
   // Background
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, 1080, 1080);
 
-  // Accent stripe top
-  const grad = ctx.createLinearGradient(0,0,1080,0);
-  grad.addColorStop(0, netColor+"66");
-  grad.addColorStop(1, "transparent");
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 1080, 8);
+  // Top gradient bar
+  const topGrad = ctx.createLinearGradient(0, 0, 1080, 0);
+  topGrad.addColorStop(0, netColor);
+  topGrad.addColorStop(1, netColor + "44");
+  ctx.fillStyle = topGrad;
+  ctx.fillRect(0, 0, 1080, 10);
 
-  // Branding
+  // Subtle background circle (decorative)
+  ctx.beginPath();
+  ctx.arc(920, 200, 280, 0, Math.PI * 2);
+  ctx.fillStyle = netColor + "08";
+  ctx.fill();
+
+  // ── HEADER ──
   ctx.fillStyle = muted;
-  ctx.font = "bold 28px -apple-system, sans-serif";
+  ctx.font = "600 26px -apple-system, sans-serif";
   ctx.textAlign = "left";
-  ctx.fillText("MENTAL GAME SCORECARD", 80, 90);
+  ctx.fillText("MENTAL GAME SCORECARD", 72, 80);
 
+  // Course name
   ctx.fillStyle = fg;
-  ctx.font = "bold 52px -apple-system, sans-serif";
-  ctx.fillText(round.course || "Unnamed Course", 80, 160);
+  ctx.font = "bold 58px -apple-system, sans-serif";
+  const course = round.course || "Unnamed Course";
+  // Truncate if too long
+  ctx.fillText(course.length > 26 ? course.slice(0, 26) + "…" : course, 72, 152);
 
+  // Date
   ctx.fillStyle = muted;
-  ctx.font = "32px -apple-system, sans-serif";
-  ctx.fillText(round.date || "", 80, 210);
+  ctx.font = "500 32px -apple-system, sans-serif";
+  ctx.fillText(round.date || "", 72, 202);
 
-  // Big net number
+  // ── MENTAL NET CARD ──
+  roundRect(72, 240, 936, 300, 28);
+  ctx.fillStyle = card;
+  ctx.fill();
+  roundRect(72, 240, 936, 300, 28);
+  ctx.strokeStyle = border;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Net number
   ctx.fillStyle = netColor;
-  ctx.font = "bold 260px -apple-system, sans-serif";
+  ctx.font = "bold 200px -apple-system, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText((net > 0 ? "+" : "") + net, 540, 560);
+  const netLabel = (net > 0 ? "+" : net < 0 ? "" : "") + (net === 0 ? "E" : net);
+  ctx.fillText(netLabel, 540, 460);
 
   ctx.fillStyle = muted;
-  ctx.font = "bold 42px -apple-system, sans-serif";
-  ctx.fillText("MENTAL NET", 540, 620);
+  ctx.font = "700 30px -apple-system, sans-serif";
+  ctx.fillText("MENTAL NET", 540, 510);
 
-  // Hero / Bandit counts
+  // ── HEROES / BANDITS CARDS ──
+  const cardY = 572, cardH = 180, cardW = 454;
+
+  // Heroes card
+  roundRect(72, cardY, cardW, cardH, 20);
+  ctx.fillStyle = green + "12";
+  ctx.fill();
+  roundRect(72, cardY, cardW, cardH, 20);
+  ctx.strokeStyle = green + "44";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
   ctx.fillStyle = green;
-  ctx.font = "bold 72px -apple-system, sans-serif";
-  ctx.textAlign = "left";
-  ctx.fillText(round.heroes || 0, 160, 760);
+  ctx.font = "bold 90px -apple-system, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(round.heroes || 0, 72 + cardW/2, cardY + 106);
   ctx.fillStyle = muted;
-  ctx.font = "28px -apple-system, sans-serif";
-  ctx.fillText("HEROES", 160, 800);
+  ctx.font = "700 26px -apple-system, sans-serif";
+  ctx.fillText("HEROES", 72 + cardW/2, cardY + 148);
+
+  // Bandits card
+  roundRect(554, cardY, cardW, cardH, 20);
+  ctx.fillStyle = red + "12";
+  ctx.fill();
+  roundRect(554, cardY, cardW, cardH, 20);
+  ctx.strokeStyle = red + "44";
+  ctx.lineWidth = 2;
+  ctx.stroke();
 
   ctx.fillStyle = red;
-  ctx.font = "bold 72px -apple-system, sans-serif";
-  ctx.textAlign = "right";
-  ctx.fillText(round.bandits || 0, 920, 760);
+  ctx.font = "bold 90px -apple-system, sans-serif";
+  ctx.fillText(round.bandits || 0, 554 + cardW/2, cardY + 106);
   ctx.fillStyle = muted;
-  ctx.font = "28px -apple-system, sans-serif";
-  ctx.fillText("BANDITS", 920, 800);
+  ctx.font = "700 26px -apple-system, sans-serif";
+  ctx.fillText("BANDITS", 554 + cardW/2, cardY + 148);
 
-  if (round.totalStroke > 0) {
-    ctx.fillStyle = fg;
-    ctx.font = "bold 44px -apple-system, sans-serif";
-    ctx.textAlign = "center";
+  // ── SCORE ROW ──
+  if (round.totalStroke > 0 || round.putts > 0) {
+    const scoreY = 790;
     const stp = round.totalStroke - (round.totalPar || 0);
-    ctx.fillText(`Shot ${round.totalStroke}${round.totalPar ? " (" + (stp > 0 ? "+" : "") + stp + ")" : ""}`, 540, 880);
+    const scoreItems = [];
+    if (round.totalStroke > 0) scoreItems.push({ label: "SCORE", val: `${round.totalStroke}${round.totalPar ? " (" + (stp > 0 ? "+" : "") + stp + ")" : ""}` });
+    if (round.putts > 0) scoreItems.push({ label: "PUTTS", val: String(round.putts) });
+    if (round.fir != null) scoreItems.push({ label: "FIR%", val: round.fir + "%" });
+
+    const colW = 1080 / scoreItems.length;
+    scoreItems.forEach((item, i) => {
+      const cx = colW * i + colW / 2;
+      ctx.fillStyle = fg;
+      ctx.font = "bold 48px -apple-system, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(item.val, cx, scoreY + 44);
+      ctx.fillStyle = muted;
+      ctx.font = "600 24px -apple-system, sans-serif";
+      ctx.fillText(item.label, cx, scoreY + 82);
+    });
   }
 
-  // Footer
+  // ── HERO BREAKDOWN ──
+  if (round.scores) {
+    const heroNames = ["Love", "Acceptance", "Commitment", "Vulnerability", "Grit"];
+    const heroColors = { Love:"#dc2626", Acceptance:"#ca8a04", Commitment:"#16a34a", Vulnerability:"#7c3aed", Grit:"#2563eb" };
+    const heroCounts = {};
+    heroNames.forEach(h => { heroCounts[h] = round.scores.filter(s => s.heroes?.[h]).length; });
+    const barY = 900, barW = 936, barH = 36, barX = 72;
+    const total = heroNames.reduce((s, h) => s + heroCounts[h], 0) || 1;
+    let curX = barX;
+    heroNames.forEach(h => {
+      const w = Math.round((heroCounts[h] / total) * barW);
+      if (w > 0) {
+        roundRect(curX, barY, w, barH, curX === barX ? 10 : 0);
+        ctx.fillStyle = heroColors[h];
+        ctx.fill();
+        curX += w;
+      }
+    });
+    // Bar outline
+    roundRect(barX, barY, barW, barH, 10);
+    ctx.strokeStyle = border;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // ── FOOTER ──
   ctx.fillStyle = muted;
-  ctx.font = "26px -apple-system, sans-serif";
+  ctx.font = "500 26px -apple-system, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("Play Better · Struggle Less · Enjoy More", 540, 980);
+  ctx.fillText("Play Better · Struggle Less · Enjoy More", 540, 1010);
+  ctx.fillStyle = netColor;
+  ctx.font = "700 22px -apple-system, sans-serif";
+  ctx.fillText("mentalgamescorecard.app", 540, 1048);
 
   return canvas.toDataURL("image/png");
 }
@@ -4270,10 +4518,37 @@ function RoundSummaryView({scores,total,courseName,roundDate,postRoundNotes,setP
 
         <div style={{marginBottom:16,animation:"fadeIn 0.4s ease-out 0.2s both"}}>
           <div style={{fontSize:10,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:8}}>POST-ROUND REFLECTION</div>
-          <div style={{background:P.card,borderRadius:10,padding:"12px 14px",border:`1.5px solid ${P.border}`}}>
-            <div style={{fontSize:13,color:P.gold,marginBottom:8,lineHeight:1.4,fontStyle:"italic",fontWeight:500}}>{prompt}</div>
-            <textarea value={postRoundNotes} onChange={e=>setPostRoundNotes(e.target.value)} placeholder="How was your mental game today?" rows={4} style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:15,outline:"none",resize:"vertical",lineHeight:1.5}}/>
+          <div style={{fontSize:11,color:P.muted,lineHeight:1.5,marginBottom:10,padding:"10px 12px",borderRadius:10,background:P.card,border:`1px solid ${P.border}`,fontStyle:"italic"}}>
+            "Reflection is the bridge between experience and growth. Answer honestly — this is your mental game film session."
           </div>
+          {[
+            {key:"keep",label:"1. What do you want to KEEP doing?",hint:"What mental habits or moments showed up well today?",color:P.green},
+            {key:"stop",label:"2. What do you want to STOP doing?",hint:"Which bandits crept in? What mental patterns hurt you?",color:P.red},
+            {key:"start",label:"3. What do you want to START doing?",hint:"One new mental habit or intention for your next round.",color:P.accent},
+          ].map(q=>{
+            const val = (() => { try { const d=JSON.parse(postRoundNotes||"{}"); return d[q.key]||""; } catch { return q.key==="keep"?postRoundNotes:""; } })();
+            return (
+              <div key={q.key} style={{marginBottom:10,background:P.card,borderRadius:10,padding:"10px 12px",border:`1.5px solid ${P.border}`}}>
+                <div style={{fontSize:12,fontWeight:800,color:q.color,marginBottom:6}}>{q.label}</div>
+                <div style={{fontSize:11,color:P.muted,marginBottom:6,fontStyle:"italic"}}>{q.hint}</div>
+                <textarea
+                  value={val}
+                  onChange={e=>{
+                    try {
+                      const d=JSON.parse(postRoundNotes||"{}");
+                      d[q.key]=e.target.value;
+                      setPostRoundNotes(JSON.stringify(d));
+                    } catch {
+                      setPostRoundNotes(JSON.stringify({keep:postRoundNotes,stop:"",start:"",[q.key]:e.target.value}));
+                    }
+                  }}
+                  placeholder={q.hint}
+                  rows={2}
+                  style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:13,outline:"none",resize:"vertical",lineHeight:1.5}}
+                />
+              </div>
+            );
+          })}
         </div>
 
         {/* "What will you carry forward?" field */}
@@ -4348,7 +4623,7 @@ function RoundStatsView({round,onHome,onShare,S}) {
         <div style={{overflowX:"auto",marginBottom:14,background:P.card,borderRadius:12,border:`1.5px solid ${P.border}`}}>
           <table style={{borderCollapse:"collapse",fontSize:10,minWidth:"100%"}}>
             <thead>
-              <tr>{["#","Par","Scr","Putts","Rtn","FIR","GIR","H","B","Net"].map(h=>(
+              <tr>{["#","Par","Scr","Putts","FIR","GIR","H","B","Net"].map(h=>(
                 <th key={h} style={{...cell,padding:"6px 3px",color:P.muted,borderBottom:`1.5px solid ${P.border}`,fontSize:9,fontWeight:700}}>{h}</th>
               ))}</tr>
             </thead>
@@ -4364,8 +4639,8 @@ function RoundStatsView({round,onHome,onShare,S}) {
                     <td style={{...cell,color:h.putts>2?P.red:h.putts===1?P.green:P.white,fontWeight:h.putts?700:400}}>{h.putts||"—"}</td>
                     <td style={{...cell,color:h.fairway===true?P.green:P.muted,fontWeight:700}}>{h.fairway===true?"✓":"—"}</td>
                     <td style={{...cell,color:h.gir===true?P.accent:P.muted,fontWeight:700}}>{h.gir===true?"✓":"—"}</td>
-                    <td style={{...cell,color:P.green,fontWeight:600}}>{s.heroes||"—"}</td>
-                    <td style={{...cell,color:P.red,fontWeight:600}}>{s.bandits||"—"}</td>
+                    <td style={{...cell,color:P.green,fontWeight:700}}>{s.heroes||"—"}</td>
+                    <td style={{...cell,color:P.red,fontWeight:700}}>{s.bandits||"—"}</td>
                     <td style={{...cell,fontWeight:700,color:s.net>0?P.green:s.net<0?P.red:s.heroes+s.bandits>0?P.gold:P.muted}}>{s.heroes+s.bandits>0?(s.net>0?"+":"")+s.net:"—"}</td>
                   </tr>,
                   i===8&&<tr key="out" style={{background:P.accent+"10",borderTop:`1.5px solid ${P.border}`}}>
@@ -4544,28 +4819,30 @@ function ComboTrendChart({P, trend, rounds, onSelectRound}) {
       </div>
 
       <div style={{position:"relative",height:TOTAL_H,overflowX:"auto"}}>
-        {/* Zero line */}
-        <div style={{position:"absolute",left:0,right:0,top:BAR_AREA/2+14,height:1,background:P.border,zIndex:0}}/>
+
 
         {/* Bars */}
-        <div style={{display:"flex",gap:2,height:BAR_AREA+28,alignItems:"flex-end",position:"absolute",top:0,left:0,right:0}}>
+        <div style={{position:"absolute",top:0,left:0,right:0,bottom:LINE_AREA,display:"flex",gap:2,alignItems:"stretch"}}>
           {trend.map((t, i) => {
-            const barH = Math.max(3, (Math.abs(t.net) / maxNet) * (BAR_AREA/2 - 4));
+            const barH = Math.max(4, (Math.abs(t.net) / maxNet) * (BAR_AREA/2 - 6));
             const pos = t.net >= 0;
-            // Find matching round for click
             const roundsChron = [...rounds].reverse();
             const round = roundsChron[i] || null;
             return (
-              <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",cursor:round?"pointer":"default",position:"relative"}} onClick={()=>round&&onSelectRound(round)} {...pp()}>
-                {/* net label */}
-                <div style={{fontSize:8,fontWeight:700,color:pos?P.green:P.red,height:12,display:"flex",alignItems:"center",marginBottom:1}}>{t.net!==0?(t.net>0?"+":"")+t.net:""}</div>
-                {/* positive bar above mid */}
-                <div style={{height:BAR_AREA/2-4,display:"flex",alignItems:"flex-end"}}>
-                  {pos&&<div style={{width:"100%",height:barH,borderRadius:"3px 3px 0 0",background:P.green,opacity:0.85,transition:"height 0.3s"}}/>}
+              <div key={i} style={{flex:1,display:"flex",flexDirection:"column",cursor:round?"pointer":"default",position:"relative"}} onClick={()=>round&&onSelectRound(round)} {...pp()}>
+                {/* label */}
+                <div style={{height:14,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:700,color:pos?P.green:P.red}}>
+                  {t.net!==0?(t.net>0?"+":"")+t.net:""}
                 </div>
-                {/* negative bar below mid */}
-                <div style={{height:BAR_AREA/2-4,display:"flex",alignItems:"flex-start"}}>
-                  {!pos&&<div style={{width:"100%",height:barH,borderRadius:"0 0 3px 3px",background:P.red,opacity:0.85,transition:"height 0.3s"}}/>}
+                {/* positive half */}
+                <div style={{flex:1,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+                  {pos&&<div style={{width:"80%",height:barH,borderRadius:"3px 3px 0 0",background:P.green,opacity:0.9}}/>}
+                </div>
+                {/* midline */}
+                <div style={{height:1,background:P.border,flexShrink:0}}/>
+                {/* negative half */}
+                <div style={{flex:1,display:"flex",alignItems:"flex-start",justifyContent:"center"}}>
+                  {!pos&&<div style={{width:"80%",height:barH,borderRadius:"0 0 3px 3px",background:P.red,opacity:0.9}}/>}
                 </div>
               </div>
             );
@@ -4735,6 +5012,125 @@ function RoundDetailView({round, onBack, onShare, S}) {
 // ═══════════════════════════════════════
 // TRANSFORM VIEW
 // ═══════════════════════════════════════
+// ═══════════════════════════════════════
+// COACH DASHBOARD
+// ═══════════════════════════════════════
+function CoachDashboardView({onBack, S}) {
+  const P = useTheme();
+  const [data, setData] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [lastRefresh, setLastRefresh] = React.useState(null);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const keys = await window.storage.list("users:", true);
+      const users = await Promise.all(
+        keys.keys.map(async k => {
+          try { const r = await window.storage.get(k, true); return r ? JSON.parse(r.value) : null; } catch { return null; }
+        })
+      );
+      setData(users.filter(Boolean));
+      setLastRefresh(new Date());
+    } catch {}
+    setLoading(false);
+  }
+
+  React.useEffect(()=>{ load(); }, []);
+
+  // Aggregate stats
+  const totalRounds = data.reduce((s,u)=>s+(u.rounds||0), 0);
+  const totalUsers = data.length;
+  const heroTotals = {};
+  const banditTotals = {};
+  data.forEach(u => {
+    if(u.topHero) heroTotals[u.topHero] = (heroTotals[u.topHero]||0) + 1;
+  });
+  const topHero = Object.entries(heroTotals).sort((a,b)=>b[1]-a[1])[0]?.[0] || "—";
+  const diamondUsers = data.filter(u=>u.diamond>0).length;
+  const avgRounds = totalUsers ? (totalRounds/totalUsers).toFixed(1) : "0";
+
+  const HERO_COLORS = {Love:"#dc2626",Acceptance:"#ca8a04",Commitment:"#16a34a",Vulnerability:"#7c3aed",Grit:"#2563eb"};
+
+  return (
+    <div style={{...S.shell,position:"relative",overflow:"hidden",background:P.bg}}>
+      <div style={{position:"absolute",inset:0,background:`radial-gradient(ellipse 80% 35% at 50% 0%, rgba(124,58,237,0.08) 0%, transparent 55%)`,zIndex:0,pointerEvents:"none"}}/>
+
+      {/* Header */}
+      <div style={{padding:"16px 20px 10px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"relative",zIndex:1,flexShrink:0}}>
+        <button onClick={onBack} style={S.iconBtn} {...pressProps()}><Icons.Back color={P.muted}/></button>
+        <div style={{textAlign:"center"}}>
+          <div style={{fontSize:17,fontWeight:900,color:P.white}}>Coach Dashboard</div>
+          <div style={{fontSize:10,color:P.muted,fontWeight:600,letterSpacing:1}}>AGGREGATE · ANONYMOUS</div>
+        </div>
+        <button onClick={load} {...pressProps()} style={{background:"transparent",border:`1px solid ${P.border}`,borderRadius:8,padding:"5px 9px",cursor:"pointer",fontSize:11,fontWeight:700,color:P.muted}}>↻</button>
+      </div>
+
+      <div style={{flex:1,overflowY:"auto",padding:"4px 16px 24px",position:"relative",zIndex:1}}>
+        {loading ? (
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:200,gap:10}}>
+            <div style={{width:12,height:12,borderRadius:"50%",border:`2px solid ${P.border}`,borderTopColor:P.accent,animation:"spin 0.7s linear infinite"}}/>
+            <span style={{color:P.muted,fontSize:13}}>Loading community data...</span>
+          </div>
+        ) : (
+          <>
+            {/* Stats grid */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+              {[
+                {label:"Total Users",val:totalUsers,color:"#7c3aed"},
+                {label:"Total Rounds",val:totalRounds,color:"#16a34a"},
+                {label:"Avg Rounds/User",val:avgRounds,color:"#ca8a04"},
+                {label:"Diamond Members",val:diamondUsers,color:"#1d4ed8"},
+              ].map((s,i)=>(
+                <div key={i} style={{background:P.card,borderRadius:14,padding:"14px",border:`1.5px solid ${P.border}`}}>
+                  <div style={{fontSize:9,color:P.muted,fontWeight:800,letterSpacing:1.5,marginBottom:6,textTransform:"uppercase"}}>{s.label}</div>
+                  <div style={{fontSize:32,fontWeight:900,color:s.color,lineHeight:1}}>{s.val}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Top hero community-wide */}
+            <div style={{background:P.card,borderRadius:14,padding:"14px 16px",border:`1.5px solid ${P.border}`,marginBottom:14}}>
+              <div style={{fontSize:9,color:P.muted,fontWeight:800,letterSpacing:1.5,marginBottom:10,textTransform:"uppercase"}}>Community Top Hero</div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {Object.entries(heroTotals).sort((a,b)=>b[1]-a[1]).map(([hero,count])=>(
+                  <div key={hero} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:20,background:(HERO_COLORS[hero]||P.accent)+"18",border:`1px solid ${(HERO_COLORS[hero]||P.accent)}44`}}>
+                    <div style={{width:6,height:6,borderRadius:"50%",background:HERO_COLORS[hero]||P.accent}}/>
+                    <span style={{fontSize:12,fontWeight:700,color:HERO_COLORS[hero]||P.accent}}>{hero}</span>
+                    <span style={{fontSize:11,color:P.muted}}>{count}</span>
+                  </div>
+                ))}
+                {Object.keys(heroTotals).length===0&&<span style={{fontSize:13,color:P.muted}}>Not enough data yet</span>}
+              </div>
+            </div>
+
+            {/* User list */}
+            <div style={{fontSize:9,color:P.muted,fontWeight:800,letterSpacing:1.5,marginBottom:8,textTransform:"uppercase"}}>Active Players</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {data.sort((a,b)=>(b.rounds||0)-(a.rounds||0)).map((u,i)=>(
+                <div key={u.userId||i} style={{background:P.card,borderRadius:12,padding:"10px 14px",border:`1.5px solid ${P.border}`,display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{width:36,height:36,borderRadius:10,background:P.cardAlt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:P.muted,flexShrink:0}}>
+                    {(u.displayName||"?")[0].toUpperCase()}
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:700,color:P.white,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.displayName||"Anonymous"}</div>
+                    <div style={{fontSize:11,color:P.muted}}>{u.rounds||0} rounds{u.topHero?` · Top: ${u.topHero}`:""}</div>
+                  </div>
+                  {u.diamond>0&&<div style={{fontSize:10,fontWeight:700,color:"#1d4ed8",background:"#1d4ed818",padding:"2px 7px",borderRadius:10,flexShrink:0}}>{u.diamond}D</div>}
+                </div>
+              ))}
+              {data.length===0&&<div style={{textAlign:"center",padding:"30px",color:P.muted,fontSize:13}}>No user data yet — share the app to see community stats here.</div>}
+            </div>
+
+            {lastRefresh&&<div style={{textAlign:"center",marginTop:14,fontSize:10,color:P.muted}}>Updated {lastRefresh.toLocaleTimeString()}</div>}
+          </>
+        )}
+      </div>
+      <style>{`@keyframes spin{to{transform:rotate(360deg);}}`}</style>
+    </div>
+  );
+}
+
 function TransformView({onBack,S,P}) {
   const dm = P.bg === "#09090b";
   const steps = [
@@ -4807,6 +5203,15 @@ function TransformView({onBack,S,P}) {
               <span style={{fontSize:14,fontWeight:800,color:"#fff"}}>Rethinking Golf — Online Course</span>
               <span style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.7)",letterSpacing:1,textTransform:"uppercase"}}>Coming Soon</span>
             </div>
+
+            {/* 1-on-1 Coaching */}
+            <button onClick={()=>openUrl("https://www.paulmonahangolf.com/coaching")} {...pp()} style={{width:"100%",padding:"13px 16px",borderRadius:12,background:"linear-gradient(135deg,#064e3b,#065f46)",border:`1.5px solid #10b98144`,color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div style={{textAlign:"left"}}>
+                <div style={{fontSize:14,fontWeight:800,color:"#fff"}}>1-on-1 Coaching with Paul</div>
+                <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",marginTop:2}}>Personalized mental performance coaching</div>
+              </div>
+              <span style={{fontSize:16,opacity:0.7}}>→</span>
+            </button>
 
             {/* Mastermind */}
             <button onClick={()=>openUrl("https://www.skool.com/paul-monahan-golf-academy-8319/about?ref=78dccfa86ba543cd895a3255f2dab29f")} {...pp()} style={{width:"100%",padding:"13px 16px",borderRadius:12,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:14,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -4959,6 +5364,158 @@ function CaddieExample(){
   </div>;
 }
 
+// ═══════════════════════════════════════
+// PRIVACY POLICY
+// ═══════════════════════════════════════
+function PrivacyPolicyView({onBack, S}) {
+  const P = useTheme();
+  return (
+    <div style={{...S.shell,background:P.bg}}>
+      <div style={{padding:"16px 20px 10px",display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
+        <button onClick={onBack} style={{background:"transparent",border:"none",cursor:"pointer",padding:4}} {...pressProps()}><Icons.Back color={P.muted}/></button>
+        <div style={{fontSize:17,fontWeight:800,color:P.white}}>Privacy Policy & Terms</div>
+      </div>
+      <div style={{flex:1,overflowY:"auto",padding:"4px 20px 32px"}}>
+        <div style={{fontSize:11,color:P.muted,marginBottom:20}}>Last updated: March 2026</div>
+
+        {[
+          {title:"What We Collect", body:"We collect the data you enter into the app: round scores, hero and bandit logs, course names, pre-round check-in data (sleep quality, energy level, playing partners), hole notes, and your display name for the leaderboard. We do not collect your name, email address, or any personal identifying information unless you choose to create an account."},
+          {title:"How We Store It", body:"All round data is stored locally on your device using browser localStorage. Leaderboard display names and badge data are stored in shared cloud storage solely to power the in-app leaderboard feature. We do not sell, share, or transfer your data to third parties."},
+          {title:"Golf Course API", body:"When you search for a course, your search query is sent to golfcourseapi.com to retrieve course and tee data. No personal information is included in these requests."},
+          {title:"Payments", body:"Subscriptions are processed through Apple In-App Purchase or Google Play Billing. We do not store or have access to your payment card information. Your subscription status is stored locally on your device."},
+          {title:"Analytics", body:"We do not currently use any third-party analytics or tracking tools. We do not use cookies for advertising purposes."},
+          {title:"Children", body:"This app is not directed at children under 13. We do not knowingly collect data from children."},
+          {title:"Your Rights", body:"You can delete all your local data at any time from Settings → Data → Clear All Round Data. To request removal of leaderboard data, contact us at support@mentalgamescorecard.com."},
+          {title:"Terms of Service", body:"By using this app you agree to use it for personal, non-commercial purposes only. You may not reverse engineer, copy, or redistribute the app. We reserve the right to suspend access for misuse. The app is provided as-is without warranty. We are not liable for data loss from device issues."},
+          {title:"Contact", body:"For privacy questions or data removal requests: support@mentalgamescorecard.com\n\nMental Game Scorecard is a product of Paul Monahan Golf."},
+        ].map((s,i)=>(
+          <div key={i} style={{marginBottom:20}}>
+            <div style={{fontSize:13,fontWeight:800,color:P.white,marginBottom:6,letterSpacing:0.2}}>{s.title}</div>
+            <div style={{fontSize:13,color:P.muted,lineHeight:1.7,whiteSpace:"pre-line"}}>{s.body}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════
+// PAYWALL
+// ═══════════════════════════════════════
+function PaywallView({onUnlock, onBack, P, S}) {
+  const [selected, setSelected] = React.useState("annual");
+  const [loading, setLoading] = React.useState(false);
+  const dm = P.bg === "#09090b";
+
+  const plans = {
+    monthly: { label:"Monthly", price:"$4.99", sub:"/month", total:"$4.99/mo", save:null },
+    annual:  { label:"Annual",  price:"$49.99", sub:"/year", total:"$4.17/mo", save:"SAVE 17%" },
+  };
+
+  const features = [
+    { icon:"Shield",  text:"Track Heroes & Bandits every hole" },
+    { icon:"Chart",   text:"Full dashboard & mental trends" },
+    { icon:"Medal",   text:"25 milestone badges across 4 tiers" },
+    { icon:"Brain",   text:"In-game mental caddie tips" },
+    { icon:"Clipboard", text:"Pre-round routine & intention setting" },
+    { icon:"Flag",    text:"Unlimited round history & stats" },
+  ];
+
+  async function handleSubscribe() {
+    setLoading(true);
+    // TODO: replace with Stripe Checkout or Apple IAP call
+    // For now simulates a 1.5s payment flow then unlocks
+    await new Promise(r=>setTimeout(r,1500));
+    onUnlock(selected);
+    setLoading(false);
+  }
+
+  return (
+    <div style={{height:"100dvh",display:"flex",flexDirection:"column",background:P.bg,maxWidth:480,margin:"0 auto",overflow:"hidden",fontFamily:"'Avenir Next','SF Pro Display',-apple-system,sans-serif"}}>
+      {/* Header */}
+      <div style={{background:dm?"linear-gradient(175deg,#09090b 0%,#141416 60%,#1c1c1f 100%)":"linear-gradient(175deg,#1a1f16 0%,#2a3020 100%)",padding:"16px 20px 20px",flexShrink:0,position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",border:"1px solid rgba(255,255,255,0.04)"}}/>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+          <div style={{width:40}}/>
+          <div style={{fontSize:11,fontWeight:700,letterSpacing:2,color:"rgba(255,255,255,0.4)"}}>MENTAL GAME PRO</div>
+          <button onClick={onBack} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:"5px 12px",fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.4)",cursor:"pointer"}}>Later</button>
+        </div>
+        <div style={{fontSize:26,fontWeight:900,color:"#fff",letterSpacing:-0.5,lineHeight:1.15,marginBottom:6}}>Unlock Your{"\n"}Mental Game</div>
+        <div style={{fontSize:13,color:"rgba(255,255,255,0.5)",lineHeight:1.5}}>The only golf app built around how you think, not just how you score.</div>
+      </div>
+
+      {/* Scrollable content */}
+      <div style={{flex:1,overflowY:"auto",padding:"16px 20px"}}>
+        {/* Features */}
+        <div style={{marginBottom:16}}>
+          {features.map((f,i)=>{
+            const Ic = Icons[f.icon];
+            return (
+              <div key={i} style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
+                <div style={{width:32,height:32,borderRadius:9,background:"#16a34a18",border:"1.5px solid #16a34a33",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <Ic color="#16a34a" size={15}/>
+                </div>
+                <span style={{fontSize:14,color:P.white,fontWeight:500}}>{f.text}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Plan selector */}
+        <div style={{display:"flex",gap:10,marginBottom:16}}>
+          {Object.entries(plans).map(([key, plan])=>(
+            <button key={key} onClick={()=>setSelected(key)} {...pressProps()} style={{
+              flex:1,padding:"14px 10px",borderRadius:14,cursor:"pointer",textAlign:"center",
+              border:`2px solid ${selected===key?"#16a34a":P.border}`,
+              background:selected===key?"#16a34a12":P.card,
+              transition:"all 0.15s",position:"relative",
+            }}>
+              {plan.save&&<div style={{position:"absolute",top:-10,left:"50%",transform:"translateX(-50%)",background:"#16a34a",color:"#fff",fontSize:9,fontWeight:800,padding:"2px 8px",borderRadius:20,letterSpacing:1,whiteSpace:"nowrap"}}>{plan.save}</div>}
+              <div style={{fontSize:11,fontWeight:700,color:selected===key?"#16a34a":P.muted,marginBottom:4}}>{plan.label}</div>
+              <div style={{fontSize:22,fontWeight:900,color:P.white,lineHeight:1}}>{plan.price}</div>
+              <div style={{fontSize:10,color:P.muted,marginTop:2}}>{plan.sub}</div>
+              {plan.total!==plan.price+plan.sub&&<div style={{fontSize:10,color:"#16a34a",fontWeight:600,marginTop:4}}>{plan.total}</div>}
+            </button>
+          ))}
+        </div>
+
+        {/* Legal */}
+        <div style={{fontSize:10,color:P.muted,textAlign:"center",lineHeight:1.6,marginBottom:8}}>
+          Subscription auto-renews. Cancel anytime in your App Store settings.{"\n"}
+          By subscribing you agree to our{" "}
+          <span style={{color:"#16a34a",fontWeight:600,cursor:"pointer"}} onClick={()=>{}}>Terms</span>
+          {" & "}
+          <span style={{color:"#16a34a",fontWeight:600,cursor:"pointer"}} onClick={()=>{}}>Privacy Policy</span>.
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div style={{padding:"12px 20px 28px",flexShrink:0,borderTop:`1px solid ${P.border}`,background:P.bg}}>
+        <button onClick={handleSubscribe} disabled={loading} {...pressProps()} style={{
+          width:"100%",padding:"16px",borderRadius:14,border:"none",
+          background:loading?"#16a34a88":"#16a34a",
+          color:"#fff",fontSize:16,fontWeight:800,cursor:loading?"default":"pointer",
+          boxShadow:"0 4px 24px rgba(22,163,74,0.35)",transition:"all 0.2s",
+          display:"flex",alignItems:"center",justifyContent:"center",gap:10,
+        }}>
+          {loading?(
+            <><div style={{width:16,height:16,borderRadius:"50%",border:"2px solid rgba(255,255,255,0.3)",borderTopColor:"#fff",animation:"spin 0.7s linear infinite"}}/> Processing...</>
+          ):(
+            `Start ${plans[selected].label} — ${plans[selected].price}`
+          )}
+        </button>
+        <div style={{textAlign:"center",marginTop:10,fontSize:11,color:P.muted}}>
+          {selected==="annual"?"$49.99 billed annually":"$4.99 billed monthly"} · Cancel anytime
+        </div>
+      </div>
+      <style>{`@keyframes spin{to{transform:rotate(360deg);}}`}</style>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════
+// ONBOARDING
+// ═══════════════════════════════════════
 function OnboardingFlow({onFinish,P,S}){
   const [cur,setCur]=useState(0); const [dir,setDir]=useState(1);
   const dm = P.bg === "#09090b";
