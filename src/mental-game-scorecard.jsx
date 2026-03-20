@@ -1660,14 +1660,14 @@ export default function App() {
   // ─── ROUTING ───
   if (showOnboarding) return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><OpenRoundModal/><OnboardingFlow onFinish={finishOnboarding} P={P} S={S}/></ThemeCtx.Provider>;
   if (showPaywall) return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><PaywallView onUnlock={unlockPro} onBack={()=>setShowPaywall(false)} P={P} S={S}/></ThemeCtx.Provider>;
-  if (view==="home") return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><OpenRoundModal/><HomeScreen onNav={(v)=>{if(!isPro){setShowPaywall(true);return;}navTo(v);}} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} user={user} setUser={setUser} showLogin={showLogin} setShowLogin={setShowLogin} savedRounds={savedRounds} settings={settings} isPro={isPro} /></ThemeCtx.Provider>;
+  if (view==="home") return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><OpenRoundModal/><HomeScreen onNav={(v)=>{if(v==="upgrade"){setShowPaywall(true);return;}if(!isPro){setShowPaywall(true);return;}navTo(v);}} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} user={user} setUser={setUser} showLogin={showLogin} setShowLogin={setShowLogin} savedRounds={savedRounds} settings={settings} isPro={isPro} /></ThemeCtx.Provider>;
   if (view==="checklist") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist onBack={nav("home")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",new Date().toISOString().split("T")[0]);const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setView("play");}} S={S} lastIntention={carryForward} preRoundMeta={preRoundMeta} setPreRoundMeta={setPreRoundMeta} settings={settings} /></ThemeCtx.Provider>;
   if (view==="preround") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist onBack={nav("home")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",new Date().toISOString().split("T")[0]);const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setView("play");}} S={S} lastIntention={carryForward} preRoundMeta={preRoundMeta} setPreRoundMeta={setPreRoundMeta} settings={settings} /></ThemeCtx.Provider>;
   if (view==="caddie") return <ThemeCtx.Provider value={P}><ToastLayer/><InnerCaddieView onBack={nav(prevView)} S={S} /></ThemeCtx.Provider>;
   if (view==="coach" || window.location.hash==="#coach") return <ThemeCtx.Provider value={P}><ToastLayer/><CoachDashboardView onBack={()=>{window.location.hash="";nav("home")();}} S={S}/></ThemeCtx.Provider>;
   if (view==="guide") return <ThemeCtx.Provider value={P}><ToastLayer/><OnboardingFlow onFinish={nav("home")} P={P} S={S}/></ThemeCtx.Provider>;
   if (view==="transform") return <ThemeCtx.Provider value={P}><ToastLayer/><TransformView onBack={nav("home")} S={S} P={P}/></ThemeCtx.Provider>;
-  if (view==="dashboard") return <ThemeCtx.Provider value={P}><ToastLayer/><DashboardView rounds={savedRounds} onBack={nav("home")} S={S} onSelectRound={r=>{setSelectedRound(r);setView("rounddetail");}}/></ThemeCtx.Provider>;
+  if (view==="dashboard") return <ThemeCtx.Provider value={P}><ToastLayer/><DashboardView rounds={savedRounds} onBack={nav("home")} isHome={true} S={S} onSelectRound={r=>{setSelectedRound(r);setView("rounddetail");}}/></ThemeCtx.Provider>;
   if (view==="history") return <ThemeCtx.Provider value={P}><ToastLayer/><HistoryView rounds={savedRounds} onBack={()=>{setView("home");setSelectedRound(null);}} onDelete={deleteRound} selectedRound={selectedRound} setSelectedRound={setSelectedRound} onShare={shareRound} onEdit={r=>{setEditingRound(r);setView("editround");}} S={S} /></ThemeCtx.Provider>;
   if (view==="rounddetail") return <ThemeCtx.Provider value={P}><ToastLayer/><RoundDetailView round={selectedRound} onBack={nav("dashboard")} onShare={shareRound} S={S} /></ThemeCtx.Provider>;
   if (showPrivacyPolicy) return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><PrivacyPolicyView onBack={()=>setShowPrivacyPolicy(false)} S={S}/></ThemeCtx.Provider>;
@@ -1688,10 +1688,10 @@ export default function App() {
   return (
     <ThemeCtx.Provider value={P}>
       <div style={{...S.shell,overflow:"hidden"}}>
-        <ConfettiCanvas active={showConfetti} onDone={()=>setShowConfetti(false)}/>
-        <BalloonCanvas active={showBalloons} onDone={()=>setShowBalloons(false)}/>
-        <FlameCanvas active={showFlame} onDone={()=>setShowFlame(false)}/>
-        <StarburstCanvas active={showStarburst} onDone={()=>setShowStarburst(false)}/>
+        <ConfettiCanvas active={!caddieCard&&showConfetti} onDone={()=>setShowConfetti(false)}/>
+        <BalloonCanvas active={!caddieCard&&showBalloons} onDone={()=>setShowBalloons(false)}/>
+        <FlameCanvas active={!caddieCard&&showFlame} onDone={()=>setShowFlame(false)}/>
+        <StarburstCanvas active={!caddieCard&&showStarburst} onDone={()=>setShowStarburst(false)}/>
 
         {/* Multi-step tooltip tour */}
         {!tipDone&&(()=>{
@@ -1859,7 +1859,6 @@ export default function App() {
               <span style={{fontSize:16,lineHeight:1}}>{weatherIcon(weather.code)}</span>
               <span style={{fontSize:12,fontWeight:700,color:P.white}}>{weather.temp}°F</span>
               <span style={{fontSize:11,color:P.muted}}>{weatherLabel(weather.code)}</span>
-              <span style={{fontSize:10,color:P.accent,fontWeight:700,background:P.accent+"15",padding:"2px 4px",borderRadius:4}}>{weather.windDir}</span>
             </div>
           )}
           {!weather && !loadingWeather && courseData && (
@@ -1911,12 +1910,8 @@ export default function App() {
               <span style={{fontSize:22,fontWeight:900,lineHeight:1,color:P.white}}>Hole {currentHole+1}</span>
               {runningDiff!==null&&<span style={{fontSize:12,fontWeight:700,color:runningDiff<0?P.green:runningDiff>0?P.red:P.gold}}>{runningDiff>0?"+":""}{runningDiff===0?"E":runningDiff}</span>}
             </div>
+            {scores[currentHole].yardage&&<div style={{fontSize:11,fontWeight:600,color:P.muted,marginTop:1}}>{scores[currentHole].yardage} yds</div>}
           </div>
-
-          {/* Yardage below hole name */}
-          {scores[currentHole].yardage && (
-            <div style={{fontSize:11,fontWeight:700,color:P.muted,marginTop:1}}>{scores[currentHole].yardage} yds</div>
-          )}
 
           {/* Spacer */}
           <div style={{flex:1}}/>
@@ -2170,7 +2165,7 @@ function HomeScreen({onNav,roundCount,themeToggle,S,user,setUser,showLogin,setSh
   const logoSrc   = darkMode ? HEROES_LOGO_WHITE : HEROES_LOGO_DARK;
   const banditSrc = darkMode ? BANDIT_LOGO_WHITE : BANDIT_LOGO_DARK;
   const heroLabel = darkMode ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)";
-  const footerRule= darkMode ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)";
+  const footerRule= PM_GOLD+"66";
   const footerText= darkMode ? "rgba(255,255,255,0.2)"  : "rgba(0,0,0,0.25)";
 
   return (
@@ -2227,6 +2222,15 @@ function HomeScreen({onNav,roundCount,themeToggle,S,user,setUser,showLogin,setSh
         <div style={{textAlign:"center",marginBottom:32,opacity:loaded?1:0,transition:"opacity 0.7s ease 0.6s",padding:"0 16px"}}>
           <div style={{fontSize:12,color:textLow,fontStyle:"italic",lineHeight:1.5,fontWeight:500}}>"{quote}"</div>
         </div>
+
+        {/* UPGRADE NUDGE for non-pro */}
+        {!isPro&&(
+          <button onClick={()=>onNav("upgrade")} {...pp()} style={{marginBottom:10,padding:"8px 18px",borderRadius:20,background:"linear-gradient(135deg,#16a34a22,#22c55e18)",border:"1px solid #16a34a44",cursor:"pointer",display:"flex",alignItems:"center",gap:8,opacity:loaded?1:0,transition:"opacity 0.6s ease 0.58s"}}>
+            <Icons.Star color="#16a34a" size={13}/>
+            <span style={{fontSize:12,fontWeight:700,color:"#16a34a"}}>Upgrade to Pro</span>
+            <span style={{fontSize:11,color:"#16a34a",opacity:0.6}}>$4.99/mo →</span>
+          </button>
+        )}
 
         {/* PRIMARY CTA */}
         <button onClick={()=>onNav("preround")} {...pp()} style={{
@@ -2315,8 +2319,8 @@ function PreRoundChecklist({onBack,onStartRound,S,lastIntention,preRoundMeta,set
   const TOTAL_DURATION = timerLong ? 360 : 180;
   const INTERVAL = timerLong ? 40 : 20;
   const TOTAL_ITEMS = PREROUND_SECTIONS.reduce((s,sec)=>s+sec.items.length,0);
-  const [timerActive,setTimerActive]=useState(false);
-  const [timerStarted,setTimerStarted]=useState(false);
+  const [timerActive,setTimerActive]=useState(()=>settings?.preroundTimer===true);
+  const [timerStarted,setTimerStarted]=useState(()=>settings?.preroundTimer===true);
   const [elapsed,setElapsed]=useState(0);
   const [pulse,setPulse]=useState(false);
   const [timerComplete,setTimerComplete]=useState(false);
@@ -2698,7 +2702,7 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onSe
   }
   return (
     <div style={S.shell}>
-      <div style={{padding:"16px 20px 8px",display:"flex",alignItems:"center",justifyContent:"space-between"}}><button onClick={onBack} style={S.iconBtn} {...pp()}><Icons.Back color={P.muted}/></button><div style={{fontSize:18,fontWeight:700,color:P.white}}>Full Scorecard</div><div style={{width:40}}/></div>
+      <div style={{padding:"16px 20px 8px",display:"flex",alignItems:"center",justifyContent:"space-between"}}><button onClick={onBack} style={S.iconBtn} {...pp()}><Icons.Back color={P.muted}/></button><div style={{fontSize:18,fontWeight:700,color:P.white}}>Full Scorecard</div><button onClick={()=>window.history.back()} style={{...S.iconBtn,opacity:0}} disabled/></div>
       {courseName&&<div style={{textAlign:"center",color:P.muted,fontSize:13,fontWeight:500}}>{courseName} — {roundDate}</div>}
       <div style={{flex:1,overflowX:"auto",padding:"6px 4px 0"}}>
         <table style={{borderCollapse:"collapse",fontSize:11,minWidth:"100%"}}>
@@ -2908,7 +2912,16 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
 
                 {isC&&<div style={{fontSize:11,color:P.red,fontWeight:600,padding:"0 16px 10px",animation:"fadeIn 0.2s ease-out"}}>Tap ✓ again to confirm delete</div>}
                 {exp&&r.scores&&(
-                  <div style={{borderTop:`1px solid ${P.border}`,padding:"10px 14px 14px",animation:"fadeIn 0.2s ease-out",maxHeight:500,overflowY:"auto"}}>
+                  <div style={{position:"fixed",inset:0,zIndex:200,background:P.bg,overflowY:"auto",animation:"fadeIn 0.2s ease-out",display:"flex",flexDirection:"column"}}>
+                    <div style={{padding:"14px 16px 8px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid ${P.border}`,background:P.bg,flexShrink:0}}>
+                      <button onClick={()=>setSelectedRound(null)} style={{...S.iconBtn}} {...pp()}><Icons.Back color={P.muted}/></button>
+                      <div style={{textAlign:"center"}}>
+                        <div style={{fontSize:15,fontWeight:800,color:P.white}}>{r.course}</div>
+                        <div style={{fontSize:11,color:P.muted}}>{r.date}</div>
+                      </div>
+                      <button onClick={()=>onShare(r)} style={{...S.iconBtn,border:`1.5px solid ${P.accent}44`}} {...pp()}><Icons.Share color={P.accent} size={15}/></button>
+                    </div>
+                    <div style={{flex:1,overflowY:"auto",padding:"14px 16px"}}>
 
                     {/* Pre-round meta */}
                     {r.preRoundMeta&&(
@@ -3056,9 +3069,10 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                     {/* Carry-forward intention */}
                     {r.carryForward&&<div style={{marginBottom:10,padding:"10px 12px",borderRadius:8,background:"#ca8a0410",border:`1px solid #ca8a0433`}}><div style={{fontSize:9,fontWeight:700,color:"#ca8a04",letterSpacing:1,marginBottom:4}}>INTENTION FOR NEXT ROUND</div><div style={{fontSize:13,color:P.white,lineHeight:1.5,fontStyle:"italic",fontWeight:600}}>"{r.carryForward}"</div></div>}
 
-                    <div style={{display:"flex",gap:8}}>
+                    <div style={{display:"flex",gap:8,marginBottom:20}}>
                       <button onClick={e=>{e.stopPropagation();onEdit(r);}} style={{flex:1,padding:"10px",borderRadius:10,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:13,cursor:"pointer",fontWeight:600}} {...pp()}>Edit</button>
                       <button onClick={e=>{e.stopPropagation();onShare(r);}} style={{flex:1,padding:"10px",borderRadius:10,border:`1.5px solid ${netColor}55`,background:netColor+"10",color:netColor,fontSize:13,cursor:"pointer",fontWeight:700}} {...pp()}>Share</button>
+                    </div>
                     </div>
                   </div>
                 )}
@@ -3079,6 +3093,22 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
 // ═══════════════════════════════════════
 // SETTINGS VIEW
 // ═══════════════════════════════════════
+// Uncontrolled input for settings fields that lose focus on re-render
+function FavInput({value, onCommit, placeholder, width}) {
+  const P = useTheme();
+  const [local, setLocal] = React.useState(value);
+  React.useEffect(()=>{ setLocal(value); }, [value]);
+  return (
+    <input
+      value={local}
+      onChange={e=>setLocal(e.target.value)}
+      onBlur={e=>onCommit(e.target.value)}
+      placeholder={placeholder}
+      style={{width,padding:"7px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:13,fontWeight:500,outline:"none"}}
+    />
+  );
+}
+
 function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,savedRounds,inGameCaddie,setInGameCaddie,onResetTour,isPro,onManageSubscription,onCancelPro,onPrivacyPolicy}) {
   const P = useTheme();
   const pp = pressProps;
@@ -3103,10 +3133,10 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
     );
   }
 
-  function Section({title,children,danger}) {
+  function Section({title,children,danger,gold}) {
     return (
       <div style={{marginBottom:12}}>
-        <div style={{fontSize:9,color:P.muted,fontWeight:800,letterSpacing:2,marginBottom:6,paddingLeft:2,textTransform:"uppercase"}}>{title}</div>
+        <div style={{fontSize:9,color:gold?PM_GOLD:P.muted,fontWeight:800,letterSpacing:2,marginBottom:6,paddingLeft:2,textTransform:"uppercase"}}>{title}</div>
         <div style={{background:P.card,borderRadius:16,padding:"0 16px",border:`1.5px solid ${danger?P.red+"33":P.border}`}}>{children}</div>
       </div>
     );
@@ -3202,14 +3232,12 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
           </Row>
         </Section>
 
-        <Section title="Favourite Course">
+        <Section title="Favourite Course" gold={true}>
           <Row label="Course Name" sub="Pre-fills when you start a round">
-            <input value={settings.favCourse||""} onChange={e=>updateSetting("favCourse",e.target.value)} placeholder="Course name..."
-              style={{width:150,padding:"7px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:13,fontWeight:500,outline:"none"}}/>
+            <FavInput value={settings.favCourse||""} onCommit={v=>updateSetting("favCourse",v)} placeholder="Course name..." width={150}/>
           </Row>
           <Row label="Tee" sub="e.g. White, Blue, Gold" last>
-            <input value={settings.favTee||""} onChange={e=>updateSetting("favTee",e.target.value)} placeholder="e.g. White"
-              style={{width:96,padding:"7px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:13,fontWeight:500,outline:"none"}}/>
+            <FavInput value={settings.favTee||""} onCommit={v=>updateSetting("favTee",v)} placeholder="e.g. White" width={96}/>
           </Row>
         </Section>
 
@@ -3728,10 +3756,10 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
   // Stat tile — clean, colour only on the number
   function StatTile({label,value,color,sub}) {
     return (
-      <div style={{background:P.card,borderRadius:14,padding:"12px 10px",border:`1.5px solid ${P.border}`,textAlign:"center"}}>
-        <div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:4}}>{label}</div>
-        <div style={{fontSize:22,fontWeight:900,color:color||P.white,lineHeight:1}}>{value}</div>
-        {sub&&<div style={{fontSize:10,color:P.muted,fontWeight:500,marginTop:3}}>{sub}</div>}
+      <div style={{background:P.card,borderRadius:12,padding:"10px 8px",border:`1.5px solid ${P.border}`,textAlign:"center"}}>
+        <div style={{fontSize:8,color:P.muted,fontWeight:700,letterSpacing:0.8,marginBottom:3}}>{label}</div>
+        <div style={{fontSize:20,fontWeight:900,color:color||P.white,lineHeight:1}}>{value}</div>
+        {sub&&<div style={{fontSize:9,color:P.muted,fontWeight:500,marginTop:2}}>{sub}</div>}
       </div>
     );
   }
@@ -3798,7 +3826,7 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
           {/* ── TRENDING + STREAK ── */}
           <div style={{display:"flex",gap:8,marginBottom:12}}>
             {stats.improving&&(
-              <div style={{flex:1,background:P.card,borderRadius:14,padding:"12px 14px",border:`1.5px solid ${P.border}`,display:"flex",alignItems:"center",gap:10}}>
+              <div style={{flex:1,background:P.card,borderRadius:12,padding:"10px 12px",border:`1.5px solid ${P.border}`,display:"flex",alignItems:"center",gap:8}}>
                 <div style={{width:36,height:36,borderRadius:10,background:(stats.improving==="up"?P.green:stats.improving==="down"?P.red:P.gold)+"18",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                   {stats.improving==="up"?<Icons.TrendUp color={P.green} size={18}/>:stats.improving==="down"?<Icons.TrendUp color={P.red} size={18}/>:<Icons.Chart color={P.gold} size={18}/>}
                 </div>
@@ -3809,7 +3837,7 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
               </div>
             )}
             {stats.bestStreak>=2&&(
-              <div style={{flex:1,background:P.card,borderRadius:14,padding:"12px 14px",border:`1.5px solid ${P.border}`,display:"flex",alignItems:"center",gap:10}}>
+              <div style={{flex:1,background:P.card,borderRadius:12,padding:"10px 12px",border:`1.5px solid ${P.border}`,display:"flex",alignItems:"center",gap:8}}>
                 <div style={{width:36,height:36,borderRadius:10,background:P.green+"18",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                   <Icons.Fire color={P.green} size={18}/>
                 </div>
@@ -3845,6 +3873,19 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
 
           {/* ── TREND CHART ── */}
           {stats.trend.length>1&&<div style={{marginBottom:12}}><ComboTrendChart P={P} trend={stats.trend} rounds={rounds} onSelectRound={onSelectRound}/></div>}
+
+          {/* ── RECOVERY RATE ── */}
+          {stats.recoveryRate!==null&&(
+            <div style={{background:P.card,borderRadius:14,padding:"12px 14px",marginBottom:12,border:`1.5px solid ${P.border}`,display:"flex",alignItems:"center",gap:12}}>
+              <div style={{width:52,height:52,borderRadius:14,background:P.cardAlt,border:`1.5px solid ${P.border}`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <span style={{fontSize:18,fontWeight:900,color:stats.recoveryRate>=60?P.green:stats.recoveryRate>=40?P.gold:P.red,lineHeight:1}}>{stats.recoveryRate}%</span>
+              </div>
+              <div>
+                <div style={{fontSize:13,fontWeight:800,color:P.white,marginBottom:2}}>Mental Recovery Rate</div>
+                <div style={{fontSize:11,color:P.muted,lineHeight:1.5}}>After a bandit hole, you bounce back {stats.recoveryRate>=60?"strongly":stats.recoveryRate>=40?"sometimes":"rarely"} — {stats.recoveryRate}% of the time</div>
+              </div>
+            </div>
+          )}
 
           {/* ── HOLE MENTAL MAP ── */}
           {rounds.length>=2&&(
@@ -3909,19 +3950,6 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
                 </div>
               )}
             </Section>
-          )}
-
-          {/* ── RECOVERY RATE ── */}
-          {stats.recoveryRate!==null&&(
-            <div style={{background:P.card,borderRadius:16,padding:"14px 16px",marginBottom:12,border:`1.5px solid ${P.border}`,display:"flex",alignItems:"center",gap:14}}>
-              <div style={{width:56,height:56,borderRadius:16,background:P.cardAlt,border:`1.5px solid ${P.border}`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                <span style={{fontSize:20,fontWeight:900,color:stats.recoveryRate>=60?P.green:stats.recoveryRate>=40?P.gold:P.red,lineHeight:1}}>{stats.recoveryRate}%</span>
-              </div>
-              <div>
-                <div style={{fontSize:14,fontWeight:800,color:P.white,marginBottom:2}}>Mental Recovery Rate</div>
-                <div style={{fontSize:12,color:P.muted,lineHeight:1.5}}>After a bandit hole, you bounce back {stats.recoveryRate>=60?"strongly":stats.recoveryRate>=40?"sometimes":"rarely"} — {stats.recoveryRate}% of the time</div>
-              </div>
-            </div>
           )}
 
           {/* ── HERO ACTIVATION ── */}
@@ -4504,9 +4532,10 @@ function RoundSummaryView({scores,total,courseName,roundDate,postRoundNotes,setP
       <div style={{flex:1,overflowY:"auto",padding:"0 16px 20px"}}>
         <div style={{textAlign:"center",padding:"12px 0 16px",animation:"fadeIn 0.4s ease-out"}}>
           <div style={{marginBottom:8}}><Icons.Flag color={P.green} size={42}/></div>
-          <div style={{fontSize:14,color:P.muted,fontWeight:500}}>{courseName||"Unnamed Course"} — {roundDate}</div>
-          {totalStroke>0&&<div style={{fontSize:16,color:P.accent,fontWeight:700,marginTop:4}}>Shot {totalStroke}{stp!==null?` (${stp>0?"+":""}${stp})`:""}</div>}
-          <div style={{fontSize:34,fontWeight:800,marginTop:8,color:total.net>0?P.green:total.net<0?P.red:P.gold}}>Mental Net: {total.net>0?"+":""}{total.net}</div>
+          <div style={{fontSize:15,fontWeight:700,color:P.white}}>{courseName||"Unnamed Course"}</div>
+          <div style={{fontSize:12,color:P.muted,fontWeight:500,marginTop:1}}>{roundDate}</div>
+          <div style={{fontSize:36,fontWeight:900,marginTop:8,color:total.net>0?P.green:total.net<0?P.red:P.gold,lineHeight:1}}>Mental Net: {total.net>0?"+":""}{total.net}</div>
+          {totalStroke>0&&<div style={{fontSize:16,color:P.accent,fontWeight:700,marginTop:6}}>Shot {totalStroke}{stp!==null?` (${stp>0?"+":""}${stp})`:""}</div>}
           <div style={{display:"flex",justifyContent:"center",gap:28,marginTop:8}}>
             <div style={{textAlign:"center"}}><img src={darkMode ? HEROES_LOGO_WHITE : HEROES_LOGO_DARK} alt="" style={{width:40,height:40,objectFit:"contain",display:"block",margin:"0 auto 4px"}}/><span style={{fontSize:22,fontWeight:800,color:P.green}}>{total.heroes}</span><div style={{fontSize:9,color:P.green,fontWeight:700,letterSpacing:1.5,marginTop:2}}>HEROES</div></div>
             <div style={{textAlign:"center"}}><img src={darkMode ? BANDIT_LOGO_WHITE : BANDIT_LOGO_DARK} alt="" style={{width:40,height:40,objectFit:"contain",display:"block",margin:"0 auto 4px"}}/><span style={{fontSize:22,fontWeight:800,color:P.red}}>{total.bandits}</span><div style={{fontSize:9,color:P.red,fontWeight:700,letterSpacing:1.5,marginTop:2}}>BANDITS</div></div>
@@ -4595,12 +4624,12 @@ function RoundStatsView({round,onHome,onShare,S}) {
   return (
     <div style={S.shell}>
       <div style={{padding:"12px 16px 6px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-        <div style={{width:36}}/>
+        <button onClick={()=>onHome("home")} style={S.iconBtn} {...pp()}><Icons.Home color={P.muted} size={17}/></button>
         <div style={{textAlign:"center"}}>
           <div style={{fontSize:16,fontWeight:800,color:P.white}}>{round.course}</div>
           <div style={{fontSize:11,color:P.muted,fontWeight:500}}>{round.date}</div>
         </div>
-        <button onClick={()=>onShare(round)} style={{...S.iconBtn,border:`1.5px solid ${P.accent}44`}} {...pp()}><Icons.Chev color={P.accent} size={15}/></button>
+        <button onClick={()=>onShare(round)} style={{...S.iconBtn,border:`1.5px solid ${P.accent}44`}} {...pp()}><Icons.Share color={P.accent} size={15}/></button>
       </div>
 
       {/* Summary strip */}
@@ -5134,10 +5163,10 @@ function CoachDashboardView({onBack, S}) {
 function TransformView({onBack,S,P}) {
   const dm = P.bg === "#09090b";
   const steps = [
-    {num:1,title:"Be a Transformative Learner",sub:"The Key to Skill Building",desc:"Define the gap. Be open. Embrace discomfort. Objectivity leads to discovery.",c:"#60a5fa"},
-    {num:2,title:"Be Aware",sub:"The Key to a Productive Mindset",desc:"Tune-in to your thinking. You have CHOICES about the thought patterns you anchor to in any moment. Notice your chatter.",c:"#a78bfa"},
-    {num:3,title:"Be Present",sub:"The Key to Playing the Game",desc:"You can't WIN the moment unless you are IN the moment. Play golf — not golf swing. Channel your inner athlete.",c:"#34d87a"},
-    {num:4,title:"Be a Possibility Thinker",sub:"The Key to Staying In the Game",desc:"Turn challenge into opportunity. Operate from abundance. Feed the Good Wolf.",c:"#fbbf24"},
+    {num:1,title:"Be a Transformative Learner",sub:"The Key to Skill Building",c:"#60a5fa"},
+    {num:2,title:"Be Aware",sub:"The Key to a Productive Mindset",c:"#a78bfa"},
+    {num:3,title:"Be Present",sub:"The Key to Playing the Game",c:"#34d87a"},
+    {num:4,title:"Be a Possibility Thinker",sub:"The Key to Staying In the Game",c:"#fbbf24"},
   ];
   return (
     <div style={{...S.shell,position:"relative",background:P.bg}}>
@@ -5156,19 +5185,18 @@ function TransformView({onBack,S,P}) {
       <div style={{flex:1,overflowY:"auto",padding:"4px 16px 28px",position:"relative",zIndex:1}}>
 
         {/* Intro text */}
-        <div style={{fontSize:13,lineHeight:1.6,color:P.muted,fontWeight:500,marginBottom:14,padding:"12px 14px",borderRadius:12,background:P.card,border:`1px solid ${P.border}`}}>
+        <div style={{fontSize:13,lineHeight:1.6,color:P.muted,fontWeight:500,marginBottom:14,padding:"12px 14px",borderRadius:12,background:P.card,border:`1px solid ${PM_GOLD}44`}}>
           Channeling the Five Heroes of Potential will allow you to experience practice and play with a sense of objectivity, joy, and passion that produces better decisions and shot-making.
         </div>
 
         {/* 4 Steps */}
-        <div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:P.muted,marginBottom:8,textTransform:"uppercase"}}>4 Steps to Transform Your Game</div>
+        <div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:PM_GOLD,marginBottom:8,textTransform:"uppercase"}}>4 Steps to Transform Your Game</div>
         {steps.map((s,i)=>(
           <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"12px 14px",borderRadius:14,background:P.card,border:`1.5px solid ${P.border}`,marginBottom:8}}>
             <div style={{width:36,height:36,borderRadius:10,background:s.c+"18",border:`1.5px solid ${s.c}44`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:15,fontWeight:900,color:s.c}}>{s.num}</div>
             <div>
-              <div style={{fontSize:14,fontWeight:800,color:P.white,marginBottom:1}}>{s.title}</div>
-              <div style={{fontSize:9,fontWeight:800,color:s.c,letterSpacing:1,marginBottom:4,textTransform:"uppercase"}}>{s.sub}</div>
-              <div style={{fontSize:12,color:P.muted,lineHeight:1.5}}>{s.desc}</div>
+              <div style={{fontSize:14,fontWeight:800,color:P.white,marginBottom:2}}>{s.title}</div>
+              <div style={{fontSize:9,fontWeight:800,color:s.c,letterSpacing:1,textTransform:"uppercase"}}>{s.sub}</div>
             </div>
           </div>
         ))}
@@ -5177,13 +5205,13 @@ function TransformView({onBack,S,P}) {
         <div style={{marginTop:4,padding:"16px",borderRadius:16,background:P.card,border:`1.5px solid ${P.border}`}}>
           {/* Paul bio */}
           <div style={{display:"flex",gap:12,alignItems:"center",marginBottom:14,paddingBottom:14,borderBottom:`1px solid ${P.border}`}}>
-            <div style={{width:52,height:52,borderRadius:"50%",background:`linear-gradient(135deg,#1a3a5c,#2563eb)`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:20,fontWeight:900,color:"#fff"}}>P</div>
+            <div style={{width:52,height:52,borderRadius:"50%",background:`linear-gradient(135deg,${PM_NAVY},#2563eb)`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:20,fontWeight:900,color:"#fff"}}>P</div>
             <div>
               <div style={{fontSize:14,fontWeight:800,color:P.white,marginBottom:2}}>Paul Monahan</div>
               <div style={{fontSize:11,color:P.muted,lineHeight:1.5}}>Human performance coach, author of <span style={{color:P.white,fontStyle:"italic"}}>The Most Important Game</span>, and founder of Paul Monahan Golf.</div>
             </div>
           </div>
-          <div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:P.muted,marginBottom:4,textTransform:"uppercase"}}>Go Deeper With Paul</div>
+          <div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:PM_GOLD,marginBottom:4,textTransform:"uppercase"}}>Go Deeper With Paul</div>
           <div style={{fontSize:13,color:P.muted,lineHeight:1.5,marginBottom:14}}>Ready to take your mental game to the next level? Work directly with Paul through his book, online course, or mastermind community.</div>
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
 
@@ -5199,13 +5227,16 @@ function TransformView({onBack,S,P}) {
             </button>
 
             {/* Course */}
-            <div style={{width:"100%",padding:"13px 16px",borderRadius:12,background:"linear-gradient(135deg,#1a3a5c,#2563eb)",display:"flex",alignItems:"center",justifyContent:"space-between",opacity:0.6}}>
-              <span style={{fontSize:14,fontWeight:800,color:"#fff"}}>Rethinking Golf — Online Course</span>
-              <span style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.7)",letterSpacing:1,textTransform:"uppercase"}}>Coming Soon</span>
+            <div style={{width:"100%",padding:"12px 14px",borderRadius:12,background:"linear-gradient(135deg,#1a3a5c,#2563eb)",display:"flex",alignItems:"center",justifyContent:"space-between",opacity:0.55}}>
+              <div>
+                <div style={{fontSize:13,fontWeight:800,color:"#fff",lineHeight:1.2}}>Rethinking Golf</div>
+                <div style={{fontSize:10,color:"rgba(255,255,255,0.6)",marginTop:2}}>Online Course</div>
+              </div>
+              <span style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:1,textTransform:"uppercase",border:"1px solid rgba(255,255,255,0.2)",borderRadius:6,padding:"3px 7px"}}>Coming Soon</span>
             </div>
 
             {/* 1-on-1 Coaching */}
-            <button onClick={()=>openUrl("https://www.paulmonahangolf.com/coaching")} {...pp()} style={{width:"100%",padding:"13px 16px",borderRadius:12,background:"linear-gradient(135deg,#064e3b,#065f46)",border:`1.5px solid #10b98144`,color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <button onClick={()=>openUrl("https://www.paulmonahan.com/golf-coach/")} {...pp()} style={{width:"100%",padding:"13px 16px",borderRadius:12,background:"linear-gradient(135deg,#064e3b,#065f46)",border:`1.5px solid #10b98144`,color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               <div style={{textAlign:"left"}}>
                 <div style={{fontSize:14,fontWeight:800,color:"#fff"}}>1-on-1 Coaching with Paul</div>
                 <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",marginTop:2}}>Personalized mental performance coaching</div>
@@ -5519,7 +5550,7 @@ function PaywallView({onUnlock, onBack, P, S}) {
 function OnboardingFlow({onFinish,P,S}){
   const [cur,setCur]=useState(0); const [dir,setDir]=useState(1);
   const dm = P.bg === "#09090b";
-  const qb={padding:"14px 16px",borderRadius:12,background:dm?"#141416":P.cardAlt,border:`1px solid ${P.border}`,marginBottom:10};
+  const qb={padding:"14px 16px",borderRadius:12,background:dm?"#141416":P.cardAlt,border:`1px solid ${PM_GOLD}44`,marginBottom:10};
   const qt={fontSize:14,lineHeight:1.55,color:P.muted,fontWeight:500,fontStyle:"italic"};
   const itemCard={display:"flex",gap:12,alignItems:"flex-start",padding:"10px 12px",borderRadius:12,background:P.card,border:`1.5px solid ${P.border}`,marginBottom:6};
   const iconBox={width:30,height:30,borderRadius:8,background:P.cardAlt,border:`1px solid ${P.border}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0};
@@ -5620,7 +5651,7 @@ function OnboardingFlow({onFinish,P,S}){
 
       {/* Go Deeper section */}
       <div style={{marginTop:8,padding:"16px",borderRadius:16,background:P.card,border:`1.5px solid ${P.border}`}}>
-        <div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:P.muted,marginBottom:4,textTransform:"uppercase"}}>Go Deeper With Paul</div>
+        <div style={{fontSize:9,fontWeight:800,letterSpacing:2,color:PM_GOLD,marginBottom:4,textTransform:"uppercase"}}>Go Deeper With Paul</div>
         <div style={{fontSize:13,color:P.muted,lineHeight:1.5,marginBottom:14}}>Ready to take your mental game to the next level? Work directly with Paul through his online course or join his mastermind community.</div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
 
@@ -5637,7 +5668,7 @@ function OnboardingFlow({onFinish,P,S}){
 
           {/* Course */}
           <button onClick={()=>{ openUrl("https://paulmonahan.com"); }} style={{width:"100%",padding:"13px 16px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#1a3a5c,#2563eb)",color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-            <span>Rethinking Golf — Online Course</span>
+            <span style={{fontSize:13}}>Rethinking Golf — Online Course</span>
             <span style={{fontSize:16,opacity:0.8}}>→</span>
           </button>
 
