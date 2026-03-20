@@ -3061,7 +3061,6 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
       ):(
         <div style={{padding:"0 14px 20px",overflowY:"auto",flex:1,position:"relative",zIndex:1}}>
           {rounds.map((r,idx)=>{
-            const exp=selectedRound?.id===r.id;
             const stp=r.totalStroke&&r.totalPar?r.totalStroke-r.totalPar:null;
             const isC=confirmId===r.id;
             const holeNotes=r.scores?r.scores.map((h,i)=>({hole:i+1,note:h.holeNote,stats:getHoleStats(r.scores,i)})).filter(h=>h.note):[];
@@ -3110,10 +3109,8 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
               </div>
             );
           })}
-        </div>
-      )}
-      {/* Expanded round full-screen overlay */}
-      {selectedRound&&selectedRound.scores&&(()=>{
+          {/* Expanded round full-screen overlay */}
+          {selectedRound&&selectedRound.scores&&(()=>{
         const r=selectedRound;
         const netColor=r.net>0?P.green:r.net<0?P.red:P.gold;
         const holeNotes=r.scores?r.scores.map((h,i)=>({hole:i+1,note:h.holeNote,stats:getHoleStats(r.scores,i)})).filter(h=>h.note):[];
@@ -3218,6 +3215,8 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
           </div>
         );
       })()}
+        </div>
+      )}
       <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}`}</style>
     </div>
   );
