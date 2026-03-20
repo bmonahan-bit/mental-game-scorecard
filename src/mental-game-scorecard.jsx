@@ -975,7 +975,201 @@ function buildShareText(r) {
   if(r.notes) t+=`\nPost-Round Notes:\n${r.notes}\n`;
   t+=`\nPlay Better. Struggle Less. Enjoy More.`; return t;
 }
-async function shareRound(r) { const text=buildShareText(r); if(navigator.share){try{await navigator.share({title:"Mental Game Scorecard",text});return;}catch{}} try{await navigator.clipboard.writeText(text);showToast("Copied to clipboard!", "success");}catch{prompt("Copy:",text);} }
+async function shareRoundAsImage(r, darkMode) {
+  const canvas = document.createElement("canvas");
+  const W = 800, H = 480;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  const bg = darkMode ? "#09090b" : "#f6f7f4";
+  const card = darkMode ? "#141416" : "#ffffff";
+  const border = darkMode ? "#2a2a2e" : "#e0e2dc";
+  const white = darkMode ? "#f8fafc" : "#0f172a";
+  const muted = darkMode ? "#71717a" : "#71717a";
+  const green = "#16a34a";
+  const red = "#dc2626";
+  const gold = "#ca8a04";
+  const pmGold = "#c9a84c";
+  const netColor = r.net > 0 ? green : r.net < 0 ? red : gold;
+  const stp = r.totalStroke && r.totalPar ? r.totalStroke - r.totalPar : null;
+
+  // Background
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Top accent bar
+  const grad = ctx.createLinearGradient(0, 0, W, 0);
+  grad.addColorStop(0, "#1a2b4a");
+  grad.addColorStop(1, "#2563eb22");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, 5);
+
+  // Card
+  ctx.fillStyle = card;
+  ctx.strokeStyle = border;
+  ctx.lineWidth = 1.5;
+  roundRect(ctx, 32, 24, W - 64, H - 64, 20);
+  ctx.fill(); ctx.stroke();
+
+  // Net color left strip
+  ctx.fillStyle = netColor;
+  roundRect(ctx, 32, 24, 6, H - 64, [20, 0, 0, 20]);
+  ctx.fill();
+
+  // Course name
+  ctx.fillStyle = white;
+  ctx.font = "bold 28px 'Avenir Next', -apple-system, sans-serif";
+  ctx.fillText(truncate(ctx, r.course || "Unnamed Course", W - 200), 62, 72);
+
+  // Date
+  ctx.fillStyle = muted;
+  ctx.font = "16px 'Avenir Next', -apple-system, sans-serif";
+  ctx.fillText(r.date || "", 62, 98);
+
+  // Big net score
+  ctx.fillStyle = netColor;
+  ctx.font = "bold 88px 'Avenir Next', -apple-system, sans-serif";
+  const netStr = (r.net > 0 ? "+" : "") + r.net;
+  ctx.fillText(netStr, 62, 210);
+
+  // Mental net label
+  ctx.fillStyle = muted;
+  ctx.font = "bold 13px 'Avenir Next', -apple-system, sans-serif";
+  ctx.fillText("MENTAL NET", 62, 232);
+
+  // Stroke score
+  if (r.totalStroke) {
+    ctx.fillStyle = white;
+    ctx.font = "bold 22px 'Avenir Next', -apple-system, sans-serif";
+    const scoreStr = `Shot ${r.totalStroke}${stp !== null ? ` (${stp > 0 ? "+" : ""}${stp})` : ""}`;
+    ctx.fillText(scoreStr, 62, 270);
+  }
+
+  // Heroes / Bandits boxes
+  const boxY = 300, boxH = 80;
+  [[r.heroes, "HEROES", green, 62], [r.bandits, "BANDITS", red, 200]].forEach(([val, label, color, x]) => {
+    ctx.fillStyle = color + "18";
+    ctx.strokeStyle = color + "44";
+    ctx.lineWidth = 1.5;
+    roundRect(ctx, x, boxY, 120, boxH, 12);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.font = "bold 36px 'Avenir Next', -apple-system, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(val, x + 60, boxY + 46);
+    ctx.fillStyle = muted;
+    ctx.font = "bold 10px 'Avenir Next', -apple-system, sans-serif";
+    ctx.fillText(label, x + 60, boxY + 68);
+    ctx.textAlign = "left";
+  });
+
+  // Hero breakdown bars on right
+  const HERO_COLORS = {"Love":"#dc2626","Acceptance":"#ca8a04","Commitment":"#16a34a","Vulnerability":"#7c3aed","Grit":"#2563eb"};
+  const heroes = ["Love","Acceptance","Commitment","Vulnerability","Grit"];
+  const bandits = ["Fear","Frustration","Doubt","Shame","Quit"];
+  const maxHB = Math.max(1, ...heroes.map(h => r.scores ? r.scores.reduce((s,hole)=>s+(hole.heroes[h]||0),0) : 0));
+  const barX = 380, barW = W - barX - 64;
+  heroes.forEach((h, i) => {
+    const hc = r.scores ? r.scores.reduce((s,hole)=>s+(hole.heroes[h]||0),0) : 0;
+    const bc = r.scores ? r.scores.reduce((s,hole)=>s+(hole.bandits[bandits[i]]||0),0) : 0;
+    const y = 50 + i * 74;
+    const hColor = HERO_COLORS[h] || green;
+    // Hero name
+    ctx.fillStyle = white;
+    ctx.font = "bold 13px 'Avenir Next', -apple-system, sans-serif";
+    ctx.fillText(h, barX, y + 14);
+    // vs bandit
+    ctx.fillStyle = muted;
+    ctx.font = "11px 'Avenir Next', -apple-system, sans-serif";
+    ctx.fillText(`vs ${bandits[i]}`, barX + 120, y + 14);
+    // Hero bar
+    ctx.fillStyle = hColor + "33";
+    roundRect(ctx, barX, y + 20, barW, 14, 4);
+    ctx.fill();
+    if (hc > 0) {
+      ctx.fillStyle = hColor;
+      roundRect(ctx, barX, y + 20, Math.max(8, (hc / maxHB) * barW), 14, 4);
+      ctx.fill();
+    }
+    // Counts
+    ctx.fillStyle = hColor;
+    ctx.font = "bold 11px 'Avenir Next', -apple-system, sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText(hc, barX - 6, y + 32);
+    ctx.fillStyle = red;
+    ctx.fillText(bc, W - 52, y + 32);
+    ctx.textAlign = "left";
+    // Bandit bar (right-to-left)
+    ctx.fillStyle = red + "33";
+    roundRect(ctx, barX, y + 38, barW, 10, 3);
+    ctx.fill();
+    if (bc > 0) {
+      ctx.fillStyle = red + "99";
+      roundRect(ctx, barX + barW - Math.max(6, (bc / maxHB) * barW), y + 38, Math.max(6, (bc / maxHB) * barW), 10, 3);
+      ctx.fill();
+    }
+  });
+
+  // Bottom branding
+  ctx.fillStyle = pmGold;
+  ctx.font = "bold 11px 'Avenir Next', -apple-system, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("PAUL MONAHAN GOLF · Mental Game Scorecard", W / 2, H - 20);
+  ctx.textAlign = "left";
+
+  return canvas;
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  if (typeof r === "number") r = [r, r, r, r];
+  const [tl, tr, br, bl] = r;
+  ctx.beginPath();
+  ctx.moveTo(x + tl, y);
+  ctx.lineTo(x + w - tr, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + tr);
+  ctx.lineTo(x + w, y + h - br);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - br, y + h);
+  ctx.lineTo(x + bl, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - bl);
+  ctx.lineTo(x, y + tl);
+  ctx.quadraticCurveTo(x, y, x + tl, y);
+  ctx.closePath();
+}
+
+function truncate(ctx, text, maxW) {
+  if (ctx.measureText(text).width <= maxW) return text;
+  while (text.length > 0 && ctx.measureText(text + "…").width > maxW) text = text.slice(0, -1);
+  return text + "…";
+}
+
+async function shareRound(r, darkMode) {
+  try {
+    const canvas = await shareRoundAsImage(r, darkMode);
+    canvas.toBlob(async (blob) => {
+      if (!blob) { fallbackShare(r); return; }
+      try {
+        const file = new File([blob], "mental-game-scorecard.png", { type: "image/png" });
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: "Mental Game Scorecard" });
+        } else {
+          // Download the image
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url; a.download = `scorecard-${r.date||"round"}.png`;
+          a.click();
+          URL.revokeObjectURL(url);
+          showToast("Image saved!", "success");
+        }
+      } catch { fallbackShare(r); }
+    }, "image/png");
+  } catch { fallbackShare(r); }
+}
+
+function fallbackShare(r) {
+  const text = buildShareText(r);
+  if (navigator.share) { navigator.share({ title: "Mental Game Scorecard", text }).catch(()=>{}); return; }
+  try { navigator.clipboard.writeText(text); showToast("Copied to clipboard!", "success"); } catch { prompt("Copy:", text); }
+}
+
 
 // ─── STYLE HELPERS ───
 function mkStyles(P) {
@@ -1670,15 +1864,15 @@ export default function App() {
   if (view==="guide") return <ThemeCtx.Provider value={P}><ToastLayer/><OnboardingFlow onFinish={nav("home")} P={P} S={S}/></ThemeCtx.Provider>;
   if (view==="transform") return <ThemeCtx.Provider value={P}><ToastLayer/><TransformView onBack={nav("home")} S={S} P={P}/></ThemeCtx.Provider>;
   if (view==="dashboard") return <ThemeCtx.Provider value={P}><ToastLayer/><DashboardView rounds={savedRounds} onBack={nav("home")} isHome={true} S={S} onSelectRound={r=>{setSelectedRound(r);setView("rounddetail");}}/></ThemeCtx.Provider>;
-  if (view==="history") return <ThemeCtx.Provider value={P}><ToastLayer/><HistoryView rounds={savedRounds} onBack={()=>{setView("home");setSelectedRound(null);}} onDelete={deleteRound} selectedRound={selectedRound} setSelectedRound={setSelectedRound} onShare={shareRound} onEdit={r=>{setEditingRound(r);setView("editround");}} S={S} /></ThemeCtx.Provider>;
-  if (view==="rounddetail") return <ThemeCtx.Provider value={P}><ToastLayer/><RoundDetailView round={selectedRound} onBack={nav("dashboard")} onShare={shareRound} S={S} /></ThemeCtx.Provider>;
+  if (view==="history") return <ThemeCtx.Provider value={P}><ToastLayer/><HistoryView rounds={savedRounds} onBack={()=>{setView("home");setSelectedRound(null);}} onDelete={deleteRound} selectedRound={selectedRound} setSelectedRound={setSelectedRound} onShare={(r)=>shareRound(r,darkMode)} onEdit={r=>{setEditingRound(r);setView("editround");}} S={S} /></ThemeCtx.Provider>;
+  if (view==="rounddetail") return <ThemeCtx.Provider value={P}><ToastLayer/><RoundDetailView round={selectedRound} onBack={nav("dashboard")} onShare={(r)=>shareRound(r,darkMode)} S={S} /></ThemeCtx.Provider>;
   if (showPrivacyPolicy) return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><PrivacyPolicyView onBack={()=>setShowPrivacyPolicy(false)} S={S}/></ThemeCtx.Provider>;
   if (view==="settings") return <ThemeCtx.Provider value={P}><ToastLayer/><SettingsView settings={settings} updateSetting={updateSetting} darkMode={darkMode} toggleTheme={toggleTheme} onBack={nav("home")} S={S} savedRounds={savedRounds} inGameCaddie={inGameCaddie} setInGameCaddie={setInGameCaddie} onResetTour={()=>{try{localStorage.removeItem("mgp_tip_step");}catch{}setTipStep(0);setView("play");}} isPro={isPro} onManageSubscription={()=>setShowPaywall(true)} onCancelPro={()=>setShowCancelPro(true)} onPrivacyPolicy={()=>setShowPrivacyPolicy(true)} /></ThemeCtx.Provider>;
-  if (view==="scorecard") return <ThemeCtx.Provider value={P}><ToastLayer/><ScorecardView scores={scores} front={front} back={back} total={total} courseName={courseName} roundDate={roundDate} onBack={nav("play")} onSelectHole={h=>{setCurrentHole(h);setView("play");}} S={S} handicap={settings.handicap} /></ThemeCtx.Provider>;
+  if (view==="scorecard") return <ThemeCtx.Provider value={P}><ToastLayer/><ScorecardView scores={scores} front={front} back={back} total={total} courseName={courseName} roundDate={roundDate} onBack={()=>setView(prevView||"play")} onHome={()=>setView("home")} onSelectHole={h=>{setCurrentHole(h);setView("play");}} S={S} handicap={settings.handicap} /></ThemeCtx.Provider>;
   if (view==="editround") return <ThemeCtx.Provider value={P}><ToastLayer/><RoundEditView round={editingRound} onSave={updatedRound=>{persistRounds(savedRounds.map(r=>r.id===updatedRound.id?updatedRound:r));setEditingRound(null);setView("history");}} onBack={()=>{setEditingRound(null);setView("history");}} S={S} /></ThemeCtx.Provider>;
   if (view==="badges") return <ThemeCtx.Provider value={P}><ToastLayer/><BadgesView rounds={savedRounds} onBack={nav("home")} S={S} /></ThemeCtx.Provider>;
   if (view==="roundsummary") return <ThemeCtx.Provider value={P}><ToastLayer/><RoundSummaryView scores={scores} total={total} courseName={courseName} roundDate={roundDate} postRoundNotes={postRoundNotes} setPostRoundNotes={setPostRoundNotes} carryForward={carryForward} setCarryForward={setCarryForward} onSave={saveAndFinish} onBack={nav("play")} S={S} /></ThemeCtx.Provider>;
-  if (view==="roundstats") return <ThemeCtx.Provider value={P}><ToastLayer/><FireworksCanvas active={showFireworks} onDone={()=>setShowFireworks(false)}/><RoundStatsView round={completedRound} onHome={(dest)=>{if(dest==="caddie"){setPrevView("roundstats");setView("caddie");}else setView(dest||"home");}} onShare={shareRound} S={S} /></ThemeCtx.Provider>;
+  if (view==="roundstats") return <ThemeCtx.Provider value={P}><ToastLayer/><FireworksCanvas active={showFireworks} onDone={()=>setShowFireworks(false)}/><RoundStatsView round={completedRound} onHome={(dest)=>{if(dest==="caddie"){setPrevView("roundstats");setView("caddie");}else setView(dest||"home");}} onShare={(r)=>shareRound(r,darkMode)} S={S} /></ThemeCtx.Provider>;
 
   // ─── PLAY VIEW ───
   const hB = scores[currentHole].bandits, hH = scores[currentHole].heroes;
@@ -1827,7 +2021,7 @@ export default function App() {
             {themeToggle}
             <button onClick={()=>navTo("caddie")} style={S.iconBtn} {...pp()}><Icons.Brain color={P.muted} size={16}/></button>
             <button onClick={()=>{try{localStorage.removeItem("mgp_tip_step");}catch{}setTipStep(0);}} style={S.iconBtn} {...pp()}><Icons.Info color={P.muted} size={15}/></button>
-            <button onClick={nav("scorecard")} style={S.iconBtn} {...pp()}><Icons.Grid color={P.muted} size={15}/></button>
+            <button onClick={()=>{setPrevView(view);setView("scorecard");}} style={S.iconBtn} {...pp()}><Icons.Grid color={P.muted} size={15}/></button>
           </div>
         </div>
 
@@ -2064,7 +2258,7 @@ export default function App() {
             <Icons.Clipboard color={P.muted} size={12}/>Save
           </button>
           {/* Share */}
-          <button onClick={()=>{const hasData=scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0));if(!hasData){showToast("No data yet — log some heroes or bandits first.", "warn");return;}shareRound({course:courseName||"Unnamed Course",date:roundDate,scores,notes:postRoundNotes,totalPar:getTotalPar(scores),totalStroke:getTotalStroke(scores),...getRoundTotals(scores).total});}} {...pp()} style={{flexShrink:0,display:"flex",alignItems:"center",gap:4,padding:"9px 10px",borderRadius:10,border:`1.5px solid ${P.accent}44`,background:P.accent+"10",color:P.accent,fontSize:11,fontWeight:700,cursor:"pointer"}}>
+          <button onClick={()=>{const hasData=scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0));if(!hasData){showToast("No data yet — log some heroes or bandits first.", "warn");return;}shareRound({course:courseName||"Unnamed Course",date:roundDate,scores,notes:postRoundNotes,totalPar:getTotalPar(scores),totalStroke:getTotalStroke(scores),...getRoundTotals(scores).total},darkMode);}} {...pp()} style={{flexShrink:0,display:"flex",alignItems:"center",gap:4,padding:"9px 10px",borderRadius:10,border:`1.5px solid ${P.accent}44`,background:P.accent+"10",color:P.accent,fontSize:11,fontWeight:700,cursor:"pointer"}}>
             <Icons.Share color={P.accent} size={12}/>Share
           </button>
           {/* New */}
@@ -2686,7 +2880,7 @@ function InnerCaddieView({onBack,S}) {
 // ═══════════════════════════════════════
 // SCORECARD VIEW
 // ═══════════════════════════════════════
-function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onSelectHole,S,handicap}) {
+function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHome,onSelectHole,S,handicap}) {
   const activeRowRef = React.useRef(null);
   React.useEffect(()=>{ if(activeRowRef.current) activeRowRef.current.scrollIntoView({block:"center",behavior:"smooth"}); },[]);
   const P=useTheme();
@@ -2704,7 +2898,7 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onSe
   }
   return (
     <div style={S.shell}>
-      <div style={{padding:"16px 20px 8px",display:"flex",alignItems:"center",justifyContent:"space-between"}}><button onClick={onBack} style={S.iconBtn} {...pp()}><Icons.Back color={P.muted}/></button><div style={{fontSize:18,fontWeight:700,color:P.white}}>Full Scorecard</div><button onClick={()=>window.history.back()} style={{...S.iconBtn,opacity:0}} disabled/></div>
+      <div style={{padding:"16px 20px 8px",display:"flex",alignItems:"center",justifyContent:"space-between"}}><button onClick={onBack} style={S.iconBtn} {...pp()}><Icons.Back color={P.muted}/></button><div style={{fontSize:18,fontWeight:700,color:P.white}}>Full Scorecard</div><button onClick={onHome||onBack} style={S.iconBtn} {...pp()}><Icons.Home color={P.muted} size={17}/></button></div>
       {courseName&&<div style={{textAlign:"center",color:P.muted,fontSize:13,fontWeight:500}}>{courseName} — {roundDate}</div>}
       <div style={{flex:1,overflowX:"auto",padding:"6px 4px 0"}}>
         <table style={{borderCollapse:"collapse",fontSize:11,minWidth:"100%"}}>
@@ -2913,180 +3107,122 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                 </div>
 
                 {isC&&<div style={{fontSize:11,color:P.red,fontWeight:600,padding:"0 16px 10px",animation:"fadeIn 0.2s ease-out"}}>Tap ✓ again to confirm delete</div>}
-                {exp&&r.scores&&(
-                  <div style={{position:"fixed",inset:0,zIndex:200,background:P.bg,overflowY:"auto",animation:"fadeIn 0.2s ease-out",display:"flex",flexDirection:"column"}}>
-                    <div style={{padding:"14px 16px 8px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid ${P.border}`,background:P.bg,flexShrink:0}}>
-                      <button onClick={()=>setSelectedRound(null)} style={{...S.iconBtn}} {...pp()}><Icons.Back color={P.muted}/></button>
-                      <div style={{textAlign:"center"}}>
-                        <div style={{fontSize:15,fontWeight:800,color:P.white}}>{r.course}</div>
-                        <div style={{fontSize:11,color:P.muted}}>{r.date}</div>
-                      </div>
-                      <button onClick={()=>onShare(r)} style={{...S.iconBtn,border:`1.5px solid ${P.accent}44`}} {...pp()}><Icons.Share color={P.accent} size={15}/></button>
-                    </div>
-                    <div style={{flex:1,overflowY:"auto",padding:"14px 16px"}}>
-
-                    {/* Pre-round meta */}
-                    {r.preRoundMeta&&(
-                      <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
-                        {r.preRoundMeta.sleep&&<div style={{padding:"4px 10px",borderRadius:20,background:P.cardAlt,border:`1px solid ${P.border}`,fontSize:11,fontWeight:600,color:P.muted}}>
-                          Sleep <span style={{color:["","#dc2626","#ea580c","#ca8a04","#16a34a","#22c55e"][r.preRoundMeta.sleep]||P.white,fontWeight:800}}>{["","Poor","Fair","Okay","Good","Great"][r.preRoundMeta.sleep]}</span>
-                        </div>}
-                        {r.preRoundMeta.energy&&<div style={{padding:"4px 10px",borderRadius:20,background:P.cardAlt,border:`1px solid ${P.border}`,fontSize:11,fontWeight:600,color:P.muted}}>
-                          Energy <span style={{color:["","#dc2626","#ea580c","#ca8a04","#16a34a","#22c55e"][r.preRoundMeta.energy]||P.white,fontWeight:800}}>{["","Low","Sluggish","Okay","Energized","Peak"][r.preRoundMeta.energy]}</span>
-                        </div>}
-                        {r.preRoundMeta.partners&&<div style={{padding:"4px 10px",borderRadius:20,background:P.cardAlt,border:`1px solid ${P.border}`,fontSize:11,fontWeight:600,color:P.accent}}>{r.preRoundMeta.partners.charAt(0).toUpperCase()+r.preRoundMeta.partners.slice(1)}</div>}
-                      </div>
-                    )}
-
-                    {/* Hero/Bandit breakdown */}
-                    <div style={{marginBottom:10,background:P.cardAlt,borderRadius:10,padding:"10px 12px",border:`1px solid ${P.border}`}}>
-                      <div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:6}}>MATCHUP BREAKDOWN</div>
-                      {MATCHUPS.map(({hero,verb,bandit})=>{
-                        const hc=r.scores.reduce((s,h)=>s+(h.heroes[hero]||0),0),bc=r.scores.reduce((s,h)=>s+(h.bandits[bandit]||0),0);
-                        if(hc===0&&bc===0)return null;
-                        const hColor={"Love":"#dc2626","Acceptance":"#ca8a04","Commitment":"#16a34a","Vulnerability":"#7c3aed","Grit":"#2563eb"}[hero]||P.green;
-                        const total=Math.max(hc,bc,1);
-                        return (
-                          <div key={hero} style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
-                            <span style={{color:hColor,fontWeight:700,fontSize:11,width:72}}>{hero}</span>
-                            <div style={{flex:1,height:5,borderRadius:3,background:P.card,overflow:"hidden"}}><div style={{width:`${(hc/total)*100}%`,height:"100%",background:hColor,borderRadius:3}}/></div>
-                            <span style={{fontSize:11,color:hColor,fontWeight:700,width:14,textAlign:"center"}}>{hc}</span>
-                            <span style={{fontSize:9,color:P.muted,width:12,textAlign:"center"}}>v</span>
-                            <span style={{fontSize:11,color:P.red,fontWeight:700,width:14,textAlign:"center"}}>{bc}</span>
-                            <div style={{flex:1,height:5,borderRadius:3,background:P.card,overflow:"hidden",direction:"rtl"}}><div style={{width:`${(bc/total)*100}%`,height:"100%",background:P.red,borderRadius:3}}/></div>
-                            <span style={{color:P.red,fontWeight:700,fontSize:11,width:72,textAlign:"right"}}>{bandit}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Hole-by-hole with putts/routine/FIR/GIR */}
-                    <div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:4}}>FULL SCORECARD <span style={{fontWeight:500,opacity:0.6}}>· tap a hole for details</span></div>
-                    {(()=>{
-                      const HERO_COLORS_MAP = {"Love":"#dc2626","Acceptance":"#ca8a04","Commitment":"#16a34a","Vulnerability":"#7c3aed","Grit":"#2563eb"};
-                      return (
-                      <div style={{marginBottom:10}}>
-                        <div style={{overflowX:"auto"}}>
-                          <table style={{width:"100%",borderCollapse:"collapse",fontSize:10}}>
-                            <thead><tr>{["#","Par","Scr","Putts","FIR","GIR","H","B","Net"].map(h=><th key={h} style={{padding:"4px 2px",textAlign:"center",color:P.muted,borderBottom:`1px solid ${P.border}`,fontSize:8,fontWeight:700,whiteSpace:"nowrap"}}>{h}</th>)}</tr></thead>
-                            <tbody>
-                              {Array.from({length:18},(_,i)=>{
-                                const s=getHoleStats(r.scores,i);
-                                const hole=r.scores[i];
-                                
-                                const holeKey=`${r.id}:${i}`;const isExpanded=expandedHole===holeKey;
-                                const activeHeroes = HEROES.filter(h=>hole.heroes[h]===1);
-                                const activeBandits = BANDITS.filter(b=>hole.bandits[b]===1);
-                                const hasDetail = activeHeroes.length>0||activeBandits.length>0||hole.holeNote;
-                                return (
-                                  <React.Fragment key={i}>
-                                    <tr
-                                      onClick={()=>hasDetail&&setExpandedHole(isExpanded?null:holeKey)}
-                                      style={{background:isExpanded?P.accent+"10":i%2===0?P.cardAlt:"transparent",cursor:hasDetail?"pointer":"default",transition:"background 0.15s"}}
-                                    >
-                                      <td style={{padding:"5px 2px",textAlign:"center",fontWeight:700,fontSize:10,color:isExpanded?P.accent:hasDetail?P.white:P.muted}}>
-                                        <span style={{display:"inline-flex",alignItems:"center",gap:2}}>
-                                          {i+1}
-                                          {hasDetail&&<span style={{fontSize:7,color:isExpanded?P.accent:P.muted,transition:"transform 0.2s",display:"inline-block",transform:isExpanded?"rotate(90deg)":"rotate(0)"}}> ›</span>}
-                                        </span>
-                                      </td>
-                                      <td style={{padding:"5px 2px",textAlign:"center"}}>{hole.par||"—"}</td>
-                                      <td style={{padding:"5px 2px",textAlign:"center"}}>{hole.strokeScore||"—"}</td>
-                                      <td style={{padding:"5px 2px",textAlign:"center",color:hole.putts>2?P.red:hole.putts===1?P.green:P.white,fontWeight:hole.putts?700:400}}>{hole.putts||"—"}</td>
-                                      <td style={{padding:"5px 2px",textAlign:"center",color:hole.fairway===true?P.green:hole.fairway===false?P.red:P.muted,fontWeight:700}}>{hole.fairway===true?"✓":hole.fairway===false?"✗":"—"}</td>
-                                      <td style={{padding:"5px 2px",textAlign:"center",color:hole.gir===true?P.accent:hole.gir===false?P.red:P.muted,fontWeight:700}}>{hole.gir===true?"✓":hole.gir===false?"✗":"—"}</td>
-                                      <td style={{padding:"5px 2px",textAlign:"center",color:P.green,fontWeight:600}}>{s.heroes||"—"}</td>
-                                      <td style={{padding:"5px 2px",textAlign:"center",color:P.red,fontWeight:600}}>{s.bandits||"—"}</td>
-                                      <td style={{padding:"5px 2px",textAlign:"center",fontWeight:700,color:s.net>0?P.green:s.net<0?P.red:s.heroes+s.bandits>0?P.gold:P.muted}}>{s.heroes+s.bandits>0?(s.net>0?"+":"")+s.net:"—"}</td>
-                                    </tr>
-                                    {isExpanded&&(
-                                      <tr>
-                                        <td colSpan={10} style={{padding:0,borderBottom:`1px solid ${P.border}`}}>
-                                          <div style={{padding:"10px 12px",background:P.card,animation:"fadeIn 0.15s ease-out"}}>
-                                            {/* Heroes */}
-                                            {activeHeroes.length>0&&(
-                                              <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:activeBandits.length>0||hole.holeNote?8:0}}>
-                                                {activeHeroes.map(h=>{
-                                                  const cat=CADDIE_CATEGORIES.find(c=>c.name===h);
-                                                  return <button key={h} onClick={()=>cat&&setWisdomPop({name:h,catName:h,color:HERO_COLORS_MAP[h],IconKey:cat.IconKey,message:cat.messages[Math.floor(Math.random()*cat.messages.length)],type:"hero"})} {...pp()} style={{padding:"4px 12px",borderRadius:20,background:HERO_COLORS_MAP[h]+"18",border:`1px solid ${HERO_COLORS_MAP[h]}44`,fontSize:11,fontWeight:700,color:HERO_COLORS_MAP[h],cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>{h} <span style={{fontSize:9,opacity:0.6}}>›</span></button>;
-                                                })}
-                                              </div>
-                                            )}
-                                            {/* Bandits */}
-                                            {activeBandits.length>0&&(
-                                              <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:hole.holeNote?8:0}}>
-                                                {activeBandits.map(b=>{
-                                                  const mu=MATCHUPS.find(m=>m.bandit===b);
-                                                  const cat=mu?CADDIE_CATEGORIES.find(c=>c.name===mu.hero):null;
-                                                  return <button key={b} onClick={()=>cat&&setWisdomPop({name:b,catName:cat.name,color:P.red,IconKey:cat.IconKey,message:cat.messages[Math.floor(Math.random()*cat.messages.length)],type:"bandit"})} {...pp()} style={{padding:"4px 12px",borderRadius:20,background:P.red+"15",border:`1px solid ${P.red}44`,fontSize:11,fontWeight:700,color:P.red,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>{b} <span style={{fontSize:9,opacity:0.6}}>›</span></button>;
-                                                })}
-                                              </div>
-                                            )}
-                                            {/* Note */}
-                                            {hole.holeNote&&(
-                                              <div style={{fontSize:12,color:P.muted,fontStyle:"italic",lineHeight:1.5,borderLeft:`2px solid ${P.border}`,paddingLeft:8}}>
-                                                "{hole.holeNote}"
-                                              </div>
-                                            )}
-                                          </div>
-                                        </td>
-                                      </tr>
-                                    )}
-                                  </React.Fragment>
-                                );
-                              })}
-                              <tr style={{background:P.accent+"10"}}>
-                                <td style={{padding:"5px 2px",textAlign:"center",fontWeight:800,color:P.accent,fontSize:8}}>TOT</td>
-                                <td style={{padding:"5px 2px",textAlign:"center",fontWeight:700}}>{r.totalPar||"—"}</td>
-                                <td style={{padding:"5px 2px",textAlign:"center",fontWeight:700}}>{r.totalStroke||"—"}</td>
-                                <td style={{padding:"5px 2px",textAlign:"center",fontWeight:700,color:P.white}}>{r.scores.reduce((s,h)=>s+(parseInt(h.putts)||0),0)||"—"}</td>
-                                <td colSpan="3"/>
-                                <td style={{padding:"5px 2px",textAlign:"center",color:P.green,fontWeight:700}}>{r.heroes}</td>
-                                <td style={{padding:"5px 2px",textAlign:"center",color:P.red,fontWeight:700}}>{r.bandits}</td>
-                                <td style={{padding:"5px 2px",textAlign:"center",fontWeight:800,fontSize:12,color:r.net>0?P.green:r.net<0?P.red:P.gold}}>{r.net>0?"+":""}{r.net}</td>
-                              </tr>
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                      );
-                    })()}
-
-                    {/* Hole notes */}
-                    {holeNotes.length>0&&(
-                      <div style={{marginBottom:10}}>
-                        <div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:5}}>HOLE NOTES</div>
-                        {holeNotes.map(hn=>(
-                          <div key={hn.hole} style={{display:"flex",gap:10,marginBottom:5,padding:"6px 10px",borderRadius:8,background:P.cardAlt,border:`1px solid ${P.border}`}}>
-                            <div style={{flexShrink:0,width:28,textAlign:"center"}}><div style={{fontSize:13,fontWeight:800,color:P.white}}>{hn.hole}</div><div style={{fontSize:9,fontWeight:700,color:hn.stats.net>0?P.green:hn.stats.net<0?P.red:P.gold}}>{hn.stats.net>0?"+":""}{hn.stats.net}</div></div>
-                            <div style={{fontSize:12,color:P.white,lineHeight:1.45,fontWeight:500,borderLeft:`2px solid ${P.border}`,paddingLeft:10}}>{hn.note}</div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Post-round notes */}
-                    {r.notes&&<div style={{marginBottom:10,padding:"10px 12px",borderRadius:8,background:P.cardAlt,border:`1px solid ${P.border}`}}><div style={{fontSize:9,fontWeight:700,color:P.muted,letterSpacing:1,marginBottom:4}}>POST-ROUND REFLECTION</div><div style={{fontSize:13,color:P.white,lineHeight:1.5,whiteSpace:"pre-wrap",fontWeight:500}}>{r.notes}</div></div>}
-
-                    {/* Carry-forward intention */}
-                    {r.carryForward&&<div style={{marginBottom:10,padding:"10px 12px",borderRadius:8,background:"#ca8a0410",border:`1px solid #ca8a0433`}}><div style={{fontSize:9,fontWeight:700,color:"#ca8a04",letterSpacing:1,marginBottom:4}}>INTENTION FOR NEXT ROUND</div><div style={{fontSize:13,color:P.white,lineHeight:1.5,fontStyle:"italic",fontWeight:600}}>"{r.carryForward}"</div></div>}
-
-                    <div style={{display:"flex",gap:8,marginBottom:20}}>
-                      <button onClick={e=>{e.stopPropagation();onEdit(r);}} style={{flex:1,padding:"10px",borderRadius:10,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:13,cursor:"pointer",fontWeight:600}} {...pp()}>Edit</button>
-                      <button onClick={e=>{e.stopPropagation();onShare(r);}} style={{flex:1,padding:"10px",borderRadius:10,border:`1.5px solid ${netColor}55`,background:netColor+"10",color:netColor,fontSize:13,cursor:"pointer",fontWeight:700}} {...pp()}>Share</button>
-                    </div>
-                    </div>
-                  </div>
-                )}
               </div>
             );
           })}
         </div>
       )}
+      {/* Expanded round full-screen overlay */}
+      {selectedRound&&selectedRound.scores&&(()=>{
+        const r=selectedRound;
+        const netColor=r.net>0?P.green:r.net<0?P.red:P.gold;
+        const holeNotes=r.scores?r.scores.map((h,i)=>({hole:i+1,note:h.holeNote,stats:getHoleStats(r.scores,i)})).filter(h=>h.note):[];
+        const HERO_COLORS_MAP = {"Love":"#dc2626","Acceptance":"#ca8a04","Commitment":"#16a34a","Vulnerability":"#7c3aed","Grit":"#2563eb"};
+        return (
+          <div style={{position:"fixed",inset:0,zIndex:200,background:P.bg,display:"flex",flexDirection:"column",animation:"fadeIn 0.2s ease-out"}}>
+            {/* Header */}
+            <div style={{padding:"14px 16px 8px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid ${P.border}`,background:P.bg,flexShrink:0}}>
+              <button onClick={()=>setSelectedRound(null)} style={{...S.iconBtn}} {...pp()}><Icons.Back color={P.muted}/></button>
+              <div style={{textAlign:"center"}}>
+                <div style={{fontSize:15,fontWeight:800,color:P.white}}>{r.course}</div>
+                <div style={{fontSize:11,color:P.muted}}>{r.date}</div>
+              </div>
+              <button onClick={()=>onShare(r)} style={{...S.iconBtn,border:`1.5px solid ${P.accent}44`}} {...pp()}><Icons.Share color={P.accent} size={15}/></button>
+            </div>
+            {/* Scrollable content */}
+            <div style={{flex:1,overflowY:"auto",padding:"14px 16px"}}>
+              {/* Pre-round meta */}
+              {r.preRoundMeta&&(
+                <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
+                  {r.preRoundMeta.sleep&&<div style={{padding:"4px 10px",borderRadius:20,background:P.cardAlt,border:`1px solid ${P.border}`,fontSize:11,fontWeight:600,color:P.muted}}>Sleep <span style={{color:["","#dc2626","#ea580c","#ca8a04","#16a34a","#22c55e"][r.preRoundMeta.sleep]||P.white,fontWeight:800}}>{["","Poor","Fair","Okay","Good","Great"][r.preRoundMeta.sleep]}</span></div>}
+                  {r.preRoundMeta.energy&&<div style={{padding:"4px 10px",borderRadius:20,background:P.cardAlt,border:`1px solid ${P.border}`,fontSize:11,fontWeight:600,color:P.muted}}>Energy <span style={{color:["","#dc2626","#ea580c","#ca8a04","#16a34a","#22c55e"][r.preRoundMeta.energy]||P.white,fontWeight:800}}>{["","Low","Sluggish","Okay","Energized","Peak"][r.preRoundMeta.energy]}</span></div>}
+                  {r.preRoundMeta.partners&&<div style={{padding:"4px 10px",borderRadius:20,background:P.cardAlt,border:`1px solid ${P.border}`,fontSize:11,fontWeight:600,color:P.accent}}>{r.preRoundMeta.partners.charAt(0).toUpperCase()+r.preRoundMeta.partners.slice(1)}</div>}
+                </div>
+              )}
+              {/* Hero/Bandit breakdown */}
+              <div style={{marginBottom:10,background:P.cardAlt,borderRadius:10,padding:"10px 12px",border:`1px solid ${P.border}`}}>
+                <div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:6}}>MATCHUP BREAKDOWN</div>
+                {MATCHUPS.map(({hero,verb,bandit})=>{
+                  const hc=r.scores.reduce((s,h)=>s+(h.heroes[hero]||0),0),bc=r.scores.reduce((s,h)=>s+(h.bandits[bandit]||0),0);
+                  if(hc===0&&bc===0)return null;
+                  const hColor=HERO_COLORS_MAP[hero]||P.green;
+                  const tot=Math.max(hc,bc,1);
+                  return (
+                    <div key={hero} style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
+                      <span style={{color:hColor,fontWeight:700,fontSize:11,width:72}}>{hero}</span>
+                      <div style={{flex:1,height:5,borderRadius:3,background:P.card,overflow:"hidden"}}><div style={{width:`${(hc/tot)*100}%`,height:"100%",background:hColor,borderRadius:3}}/></div>
+                      <span style={{fontSize:11,color:hColor,fontWeight:700,width:14,textAlign:"center"}}>{hc}</span>
+                      <span style={{fontSize:9,color:P.muted,width:12,textAlign:"center"}}>v</span>
+                      <span style={{fontSize:11,color:P.red,fontWeight:700,width:14,textAlign:"center"}}>{bc}</span>
+                      <div style={{flex:1,height:5,borderRadius:3,background:P.card,overflow:"hidden",direction:"rtl"}}><div style={{width:`${(bc/tot)*100}%`,height:"100%",background:P.red,borderRadius:3}}/></div>
+                      <span style={{color:P.red,fontWeight:700,fontSize:11,width:72,textAlign:"right"}}>{bandit}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Scorecard table */}
+              <div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:4}}>FULL SCORECARD</div>
+              <div style={{overflowX:"auto",marginBottom:10}}>
+                <table style={{width:"100%",borderCollapse:"collapse",fontSize:10}}>
+                  <thead><tr>{["#","Par","Scr","Putts","FIR","GIR","H","B","Net"].map(h=><th key={h} style={{padding:"4px 2px",textAlign:"center",color:P.muted,borderBottom:`1px solid ${P.border}`,fontSize:8,fontWeight:700}}>{h}</th>)}</tr></thead>
+                  <tbody>{Array.from({length:18},(_,i)=>{
+                    const s=getHoleStats(r.scores,i);
+                    const hole=r.scores[i];
+                    return (
+                      <tr key={i} style={{background:i%2===0?P.cardAlt:"transparent"}}>
+                        <td style={{padding:"5px 2px",textAlign:"center",fontWeight:700,color:P.accent}}>{i+1}</td>
+                        <td style={{padding:"5px 2px",textAlign:"center"}}>{hole.par||"—"}</td>
+                        <td style={{padding:"5px 2px",textAlign:"center",color:hole.strokeScore&&hole.par?(+hole.strokeScore-+hole.par<0?P.green:+hole.strokeScore-+hole.par>0?P.red:P.white):P.white,fontWeight:hole.strokeScore?700:400}}>{hole.strokeScore||"—"}</td>
+                        <td style={{padding:"5px 2px",textAlign:"center",color:hole.putts>2?P.red:hole.putts===1?P.green:P.white,fontWeight:hole.putts?700:400}}>{hole.putts||"—"}</td>
+                        <td style={{padding:"5px 2px",textAlign:"center",color:hole.fairway===true?P.green:P.muted,fontWeight:700}}>{hole.fairway===true?"✓":"—"}</td>
+                        <td style={{padding:"5px 2px",textAlign:"center",color:hole.gir===true?P.accent:P.muted,fontWeight:700}}>{hole.gir===true?"✓":"—"}</td>
+                        <td style={{padding:"5px 2px",textAlign:"center",color:P.green,fontWeight:700}}>{s.heroes||"—"}</td>
+                        <td style={{padding:"5px 2px",textAlign:"center",color:P.red,fontWeight:700}}>{s.bandits||"—"}</td>
+                        <td style={{padding:"5px 2px",textAlign:"center",fontWeight:700,color:s.net>0?P.green:s.net<0?P.red:s.heroes+s.bandits>0?P.gold:P.muted}}>{s.heroes+s.bandits>0?(s.net>0?"+":"")+s.net:"—"}</td>
+                      </tr>
+                    );
+                  })}</tbody>
+                </table>
+              </div>
+              {/* Hole notes */}
+              {holeNotes.length>0&&<div style={{marginBottom:10}}><div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:6}}>HOLE NOTES</div>{holeNotes.map(hn=><div key={hn.hole} style={{display:"flex",gap:10,marginBottom:6,padding:"8px 10px",borderRadius:8,background:P.cardAlt,border:`1px solid ${P.border}`}}><div style={{flexShrink:0,textAlign:"center",minWidth:28}}><div style={{fontSize:9,color:P.muted}}>H</div><div style={{fontSize:15,fontWeight:800,color:P.white}}>{hn.hole}</div></div><div style={{fontSize:12,color:P.white,lineHeight:1.45,fontWeight:500,borderLeft:`2px solid ${P.border}`,paddingLeft:10}}>{hn.note}</div></div>)}</div>}
+              {/* Post-round notes */}
+              {r.notes&&(()=>{
+                let parsed=null;
+                try{if(typeof r.notes==="string"&&r.notes.startsWith("{"))parsed=JSON.parse(r.notes);}catch{}
+                return (
+                  <div style={{marginBottom:10,padding:"10px 12px",borderRadius:8,background:P.cardAlt,border:`1px solid ${P.border}`}}>
+                    <div style={{fontSize:9,fontWeight:700,color:P.muted,letterSpacing:1,marginBottom:8}}>POST-ROUND REFLECTION</div>
+                    {parsed?[
+                      {key:"keep",label:"Keep doing",color:P.green},
+                      {key:"stop",label:"Stop doing",color:P.red},
+                      {key:"start",label:"Start doing",color:P.accent},
+                    ].filter(q=>parsed[q.key]).map(q=>(
+                      <div key={q.key} style={{marginBottom:8}}>
+                        <div style={{fontSize:9,fontWeight:800,color:q.color,letterSpacing:1,marginBottom:3}}>{q.label.toUpperCase()}</div>
+                        <div style={{fontSize:13,color:P.white,lineHeight:1.5,fontWeight:500}}>{parsed[q.key]}</div>
+                      </div>
+                    )):(
+                      <div style={{fontSize:13,color:P.white,lineHeight:1.5,whiteSpace:"pre-wrap",fontWeight:500}}>{r.notes}</div>
+                    )}
+                  </div>
+                );
+              })()}
+              {/* Carry forward */}
+              {r.carryForward&&<div style={{marginBottom:10,padding:"10px 12px",borderRadius:8,background:"#ca8a0410",border:`1px solid #ca8a0433`}}><div style={{fontSize:9,fontWeight:700,color:"#ca8a04",letterSpacing:1,marginBottom:4}}>INTENTION FOR NEXT ROUND</div><div style={{fontSize:13,color:P.white,lineHeight:1.5,fontStyle:"italic",fontWeight:600}}>"{r.carryForward}"</div></div>}
+              <div style={{display:"flex",gap:8,marginBottom:20}}>
+                <button onClick={()=>{setSelectedRound(null);onEdit(r);}} style={{flex:1,padding:"10px",borderRadius:10,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:13,cursor:"pointer",fontWeight:600}} {...pp()}>Edit</button>
+                <button onClick={()=>{onShare(r);}} style={{flex:1,padding:"10px",borderRadius:10,border:`1.5px solid ${netColor}55`,background:netColor+"10",color:netColor,fontSize:13,cursor:"pointer",fontWeight:700}} {...pp()}>Share</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}`}</style>
     </div>
   );
 }
+
 
 // ═══════════════════════════════════════
 // DASHBOARD
