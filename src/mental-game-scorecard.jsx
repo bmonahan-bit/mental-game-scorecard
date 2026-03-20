@@ -2228,7 +2228,7 @@ export default function App() {
           );})()}
 
         {/* Matchup Grid — collapsible */}
-        <div ref={tipRefs.matchup} style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+        <div ref={tipRefs.matchup} style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minHeight:0}}>
         <div style={{padding:"0 10px 2px",flexShrink:0}}>
           {/* Toggle header — matches grid column layout */}
           <button onClick={()=>setMatchupOpen(o=>!o)} {...pp()} style={{width:"100%",display:"grid",gridTemplateColumns:"36px 1fr 48px 1fr 36px",alignItems:"center",gap:2,padding:"3px 2px",background:"transparent",border:"none",cursor:"pointer",transition:"transform 0.1s"}}>
