@@ -2530,7 +2530,6 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
           return <div style={{display:"flex",gap:5,marginBottom:10,width:"100%",maxWidth:320,opacity:loaded?1:0,transition:"opacity 0.6s ease 0.6s"}}>
             {[
               {label:"Best Net",val:(bestNet>0?"+":"")+bestNet,color:P.green},
-              {label:"Best Score",val:noStroke?"—":bestStroke,color:P.white},
               {label:"Best Streak",val:streak||"—",color:P.gold}
             ].map((s,i)=>(
               <div key={i} style={{flex:1,textAlign:"center",padding:"5px 4px",borderRadius:8,background:P.card,border:`1px solid ${P.border}`,minWidth:0}}>
