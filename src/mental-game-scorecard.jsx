@@ -4,6 +4,8 @@ import React, { useState, useEffect, useMemo, useRef, useCallback, createContext
 // Sign up free at https://golfcourseapi.com — paste your key here
 const GOLF_API_KEY = import.meta.env.VITE_GOLF_API_KEY;
 const GOLF_API_BASE = "https://api.golfcourseapi.com/v1";
+const PM_NAVY = "#1a2b4a";
+const PM_GOLD = "#c9a84c";
 // ─────────────────────────────────────────────────────────────────────────────
 
 
