@@ -6,6 +6,29 @@ const GOLF_API_KEY = import.meta.env.VITE_GOLF_API_KEY;
 const GOLF_API_BASE = "https://api.golfcourseapi.com/v1";
 const PM_NAVY = "#1a2b4a";
 const PM_GOLD = "#c9a84c";
+const FREE_ROUNDS_LIMIT = 3; // rounds before profile required
+
+// ── Error Boundary ─────────────────────────────────────────
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+  componentDidCatch(error, info) { console.error("App error:", error, info); }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{height:"100svh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"#09090b",color:"#f8fafc",padding:24,textAlign:"center",fontFamily:"-apple-system,sans-serif"}}>
+          <div style={{fontSize:28,fontWeight:900,color:"#16a34a",marginBottom:16,letterSpacing:-1}}>MGS</div>
+          <div style={{fontSize:20,fontWeight:800,marginBottom:8}}>Something went wrong</div>
+          <div style={{fontSize:14,color:"#71717a",lineHeight:1.6,marginBottom:24}}>The app ran into an unexpected error. Your round data is safe.</div>
+          <button onClick={()=>this.setState({hasError:false,error:null})} style={{padding:"12px 24px",borderRadius:12,border:"none",background:"#16a34a",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer"}}>Try Again</button>
+          <button onClick={()=>{try{localStorage.clear();}catch{}window.location.reload();}} style={{marginTop:10,padding:"10px 24px",borderRadius:12,border:"1.5px solid #2a2a2e",background:"transparent",color:"#71717a",fontSize:13,cursor:"pointer"}}>Reset App</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -99,7 +122,7 @@ const Icons = {
 };
 
 // ─── BALLOON CANVAS (streak 3) ───
-function SaveBtn({P, onSave}) {
+function SaveBtn({P, onSave, hint}) {
   const [saved, setSaved] = React.useState(false);
   function handle() {
     onSave();
@@ -474,7 +497,7 @@ function useCourseSearch() {
   const search = useCallback((val) => {
     setQuery(val);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!val || val.length < 3 || GOLF_API_KEY === "YOUR_API_KEY_HERE") {
+    if (!val || val.length < 3 || !GOLF_API_KEY || GOLF_API_KEY === "YOUR_API_KEY_HERE" || GOLF_API_KEY === "undefined") {
       setResults([]);
       return;
     }
@@ -535,7 +558,7 @@ function CourseSearchBar({ P, S, courseName, setCourseName, onCourseLoaded, sele
   const [open, setOpen] = useState(false);
   const [localCourseData, setLocalCourseData] = useState(courseData);
   const inputRef = useRef(null);
-  const apiConfigured = GOLF_API_KEY !== "YOUR_API_KEY_HERE";
+  const apiConfigured = !!(GOLF_API_KEY && GOLF_API_KEY !== "YOUR_API_KEY_HERE" && GOLF_API_KEY !== "undefined");
 
   // sync external courseData
   useEffect(() => { setLocalCourseData(courseData); }, [courseData]);
@@ -613,7 +636,7 @@ function CourseSearchBar({ P, S, courseName, setCourseName, onCourseLoaded, sele
             value={localCourseData ? courseName : (query || courseName)}
             onChange={e => { search(e.target.value); setCourseName(e.target.value); setOpen(true); }}
             onFocus={() => setOpen(true)}
-            placeholder={apiConfigured ? "Search course name..." : "Course name (add API key to auto-fill)"}
+            placeholder={apiConfigured ? "Search for your course (optional)..." : "Course name (optional)"}
             style={{ ...S.input, width: "100%", paddingRight: loading ? 36 : 12 }}
           />
           {loading && (
@@ -738,17 +761,17 @@ function windDirLabel(deg) {
 }
 
 function weatherIcon(code) {
-  if (code == null) return "☀️";
-  if (code === 0) return "☀️";
-  if (code <= 2) return "🌤";
-  if (code <= 3) return "☁️";
-  if (code <= 49) return "🌫";
-  if (code <= 59) return "🌦";
-  if (code <= 69) return "🌧";
-  if (code <= 79) return "❄️";
-  if (code <= 84) return "🌨";
-  if (code <= 99) return "⛈";
-  return "☀️";
+  if (code == null) return "Sunny";
+  if (code === 0) return "Sunny";
+  if (code <= 2) return "P.Cloudy";
+  if (code <= 3) return "Cloudy";
+  if (code <= 49) return "Foggy";
+  if (code <= 59) return "Showers";
+  if (code <= 69) return "Rain";
+  if (code <= 79) return "Snow";
+  if (code <= 84) return "Sleet";
+  if (code <= 99) return "Storm";
+  return "Sunny";
 }
 function weatherLabel(code) {
   if (code == null) return "";
@@ -996,6 +1019,8 @@ function buildShareText(r) {
   t+=`\nPlay Better. Struggle Less. Enjoy More.`; return t;
 }
 async function shareRoundAsImage(r, darkMode) {
+  // Wait for fonts to load so text renders correctly on Android
+  try { await document.fonts.ready; } catch {}
   const canvas = document.createElement("canvas");
   const W = 800, H = 480;
   canvas.width = W; canvas.height = H;
@@ -1202,14 +1227,14 @@ async function shareRound(r, darkMode) {
 function fallbackShare(r) {
   const text = buildShareText(r);
   if (navigator.share) { navigator.share({ title: "Mental Game Scorecard", text }).catch(()=>{}); return; }
-  try { navigator.clipboard.writeText(text); showToast("Copied to clipboard!", "success"); } catch { prompt("Copy:", text); }
+  try { navigator.clipboard.writeText(text).then(()=>showToast("Copied to clipboard!", "success")).catch(()=>showToast("Sharing as text...", "info")); } catch { showToast("Sharing as text...", "info"); }
 }
 
 
 // ─── STYLE HELPERS ───
 function mkStyles(P) {
   return {
-    shell: { height:"100dvh", background:P.bg, color:P.white, fontFamily:"'Avenir Next','SF Pro Display',-apple-system,sans-serif", display:"flex", flexDirection:"column", maxWidth:480, width:"100%", margin:"0 auto", position:"relative", overflowX:"hidden", overflowY:"hidden" },
+    shell: { height:"100svh", background:P.bg, color:P.white, fontFamily:"'Avenir Next','SF Pro Display',-apple-system,sans-serif", display:"flex", flexDirection:"column", maxWidth:480, width:"100%", margin:"0 auto", position:"relative", overflowX:"hidden", overflowY:"hidden" },
     iconBtn: { width:38, height:38, borderRadius:10, border:`1.5px solid ${P.border}`, background:P.card, color:P.white, fontSize:17, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 1px 3px rgba(0,0,0,0.06)", transition:"transform 0.1s ease" },
     input: { flex:1, padding:"10px 12px", borderRadius:10, border:`1.5px solid ${P.border}`, background:P.inputBg, color:P.white, fontSize:15, outline:"none", fontWeight:500 },
     miniInput: { padding:"5px", borderRadius:8, border:`1.5px solid ${P.border}`, background:P.inputBg, color:P.white, fontSize:17, textAlign:"center", outline:"none", fontWeight:700, width:44 },
@@ -1253,7 +1278,16 @@ function makeSwipeHandlers(onLeft, onRight, threshold = 40) {
   };
 }
 
-function vibrate(ms=12) { try { if(navigator.vibrate) navigator.vibrate(ms); } catch{} }
+function vibrate(ms=12) { 
+  try { 
+    // Use Capacitor Haptics if available (native iOS feel)
+    if(window.Capacitor?.Plugins?.Haptics) {
+      window.Capacitor.Plugins.Haptics.impact({style: ms > 12 ? "MEDIUM" : "LIGHT"});
+    } else if(navigator.vibrate) { 
+      navigator.vibrate(ms); 
+    } 
+  } catch{} 
+}
 
 // Tier haptic patterns (Android only — iOS does not support navigator.vibrate)
 function vibrateBadge(tier) {
@@ -1432,8 +1466,16 @@ function BadgeCelebration({ badge, onDone }) {
   );
 }
 
-function pressProps() {
-  return { onMouseDown:e=>{e.currentTarget.style.transform="scale(0.95)";e.currentTarget.style.opacity="0.85";}, onMouseUp:e=>{e.currentTarget.style.transform="scale(1)";e.currentTarget.style.opacity="1";}, onMouseLeave:e=>{e.currentTarget.style.transform="scale(1)";e.currentTarget.style.opacity="1";}, onTouchStart:e=>{e.currentTarget.style.transform="scale(0.95)";e.currentTarget.style.opacity="0.85";}, onTouchEnd:e=>{e.currentTarget.style.transform="scale(1)";e.currentTarget.style.opacity="1";} };
+function pressProps(label) {
+  return { 
+    ...(label ? {"aria-label": label} : {}),
+    role: "button",
+    onMouseDown:e=>{e.currentTarget.style.transform="scale(0.95)";e.currentTarget.style.opacity="0.85";}, 
+    onMouseUp:e=>{e.currentTarget.style.transform="scale(1)";e.currentTarget.style.opacity="1";}, 
+    onMouseLeave:e=>{e.currentTarget.style.transform="scale(1)";e.currentTarget.style.opacity="1";}, 
+    onTouchStart:e=>{e.currentTarget.style.transform="scale(0.95)";e.currentTarget.style.opacity="0.85";}, 
+    onTouchEnd:e=>{e.currentTarget.style.transform="scale(1)";e.currentTarget.style.opacity="1";} 
+  };
 }
 const pp = pressProps;
 
@@ -1506,6 +1548,7 @@ export default function App() {
   const [showCancelPro, setShowCancelPro] = useState(false);
   const [showRateApp, setShowRateApp] = useState(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [streakBanner, setStreakBanner] = useState(null); // {count}
   const [showConfetti, setShowConfetti] = useState(false);
   const [showFireworks, setShowFireworks] = useState(false);
@@ -1521,10 +1564,19 @@ export default function App() {
     setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)), duration);
   }
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [offlineDismissed, setOfflineDismissed] = useState(false);
   const [courseData, setCourseData] = useState(null);
   const [selectedTee, setSelectedTee] = useState(null);
   const [prevView, setPrevView] = useState("home");
   const [editingRound, setEditingRound] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [showCommunityPrompt, setShowCommunityPrompt] = useState(false);
+  const [showProfileGate, setShowProfileGate] = useState(false);
+  const [showCoursePrompt, setShowCoursePrompt] = useState(false);
+  const [coursePromptCallback, setCoursePromptCallback] = useState(null);
+  const [communityProfile, setCommunityProfile] = useState(()=>{
+    try { return JSON.parse(localStorage.getItem("mgp_community_profile")||"null"); } catch { return null; }
+  });
   const { weather, loadingWeather } = useWeather(courseData);
   // ─── SETTINGS ───
   const [settings, setSettings] = useState({
@@ -1539,6 +1591,36 @@ export default function App() {
       return next;
     });
   }
+
+  // Whether user has created a profile (unlocks unlimited rounds)
+  const hasProfile = !!(communityProfile?.email);
+  const roundsRemaining = hasProfile ? Infinity : Math.max(0, FREE_ROUNDS_LIMIT - savedRounds.length);
+  const trialExpired = !hasProfile && savedRounds.length >= FREE_ROUNDS_LIMIT;
+
+  // Keep community profile in sync with latest round data
+  useEffect(() => {
+    if(!communityProfile?.email || savedRounds.length === 0) return;
+    // Debounce: only sync after half a second to avoid rapid saves
+    const topHero = (() => { const ht={}; savedRounds.forEach(r=>{if(!r.scores)return;r.scores.forEach(h=>{Object.keys(h.heroes||{}).forEach(k=>{if(h.heroes[k])ht[k]=(ht[k]||0)+1;});});}); return Object.keys(ht).sort((a,b)=>ht[b]-ht[a])[0]||null; })();
+    const topBandit = (() => { const bt={}; savedRounds.forEach(r=>{if(!r.scores)return;r.scores.forEach(h=>{Object.keys(h.bandits||{}).forEach(k=>{if(h.bandits[k])bt[k]=(bt[k]||0)+1;});});}); return Object.keys(bt).sort((a,b)=>bt[b]-bt[a])[0]||null; })();
+    const avgNet = (savedRounds.reduce((s,r)=>s+(r.net||0),0)/savedRounds.length).toFixed(1);
+    const updated = {...communityProfile, topHero, topBandit, rounds: savedRounds.length, avgNet, lastUpdated: new Date().toISOString()};
+    try { localStorage.setItem("mgp_community_profile", JSON.stringify(updated)); } catch {}
+    setCommunityProfile(updated);
+    // Sync to Supabase if available
+    try {
+      if(typeof supabase !== "undefined" && supabase) {
+        supabase.from("community_profiles").upsert({
+          uid: updated.uid, email: updated.email, name: updated.name,
+          top_hero: topHero, top_bandit: topBandit,
+          rounds_count: savedRounds.length,
+          avg_net: parseFloat(avgNet),
+          handicap: settings?.handicap ? parseFloat(settings.handicap) : null,
+          last_updated: new Date().toISOString(),
+        }, { onConflict: "uid" }).catch(()=>{});
+      }
+    } catch {}
+  }, [savedRounds.length]);
 
   // Auto-load favCourse on mount so par/yardage pre-fill
   useEffect(() => {
@@ -1589,6 +1671,16 @@ export default function App() {
 
   function finishOnboarding(){
     setShowOnboarding(false);
+    try{if(window.__hideSplash)window.__hideSplash();}catch{}
+    // Ask for notification permission at end of onboarding (high-intent moment)
+    setTimeout(async ()=>{
+      try {
+        if("Notification" in window && Notification.permission === "default") {
+          const perm = await Notification.requestPermission();
+          if(perm === "granted") updateSetting("notifications", true);
+        }
+      } catch {}
+    }, 1500);
     try{localStorage.setItem("mgp_onboarded","true");}catch{}
     // paywall disabled - app is free
   }
@@ -1601,12 +1693,24 @@ export default function App() {
   }
   function persistRounds(rounds) {
     setSavedRounds(rounds);
-    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(rounds));const nm=checkNewMilestones(rounds);if(nm.length>0)setNewMilestone(nm[0]);}catch{}
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(rounds));
+      const nm = checkNewMilestones(rounds);
+      if(nm.length > 0) setNewMilestone(nm[0]);
+    } catch(e) {
+      if(e?.name === "QuotaExceededError" || e?.code === 22) {
+        showToast("Storage full — some older rounds may need to be deleted to save new ones.", "warn", 5000);
+      } else {
+        showToast("Round saved in memory only — storage error.", "warn", 4000);
+      }
+    }
     // Rate app prompt after 3rd completed round
     try {
       const rated = localStorage.getItem("mgp_rated");
       if(!rated && rounds.length===3) setTimeout(()=>setShowRateApp(true), 2000);
     } catch {}
+    // Community prompt disabled — captured in onboarding now
+    // try { ... } catch {}
   }
   function toggleTheme() { const next=!darkMode; setDarkMode(next); try{localStorage.setItem(THEME_KEY,next?"dark":"light");}catch{} }
 
@@ -1769,21 +1873,44 @@ export default function App() {
     goToHole(next);
   }
 
+  function getTrimmedScores(sc) {
+    const s = JSON.parse(JSON.stringify(sc));
+    let last = s.length - 1;
+    while (last > 0) {
+      const h = s[last];
+      const hasData = h.strokeScore || h.putts || h.holeNote ||
+        Object.values(h.heroes).some(v=>v!==0) ||
+        Object.values(h.bandits).some(v=>v!==0);
+      if (hasData) break;
+      last--;
+    }
+    return s.slice(0, last + 1);
+  }
+
   function saveRound() {
+    if(saving) return;
     const hasData = scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0));
     if (!hasData) { showToast("No data yet — log some heroes or bandits first.", "warn"); return; }
-    if (!courseName.trim()) { const name=prompt("What course are you playing?"); if(name&&name.trim()) setCourseName(name.trim()); }
+    setSaving(true); setTimeout(()=>setSaving(false), 2000);
+    if (!courseName.trim()) {
+      setCoursePromptCallback(()=>()=>{});
+      setShowCoursePrompt(true);
+      setSaving(false);
+      return;
+    }
     // Overwrite existing draft for same date+course to prevent duplicates
     const course = courseName||"Unnamed Course";
     const existing = savedRounds.find(r=>r.date===roundDate&&r.course===course);
-    const round = { id:existing?.id||Date.now(), course, date:roundDate, scores:JSON.parse(JSON.stringify(scores)), totalPar:getTotalPar(scores), totalStroke:getTotalStroke(scores), notes:postRoundNotes, preRoundMeta:JSON.parse(JSON.stringify(preRoundMeta)), ...getRoundTotals(scores).total };
+    const ts=getTrimmedScores(scores);
+    const round = { id:existing?.id||Date.now(), course, date:roundDate, scores:ts, totalPar:getTotalPar(ts), totalStroke:getTotalStroke(ts), notes:postRoundNotes, preRoundMeta:JSON.parse(JSON.stringify(preRoundMeta)), ...getRoundTotals(ts).total };
     persistRounds(existing ? savedRounds.map(r=>r.id===existing.id?round:r) : [round, ...savedRounds]);
     vibrate([10,20,10]);
     showToast(existing ? "Draft updated!" : "Draft saved!", "success");
   }
 
   function saveDraftAndStartNew() {
-    const round = { id:Date.now(), course:courseName||"Unnamed Course", date:roundDate, scores:JSON.parse(JSON.stringify(scores)), totalPar:getTotalPar(scores), totalStroke:getTotalStroke(scores), notes:postRoundNotes, preRoundMeta:JSON.parse(JSON.stringify(preRoundMeta)), ...getRoundTotals(scores).total };
+    const ts2=getTrimmedScores(scores);
+    const round = { id:Date.now(), course:courseName||"Unnamed Course", date:roundDate, scores:ts2, totalPar:getTotalPar(ts2), totalStroke:getTotalStroke(ts2), notes:postRoundNotes, preRoundMeta:JSON.parse(JSON.stringify(preRoundMeta)), ...getRoundTotals(ts2).total };
     persistRounds([round, ...savedRounds]);
     showToast("Round saved as draft!", "success");
     setScores(initScores()); setCurrentHole(0); setCourseName(""); setRoundDate(new Date().toISOString().split("T")[0]); setPostRoundNotes(""); setHoleNoteOpen(false); setCourseData(null); setSelectedTee(null);
@@ -1802,26 +1929,34 @@ export default function App() {
   function completeRound() {
     const hasData = scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0));
     if (!hasData) { showToast("No data yet — log some heroes or bandits first.", "warn"); return; }
-    if (!courseName.trim()) { const name=prompt("What course are you playing?"); if(name&&name.trim()) setCourseName(name.trim()); }
+    if (!courseName.trim()) {
+      setCoursePromptCallback(()=>()=>setView("roundsummary"));
+      setShowCoursePrompt(true);
+      return;
+    }
     setView("roundsummary");
   }
 
   function saveAndFinish() {
-    const round = { id:Date.now(), course:courseName||"Unnamed Course", date:roundDate, scores:JSON.parse(JSON.stringify(scores)), totalPar:getTotalPar(scores), totalStroke:getTotalStroke(scores), notes:postRoundNotes, preRoundMeta:JSON.parse(JSON.stringify(preRoundMeta)), ...getRoundTotals(scores).total };
+    const trimmedScores = getTrimmedScores(scores);
+    const round = { id:Date.now(), course:courseName||"Unnamed Course", date:roundDate, scores:trimmedScores, totalPar:getTotalPar(trimmedScores), totalStroke:getTotalStroke(trimmedScores), notes:postRoundNotes, preRoundMeta:JSON.parse(JSON.stringify(preRoundMeta)), ...getRoundTotals(trimmedScores).total };
     persistRounds([round, ...savedRounds]);
     setCompletedRound(round);
     try { localStorage.setItem("mgp_carry_forward", carryForward); } catch {}
     // Share prompt
     if(round.net>=3){ setTimeout(()=>showToast(`Mental Net ${round.net>0?"+":""}${round.net} — great round!`, "success", 4000), 800); }
     try { localStorage.removeItem("mgp_checklist_date"); } catch {}
-    setScores(initScores()); setCurrentHole(0); setCourseName(""); setRoundDate(new Date().toISOString().split("T")[0]); setPostRoundNotes(""); setHoleNoteOpen(false); setUsedMessages({});
+    setScores(initScores()); setCurrentHole(0); setCourseName(""); setRoundDate(new Date().toISOString().split("T")[0]); setPostRoundNotes(""); setHoleNoteOpen(false); setUsedMessages({}); setPreRoundMeta({sleep:3,energy:3,partners:"friends"});
     // Fireworks on round save!
     setShowFireworks(true);
     setView("roundstats");
   }
 
   function deleteRound(id) { persistRounds(savedRounds.filter(r=>r.id!==id)); if(selectedRound?.id===id)setSelectedRound(null); }
-  function startNewRound() { const roundHasData=scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts); if(roundHasData){setShowOpenRoundModal(true);return;} setScores(initScores());setCurrentHole(0);setCourseName(settings?.favCourse||"");setRoundDate(new Date().toISOString().split("T")[0]);setPostRoundNotes("");setHoleNoteOpen(false);setCourseData(null);setSelectedTee(settings?.favTee||null);try{const cf=localStorage.getItem("mgp_carry_forward");if(cf)setCarryForward(cf);}catch{}setView(settings.preroundChecklist!==false?"preround":"play"); }
+  function startNewRound() {
+    // Gate: require profile after FREE_ROUNDS_LIMIT completed rounds
+    if(trialExpired) { setShowProfileGate(true); return; }
+    const roundHasData=scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts); if(roundHasData){setShowOpenRoundModal(true);return;} setScores(initScores());setCurrentHole(0);setCourseName(settings?.favCourse||"");setRoundDate(new Date().toISOString().split("T")[0]);setPostRoundNotes("");setHoleNoteOpen(false);setCourseData(null);setSelectedTee(settings?.favTee||null);try{const cf=localStorage.getItem("mgp_carry_forward");if(cf)setCarryForward(cf);}catch{}setView(settings.preroundChecklist!==false?"preround":"play"); }
 
   const nav=(v)=>()=>setView(v);
   function ToastLayer() {
@@ -1912,6 +2047,212 @@ export default function App() {
     );
   }
 
+  function CoursePromptModal() {
+    if(!showCoursePrompt) return null;
+    const [val, setVal] = React.useState("");
+    function confirm() {
+      if(val.trim()) setCourseName(val.trim());
+      setShowCoursePrompt(false);
+      if(coursePromptCallback) coursePromptCallback()();
+    }
+    return (
+      <div style={{position:"fixed",inset:0,zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",padding:"0 20px"}}>
+        <div style={{background:P.card,borderRadius:16,padding:"24px 20px",width:"100%",maxWidth:360,border:`1.5px solid ${P.border}`}}>
+          <div style={{fontSize:16,fontWeight:800,color:P.white,marginBottom:6}}>Which course did you play?</div>
+          <div style={{fontSize:12,color:P.muted,marginBottom:14}}>This helps you track your mental performance across different courses.</div>
+          <input
+            value={val}
+            onChange={e=>setVal(e.target.value)}
+            onKeyDown={e=>e.key==="Enter"&&val.trim()&&confirm()}
+            placeholder="Course name..."
+            autoFocus
+            style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",marginBottom:12}}
+          />
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>{setShowCoursePrompt(false);if(coursePromptCallback)coursePromptCallback()();}} style={{flex:1,padding:"11px",borderRadius:10,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:13,fontWeight:600,cursor:"pointer"}}>Skip</button>
+            <button onClick={confirm} style={{flex:2,padding:"11px",borderRadius:10,border:"none",background:P.green,color:"#fff",fontSize:13,fontWeight:800,cursor:"pointer"}}>Continue</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function ProfileGateModal() {
+    if(!showProfileGate) return null;
+    const [email, setEmailVal] = React.useState("");
+    const [name, setNameVal] = React.useState("");
+    const [loading, setLoading] = React.useState(false);
+    const [done, setDone] = React.useState(false);
+
+    async function submit() {
+      if(!email.trim()||!email.includes("@")) { showToast("Please enter a valid email","warn"); return; }
+      setLoading(true);
+      const uid = (() => { try { let id=localStorage.getItem("mgp_uid"); if(!id){id="user_"+Math.random().toString(36).slice(2,10);localStorage.setItem("mgp_uid",id);} return id; } catch { return "anon"; } })();
+      const profile = { email:email.trim().toLowerCase(), name:name.trim()||null, joinedAt:new Date().toISOString(), uid, source:"round_gate", cloudSync:true };
+      try { localStorage.setItem("mgp_community_profile",JSON.stringify(profile)); localStorage.setItem("mgp_community_joined","true"); } catch {}
+      setCommunityProfile(profile);
+      try {
+        if(typeof supabase!=="undefined"&&supabase) {
+          await supabase.from("community_profiles").upsert({ uid:profile.uid, email:profile.email, name:profile.name, source:"round_gate", joined_at:profile.joinedAt, opted_in:true }, {onConflict:"uid"});
+        }
+      } catch {}
+      setLoading(false);
+      setDone(true);
+      setTimeout(()=>{ setShowProfileGate(false); startNewRound(); }, 1500);
+    }
+
+    return (
+      <div style={{position:"fixed",inset:0,zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.75)",backdropFilter:"blur(10px)",padding:"0 20px"}}>
+        <div style={{background:P.card,borderRadius:20,padding:"28px 22px",width:"100%",maxWidth:400,border:`1.5px solid ${PM_GOLD}44`,boxShadow:"0 24px 60px rgba(0,0,0,0.5)"}}>
+          {done ? (
+            <div style={{textAlign:"center",padding:"16px 0"}}>
+              <div style={{width:48,height:48,borderRadius:14,background:P.green+"18",border:`1.5px solid ${P.green}44`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}><Icons.Check color={P.green} size={22}/></div>
+              <div style={{fontSize:18,fontWeight:900,color:P.white,marginBottom:6}}>Profile created</div>
+              <div style={{fontSize:13,color:P.muted}}>Starting your round...</div>
+            </div>
+          ) : (
+            <>
+              <div style={{textAlign:"center",marginBottom:20}}>
+                <div style={{width:52,height:52,borderRadius:15,background:PM_GOLD+"18",border:`1.5px solid ${PM_GOLD}44`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}><Icons.Shield color={PM_GOLD} size={24}/></div>
+                <div style={{fontSize:19,fontWeight:900,color:P.white,marginBottom:8}}>Your 3 free rounds are up</div>
+                <div style={{fontSize:13,color:P.muted,lineHeight:1.6}}>Create your free profile to keep playing and back up your rounds to the cloud. It takes 20 seconds.</div>
+              </div>
+              {/* What they get */}
+              <div style={{background:PM_GOLD+"08",border:`1px solid ${PM_GOLD}33`,borderRadius:12,padding:"12px 14px",marginBottom:18}}>
+                {[
+                  "Unlimited rounds, forever free",
+                  "Cloud backup — rounds safe if you switch phones",
+                  "Personalized insights from Paul based on your Heroes and Bandits",
+                ].map((t,i)=>(
+                  <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:i<2?8:0}}>
+                    <Icons.Check color={PM_GOLD} size={13} style={{flexShrink:0,marginTop:2}}/>
+                    <span style={{fontSize:12,color:P.white,lineHeight:1.5}}>{t}</span>
+                  </div>
+                ))}
+              </div>
+              {/* Form */}
+              <input value={name} onChange={e=>setNameVal(e.target.value)} placeholder="First name" style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",marginBottom:8}}/>
+              <input value={email} onChange={e=>setEmailVal(e.target.value)} placeholder="Email address" inputMode="email" autoCapitalize="none" autoComplete="email" style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",marginBottom:12}}/>
+              <button onClick={submit} disabled={loading} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:P.green,color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",marginBottom:10,opacity:loading?0.7:1}}>
+                {loading?"Creating profile...":"Create Free Profile"}
+              </button>
+              <div style={{fontSize:10,color:P.muted,textAlign:"center",lineHeight:1.5}}>
+                Free forever. No payment required. By continuing you agree to Paul Monahan Golf's{" "}
+                <span style={{color:PM_GOLD,cursor:"pointer"}} onClick={()=>{setShowProfileGate(false);setShowPrivacyPolicy(true);}}>Privacy Policy</span>.
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  function CommunityPromptModal() {
+    if(!showCommunityPrompt) return null;
+    const [email, setEmailVal] = React.useState("");
+    const [name, setNameVal] = React.useState(user?.name||"");
+    const [loading, setLoading] = React.useState(false);
+    const [done, setDone] = React.useState(false);
+    const topBandit = (() => {
+      const bt={};
+      savedRounds.forEach(r=>{if(!r.scores)return;r.scores.forEach(h=>{Object.keys(h.bandits||{}).forEach(k=>{if(h.bandits[k])bt[k]=(bt[k]||0)+1;});});});
+      return Object.keys(bt).sort((a,b)=>bt[b]-bt[a])[0]||null;
+    })();
+    const topHero = (() => {
+      const ht={};
+      savedRounds.forEach(r=>{if(!r.scores)return;r.scores.forEach(h=>{Object.keys(h.heroes||{}).forEach(k=>{if(h.heroes[k])ht[k]=(ht[k]||0)+1;});});});
+      return Object.keys(ht).sort((a,b)=>ht[b]-ht[a])[0]||null;
+    })();
+
+    async function submitProfile() {
+      if(!email.trim()||!email.includes("@")) { showToast("Please enter a valid email","warn"); return; }
+      setLoading(true);
+      const profile = {
+        email: email.trim().toLowerCase(),
+        name: name.trim()||null,
+        topHero, topBandit,
+        rounds: savedRounds.length,
+        avgNet: savedRounds.length ? (savedRounds.reduce((s,r)=>s+(r.net||0),0)/savedRounds.length).toFixed(1) : null,
+        handicap: settings?.handicap||null,
+        joinedAt: new Date().toISOString(),
+        uid: (()=>{try{let id=localStorage.getItem("mgp_uid");if(!id){id="user_"+Math.random().toString(36).slice(2,10);localStorage.setItem("mgp_uid",id);}return id;}catch{return "anon";}})(),
+        source: "app_post_round_1",
+      };
+      // Save locally
+      try { localStorage.setItem("mgp_community_profile", JSON.stringify(profile)); localStorage.setItem("mgp_community_joined","true"); } catch {}
+      setCommunityProfile(profile);
+      // Sync to Supabase if available
+      try {
+        if(typeof supabase !== "undefined" && supabase) {
+          await supabase.from("community_profiles").upsert({
+            uid: profile.uid,
+            email: profile.email,
+            name: profile.name,
+            top_hero: profile.topHero,
+            top_bandit: profile.topBandit,
+            rounds_count: profile.rounds,
+            avg_net: profile.avgNet ? parseFloat(profile.avgNet) : null,
+            handicap: profile.handicap ? parseFloat(profile.handicap) : null,
+            joined_at: profile.joinedAt,
+            last_updated: new Date().toISOString(),
+            source: profile.source,
+          }, { onConflict: "uid" });
+        }
+      } catch(e) { console.warn("Supabase sync failed:", e); }
+      setLoading(false);
+      setDone(true);
+      setTimeout(()=>setShowCommunityPrompt(false), 2500);
+    }
+
+    function dismiss() {
+      try { localStorage.setItem("mgp_community_dismissed","true"); } catch {}
+      setShowCommunityPrompt(false);
+    }
+
+    return (
+      <div style={{position:"fixed",inset:0,zIndex:9997,display:"flex",alignItems:"flex-end",justifyContent:"center",background:"rgba(0,0,0,0.6)",backdropFilter:"blur(8px)",padding:"0 0 20px"}}>
+        <div style={{background:P.card,borderRadius:"20px 20px 16px 16px",padding:"24px 20px 28px",width:"100%",maxWidth:480,border:`1.5px solid ${P.border}`,boxShadow:"0 -20px 60px rgba(0,0,0,0.4)",animation:"slideUpSheet 0.35s cubic-bezier(0.16,1,0.3,1)"}}>
+          {done ? (
+            <div style={{textAlign:"center",padding:"20px 0"}}>
+              
+              <div style={{fontSize:18,fontWeight:900,color:P.white,marginBottom:6}}>You're in!</div>
+              <div style={{fontSize:13,color:P.muted}}>Paul will be in touch with insights tailored to your game.</div>
+            </div>
+          ) : (
+            <>
+              {/* Header */}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
+                <div>
+                  <div style={{fontSize:17,fontWeight:900,color:P.white,marginBottom:4}}>Join Paul's Community</div>
+                  {topBandit&&<div style={{fontSize:12,color:PM_GOLD,fontWeight:600}}>Your round showed {topBandit} as your biggest challenge. Paul has specific drills for this.</div>}
+                </div>
+                <button onClick={dismiss} style={{background:"none",border:"none",color:P.muted,fontSize:18,cursor:"pointer",padding:"0 0 0 12px",flexShrink:0}}>✕</button>
+              </div>
+              {/* Value prop */}
+              <div style={{background:PM_GOLD+"10",border:`1px solid ${PM_GOLD}33`,borderRadius:12,padding:"10px 14px",marginBottom:16}}>
+                <div style={{fontSize:12,color:P.white,lineHeight:1.6}}>
+                  Get <span style={{fontWeight:700,color:PM_GOLD}}>personalized coaching insights</span> based on your actual Heroes & Bandits data — delivered by Paul directly to your inbox.
+                </div>
+              </div>
+              {/* Form */}
+              <div style={{marginBottom:10}}>
+                <input value={name} onChange={e=>setNameVal(e.target.value)} placeholder="Your first name" style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",marginBottom:8}}/>
+                <input value={email} onChange={e=>setEmailVal(e.target.value)} placeholder="Email address" inputMode="email" autoCapitalize="none" style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none"}}/>
+              </div>
+              <button onClick={submitProfile} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:`linear-gradient(135deg,${PM_NAVY},#2563eb)`,color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",marginBottom:10,opacity:loading?0.7:1}}>
+                {loading?"Joining...":"Join Paul's Community →"}
+              </button>
+              <div style={{fontSize:10,color:P.muted,textAlign:"center",lineHeight:1.5}}>
+                By joining you agree to receive coaching content from Paul Monahan Golf. No spam — unsubscribe anytime. Your mental game data is used only to personalize your experience.
+              </div>
+            </>
+          )}
+        </div>
+        <style>{`@keyframes slideUpSheet{from{opacity:0;transform:translateY(40px);}to{opacity:1;transform:translateY(0);}}`}</style>
+      </div>
+    );
+  }
+
   function RateAppModal() {
     if(!showRateApp) return null;
     function dismiss(rated) {
@@ -1921,11 +2262,11 @@ export default function App() {
     return (
       <div style={{position:"fixed",inset:0,zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",padding:"0 20px"}}>
         <div style={{background:P.card,borderRadius:20,padding:"28px 24px",width:"100%",maxWidth:360,border:`1.5px solid ${P.border}`,textAlign:"center"}}>
-          <div style={{fontSize:40,marginBottom:12}}>⛳</div>
+          
           <div style={{fontSize:20,fontWeight:900,color:P.white,marginBottom:8}}>Enjoying the app?</div>
           <div style={{fontSize:14,color:P.muted,lineHeight:1.6,marginBottom:24}}>You've completed 3 rounds. If you're finding it useful, a rating helps others discover it!</div>
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            <button onClick={()=>{dismiss(true);/* TODO: open App Store rating */}} {...pressProps()} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:"#16a34a",color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer"}}>Rate the App</button>
+            <button onClick={()=>{dismiss(true);const id="YOUR_APP_STORE_ID";const url=navigator.userAgent.includes("iPhone")||navigator.userAgent.includes("iPad")?`itms-apps://itunes.apple.com/app/id${id}?action=write-review`:`https://apps.apple.com/app/id${id}?action=write-review`;try{window.open(url,"_blank");}catch{}}} {...pressProps()} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:"#16a34a",color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer"}}>Rate the App</button>
             <button onClick={()=>dismiss(false)} {...pressProps()} style={{width:"100%",padding:"10px",borderRadius:12,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:13,fontWeight:600,cursor:"pointer"}}>Maybe Later</button>
           </div>
         </div>
@@ -1934,25 +2275,27 @@ export default function App() {
   }
 
   // ─── ROUTING ───
-  if (showOnboarding) return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><OpenRoundModal/><OnboardingFlow onFinish={finishOnboarding} P={P} S={S}/></ThemeCtx.Provider>;
+  if (showOnboarding) return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><OpenRoundModal/><OnboardingFlow onFinish={finishOnboarding} onPrivacy={()=>setShowPrivacyPolicy(true)} P={P} S={S}/></ThemeCtx.Provider>;
   // paywall disabled
-  if (view==="home") return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><OpenRoundModal/><HomeScreen onNav={(v)=>{if(v==="upgrade")return;navTo(v);}} onContinueRound={()=>{const firstEmpty=scores.findIndex(h=>!h.strokeScore&&!Object.values(h.heroes).some(v=>v>0)&&!Object.values(h.bandits).some(v=>v>0));setCurrentHole(Math.max(0,firstEmpty));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} user={user} setUser={setUser} showLogin={showLogin} setShowLogin={setShowLogin} savedRounds={savedRounds} settings={settings} isPro={isPro} /></ThemeCtx.Provider>;
+  if (view==="home") return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><CommunityPromptModal/><ProfileGateModal/><CoursePromptModal/><OpenRoundModal/><HomeScreen onNav={(v)=>{if(v==="upgrade")return;navTo(v);}} onContinueRound={()=>{const firstEmpty=scores.findIndex(h=>!h.strokeScore&&!Object.values(h.heroes).some(v=>v>0)&&!Object.values(h.bandits).some(v=>v>0));setCurrentHole(Math.max(0,firstEmpty));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} user={user} setUser={setUser} showLogin={showLogin} setShowLogin={setShowLogin} savedRounds={savedRounds} settings={settings} isPro={isPro} roundsRemaining={roundsRemaining} hasProfile={hasProfile} /></ThemeCtx.Provider>;
   if (view==="checklist") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist onBack={nav("home")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",new Date().toISOString().split("T")[0]);const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setView("play");}} S={S} lastIntention={carryForward} preRoundMeta={preRoundMeta} setPreRoundMeta={setPreRoundMeta} settings={settings} /></ThemeCtx.Provider>;
   if (view==="preround") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist onBack={nav("home")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",new Date().toISOString().split("T")[0]);const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setView("play");}} S={S} lastIntention={carryForward} preRoundMeta={preRoundMeta} setPreRoundMeta={setPreRoundMeta} settings={settings} /></ThemeCtx.Provider>;
   if (view==="caddie") return <ThemeCtx.Provider value={P}><ToastLayer/><InnerCaddieView onBack={nav(prevView)} S={S} /></ThemeCtx.Provider>;
-  if (view==="coach" || window.location.hash==="#coach") return <ThemeCtx.Provider value={P}><ToastLayer/><CoachDashboardView onBack={()=>{window.location.hash="";nav("home")();}} S={S}/></ThemeCtx.Provider>;
-  if (view==="guide") return <ThemeCtx.Provider value={P}><ToastLayer/><OnboardingFlow onFinish={nav("home")} P={P} S={S}/></ThemeCtx.Provider>;
+  if (view==="coach") return <ThemeCtx.Provider value={P}><ToastLayer/><CoachDashboardView onBack={nav("home")} S={S}/></ThemeCtx.Provider>;
+  if (view==="coachportal") return <ThemeCtx.Provider value={P}><ToastLayer/><CoachPortalView onBack={nav("home")} S={S}/></ThemeCtx.Provider>;
+  if (view==="guide") return <ThemeCtx.Provider value={P}><ToastLayer/><OnboardingFlow onFinish={nav("home")} onPrivacy={()=>setShowPrivacyPolicy(true)} P={P} S={S}/></ThemeCtx.Provider>;
   if (view==="transform") return <ThemeCtx.Provider value={P}><ToastLayer/><TransformView onBack={nav("home")} S={S} P={P}/></ThemeCtx.Provider>;
   if (view==="dashboard") return <ThemeCtx.Provider value={P}><ToastLayer/><DashboardView rounds={savedRounds} onBack={nav("home")} isHome={true} S={S} onSelectRound={r=>{setSelectedRound(r);setView("rounddetail");}}/></ThemeCtx.Provider>;
   if (view==="history") return <ThemeCtx.Provider value={P}><ToastLayer/><HistoryView rounds={savedRounds} onBack={()=>{setView("home");setSelectedRound(null);}} onDelete={deleteRound} selectedRound={selectedRound} setSelectedRound={setSelectedRound} onShare={(r)=>shareRound(r,darkMode)} onEdit={r=>{setEditingRound(r);setView("editround");}} S={S} /></ThemeCtx.Provider>;
   if (view==="rounddetail") return <ThemeCtx.Provider value={P}><ToastLayer/><RoundDetailView round={selectedRound} onBack={nav("dashboard")} onShare={(r)=>shareRound(r,darkMode)} S={S} /></ThemeCtx.Provider>;
   if (showPrivacyPolicy) return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><PrivacyPolicyView onBack={()=>setShowPrivacyPolicy(false)} S={S}/></ThemeCtx.Provider>;
-  if (view==="settings") return <ThemeCtx.Provider value={P}><ToastLayer/><SettingsView settings={settings} updateSetting={updateSetting} darkMode={darkMode} toggleTheme={toggleTheme} onBack={nav("home")} S={S} savedRounds={savedRounds} inGameCaddie={inGameCaddie} setInGameCaddie={setInGameCaddie} onResetTour={()=>{try{localStorage.removeItem("mgp_tip_step");}catch{}setTipStep(0);setView("play");}} isPro={isPro} onManageSubscription={()=>setShowPaywall(true)} onCancelPro={()=>setShowCancelPro(true)} onPrivacyPolicy={()=>setShowPrivacyPolicy(true)} /></ThemeCtx.Provider>;
+  if (showHelp) return <ThemeCtx.Provider value={P}><ToastLayer/><HelpView onBack={()=>setShowHelp(false)} S={S}/></ThemeCtx.Provider>;
+  if (view==="settings") return <ThemeCtx.Provider value={P}><ToastLayer/><SettingsView settings={settings} updateSetting={updateSetting} darkMode={darkMode} toggleTheme={toggleTheme} onBack={nav("home")} S={S} savedRounds={savedRounds} inGameCaddie={inGameCaddie} setInGameCaddie={setInGameCaddie} onResetTour={()=>{try{localStorage.removeItem("mgp_tip_step");}catch{}setTipStep(0);setView("play");}} isPro={isPro} onManageSubscription={()=>setShowPaywall(true)} onCancelPro={()=>setShowCancelPro(true)} onPrivacyPolicy={()=>setShowPrivacyPolicy(true)} communityProfile={communityProfile} onHelp={()=>{setShowHelp(true);}} /></ThemeCtx.Provider>;
   if (view==="scorecard") return <ThemeCtx.Provider value={P}><ToastLayer/><ScorecardView scores={scores} front={front} back={back} total={total} courseName={courseName} roundDate={roundDate} onBack={()=>setView(prevView||"play")} onHome={()=>setView("home")} onSelectHole={h=>{setCurrentHole(h);setView("play");}} S={S} handicap={settings.handicap} /></ThemeCtx.Provider>;
-  if (view==="editround") return <ThemeCtx.Provider value={P}><ToastLayer/><RoundEditView round={editingRound} onSave={updatedRound=>{persistRounds(savedRounds.map(r=>r.id===updatedRound.id?updatedRound:r));setEditingRound(null);setView("history");}} onBack={()=>{setEditingRound(null);setView("history");}} S={S} /></ThemeCtx.Provider>;
+  if (view==="editround") return <ThemeCtx.Provider value={P}><ToastLayer/><RoundEditView round={editingRound} onSave={updatedRound=>{const updated=savedRounds.map(r=>r.id===updatedRound.id?updatedRound:r);persistRounds(updated);setEditingRound(null);setView("history");}} onBack={()=>{setEditingRound(null);setView("history");}} S={S} /></ThemeCtx.Provider>;
   if (view==="badges") return <ThemeCtx.Provider value={P}><ToastLayer/><BadgesView rounds={savedRounds} onBack={nav("home")} S={S} /></ThemeCtx.Provider>;
   if (view==="roundsummary") return <ThemeCtx.Provider value={P}><ToastLayer/><RoundSummaryView scores={scores} total={total} courseName={courseName} courseData={courseData} roundDate={roundDate} postRoundNotes={postRoundNotes} setPostRoundNotes={setPostRoundNotes} carryForward={carryForward} setCarryForward={setCarryForward} onSave={saveAndFinish} onBack={nav("play")} onViewScorecard={()=>{setPrevView("roundsummary");setView("scorecard");}} S={S} /></ThemeCtx.Provider>;
-  if (view==="roundstats") return <ThemeCtx.Provider value={P}><ToastLayer/><FireworksCanvas active={showFireworks} onDone={()=>setShowFireworks(false)}/><RoundStatsView round={completedRound} onHome={(dest)=>{if(dest==="caddie"){setPrevView("roundstats");setView("caddie");}else if(dest==="roundsummary"){setView("roundsummary");}else setView(dest||"home");}} onShare={(r)=>shareRound(r,darkMode)} S={S} /></ThemeCtx.Provider>;
+  if (view==="roundstats") return <ThemeCtx.Provider value={P}><ToastLayer/><CommunityPromptModal/><FireworksCanvas active={showFireworks} onDone={()=>setShowFireworks(false)}/><RoundStatsView round={completedRound} onHome={(dest)=>{if(dest==="caddie"){setPrevView("roundstats");setView("caddie");}else if(dest==="roundsummary"){setView("roundsummary");}else setView(dest||"home");}} onShare={(r)=>shareRound(r,darkMode)} S={S} /></ThemeCtx.Provider>;
 
   // ─── PLAY VIEW ───
   const hB = scores[currentHole].bandits, hH = scores[currentHole].heroes;
@@ -2100,7 +2443,7 @@ export default function App() {
           <div style={{display:"flex",gap:4}}>
             {themeToggle}
             <button onClick={()=>navTo("caddie")} style={S.iconBtn} {...pp()}><Icons.Brain color={P.muted} size={16}/></button>
-            <button onClick={()=>{try{localStorage.removeItem("mgp_tip_step");}catch{}setTipStep(0);}} style={S.iconBtn} {...pp()}><Icons.Info color={P.muted} size={15}/></button>
+            <button onClick={()=>{try{localStorage.removeItem("mgp_tip_step");}catch{}setTipStep(0);}} style={S.iconBtn} {...pp()} aria-label="App guide"><Icons.Info color={P.muted} size={15}/></button>
             <button onClick={()=>{setPrevView(view);setView("scorecard");}} style={S.iconBtn} {...pp()}><Icons.Grid color={P.muted} size={15}/></button>
           </div>
         </div>
@@ -2133,7 +2476,7 @@ export default function App() {
           {weather && !loadingWeather && (
             <div style={{display:"flex",alignItems:"center",gap:5,padding:"5px 8px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.card,flexShrink:0}}>
               <span style={{fontSize:16,lineHeight:1}}>{weatherIcon(weather.code)}</span>
-              <span style={{fontSize:12,fontWeight:700,color:P.white}}>{weather.temp}°F</span>
+              <span style={{fontSize:12,fontWeight:700,color:P.white}}>{weather.temp??"-"}°{settings?.units==="metric"?"C":"F"}</span>
               <span style={{fontSize:11,color:P.muted}}>{weatherLabel(weather.code)}</span>
             </div>
           )}
@@ -2176,53 +2519,49 @@ export default function App() {
           const runningPar = scoredHoles.reduce((s,h)=>s+(parseInt(h.par)||0),0);
           const runningDiff = scoredHoles.length > 0 ? runningStroke - runningPar : null;
           return (
-        <div ref={tipRefs.scoreRow} key={animKey} style={{padding:"2px 10px 4px",display:"flex",alignItems:"center",gap:8,animation:"fadeSlide 0.25s ease-out",flexShrink:0}}>
+        <div ref={tipRefs.scoreRow} key={animKey} style={{padding:"2px 6px 4px",display:"flex",alignItems:"center",gap:5,animation:"fadeSlide 0.25s ease-out",flexShrink:0}}>
 
-          {/* Hole N — left, yardage inline */}
-          <div style={{flexShrink:0,marginRight:2}}>
+          {/* Hole N + yardage takes all remaining left space */}
+          <div style={{flex:1,minWidth:0}}>
             {notation&&notation.diff!==0&&<div style={{fontSize:9,fontWeight:700,color:notation.diff<0?P.green:P.red,letterSpacing:0.5,marginBottom:1}}>{notation.label}</div>}
-            <div style={{display:"flex",alignItems:"baseline",gap:6}}>
+            <div style={{display:"flex",alignItems:"baseline",gap:6,flexWrap:"nowrap"}}>
               {streak>=3&&<div style={{display:"flex",alignItems:"center",gap:2,padding:"2px 6px",borderRadius:20,background:P.green+"15",border:`1px solid ${P.green}33`}}><Icons.Fire color={P.green} size={11}/><span style={{fontSize:10,fontWeight:700,color:P.green}}>{streak}</span></div>}
-              <span style={{fontSize:22,fontWeight:900,lineHeight:1,color:P.white}}>Hole {currentHole+1}</span>
-              {scores[currentHole].yardage&&<span style={{fontSize:15,fontWeight:600,color:P.muted,lineHeight:1}}>{scores[currentHole].yardage}<span style={{fontSize:10,marginLeft:2}}>yds</span></span>}
-              {runningDiff!==null&&<span style={{fontSize:12,fontWeight:700,color:runningDiff<0?P.green:runningDiff>0?P.red:P.gold}}>{runningDiff>0?"+":""}{runningDiff===0?"E":runningDiff}</span>}
+              <span style={{fontSize:22,fontWeight:900,lineHeight:1,color:P.white,whiteSpace:"nowrap"}}>Hole {currentHole+1}</span>
+              {scores[currentHole].yardage&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",marginLeft:6}}><span style={{fontSize:15,fontWeight:700,color:P.muted,lineHeight:1}}>{scores[currentHole].yardage}</span><span style={{fontSize:9,color:P.muted,fontWeight:600,letterSpacing:0.5,marginTop:1}}>yds</span></div>}
+              {runningDiff!==null&&<span style={{fontSize:12,fontWeight:700,color:runningDiff<0?P.green:runningDiff>0?P.red:P.gold,whiteSpace:"nowrap"}}>{runningDiff>0?"+":""}{runningDiff===0?"E":runningDiff}</span>}
             </div>
           </div>
 
-          {/* Spacer */}
-          <div style={{flex:1}}/>
-
           {/* PAR */}
           <div style={{textAlign:"center",flexShrink:0}}>
-            <div style={{fontSize:8,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3}}>PAR</div>
-            <input value={scores[currentHole].par} onChange={e=>updateField("par",e.target.value.replace(/\D/g,"").slice(0,1))} style={{...S.miniInput,width:48,fontSize:20}} inputMode="numeric"/>
+            <div style={{fontSize:9,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3}}>PAR</div>
+            <input value={scores[currentHole].par} onChange={e=>updateField("par",e.target.value.replace(/\D/g,"").slice(0,1))} style={{...S.miniInput,width:44,fontSize:20}} inputMode="numeric" aria-label="Par"/>
           </div>
 
           {/* SCORE */}
           <div style={{textAlign:"center",flexShrink:0}}>
-            <div style={{fontSize:8,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3}}>SCORE</div>
-            <input value={scores[currentHole].strokeScore} onChange={e=>updateField("strokeScore",e.target.value.replace(/\D/g,"").slice(0,2))} style={{...S.miniInput,width:48,fontSize:20,borderRadius:notation?.circle?"50%":notation?.square?"4px":"8px",borderColor:notation?.diff&&notation.diff!==0?(notation.diff<0?P.green:P.red):undefined,borderWidth:notation?.diff&&Math.abs(notation.diff)>=2?"3px":"1.5px",borderStyle:notation?.diff&&Math.abs(notation.diff)>=2?"double":"solid"}} inputMode="numeric"/>
+            <div style={{fontSize:9,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3}}>SCORE</div>
+            <input value={scores[currentHole].strokeScore} onChange={e=>updateField("strokeScore",e.target.value.replace(/\D/g,"").slice(0,2))} aria-label="Score" style={{...S.miniInput,width:44,fontSize:20,borderRadius:notation?.circle?"50%":notation?.square?"4px":"8px",borderColor:notation?.diff&&notation.diff!==0?(notation.diff<0?P.green:P.red):undefined,borderWidth:notation?.diff&&Math.abs(notation.diff)>=2?"3px":"1.5px",borderStyle:notation?.diff&&Math.abs(notation.diff)>=2?"double":"solid"}} inputMode="numeric"/>
           </div>
 
           {/* FIR / GIR */}
           <div style={{textAlign:"center",flexShrink:0}}>
-            <div style={{fontSize:8,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3}}>FIR / GIR</div>
-            <div style={{display:"flex",gap:5,height:36,background:P.card,borderRadius:9,border:`1.5px solid ${P.border}`,padding:"0 8px",alignItems:"center"}}>
-              <button onClick={()=>updateField("fairway",scores[currentHole].fairway===true?null:true)} {...pp()} style={{height:22,padding:"0 8px",borderRadius:6,border:`1.5px solid ${scores[currentHole].fairway===true?P.green:P.border}`,background:scores[currentHole].fairway===true?P.green+"20":"transparent",color:scores[currentHole].fairway===true?P.green:P.muted,fontSize:11,fontWeight:700,cursor:"pointer"}}>{scores[currentHole].fairway===true?<Icons.Check color={P.green} size={11}/>:<span style={{display:"inline-block",width:16}}/>}</button>
-              <button onClick={()=>updateField("gir",scores[currentHole].gir===true?null:true)} {...pp()} style={{height:22,padding:"0 8px",borderRadius:6,border:`1.5px solid ${scores[currentHole].gir===true?P.accent:P.border}`,background:scores[currentHole].gir===true?P.accent+"20":"transparent",color:scores[currentHole].gir===true?P.accent:P.muted,fontSize:11,fontWeight:700,cursor:"pointer"}}>{scores[currentHole].gir===true?<Icons.Check color={P.accent} size={11}/>:<span style={{display:"inline-block",width:16}}/>}</button>
+            <div style={{fontSize:9,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3}}>FIR / GIR</div>
+            <div style={{display:"flex",gap:3,height:34,background:P.card,borderRadius:9,border:`1.5px solid ${P.border}`,padding:"0 5px",alignItems:"center"}}>
+              <button onClick={()=>updateField("fairway",scores[currentHole].fairway===true?null:true)} {...pp()} style={{height:22,padding:"0 6px",borderRadius:6,border:`1.5px solid ${scores[currentHole].fairway===true?P.green:P.border}`,background:scores[currentHole].fairway===true?P.green+"20":"transparent",color:scores[currentHole].fairway===true?P.green:P.muted,fontSize:11,fontWeight:700,cursor:"pointer"}}>{scores[currentHole].fairway===true?<Icons.Check color={P.green} size={11}/>:<span style={{display:"inline-block",width:16}}/>}</button>
+              <button onClick={()=>updateField("gir",scores[currentHole].gir===true?null:true)} {...pp()} style={{height:22,padding:"0 6px",borderRadius:6,border:`1.5px solid ${scores[currentHole].gir===true?P.accent:P.border}`,background:scores[currentHole].gir===true?P.accent+"20":"transparent",color:scores[currentHole].gir===true?P.accent:P.muted,fontSize:11,fontWeight:700,cursor:"pointer"}}>{scores[currentHole].gir===true?<Icons.Check color={P.accent} size={11}/>:<span style={{display:"inline-block",width:16}}/>}</button>
             </div>
           </div>
 
           {/* PUTTS */}
           <div style={{textAlign:"center",flexShrink:0}}>
-            <div style={{fontSize:8,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3}}>PUTTS</div>
-            <div style={{display:"flex",alignItems:"center",gap:4,height:36,background:P.card,borderRadius:9,border:`1.5px solid ${P.border}`,padding:"0 8px"}}>
-              <button onClick={()=>updateField("putts",Math.max(0,(parseInt(scores[currentHole].putts)||0)-1)||"")} style={{width:20,height:20,borderRadius:5,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}} {...pp()}>−</button>
+            <div style={{fontSize:9,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3}}>PUTTS</div>
+            <div style={{display:"flex",alignItems:"center",gap:3,height:38,background:P.card,borderRadius:9,border:`1.5px solid ${P.border}`,padding:"0 4px"}}>
+              <button onClick={()=>updateField("putts",Math.max(0,(parseInt(scores[currentHole].putts)||0)-1)||"")} style={{width:32,height:32,borderRadius:7,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:17,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}} {...pp()}>−</button>
               <span style={{fontSize:20,fontWeight:800,color:scores[currentHole].putts?P.white:P.muted,minWidth:22,textAlign:"center"}}>{scores[currentHole].putts||"—"}</span>
-              <button onClick={()=>updateField("putts",(parseInt(scores[currentHole].putts)||0)+1)} style={{width:20,height:20,borderRadius:5,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}} {...pp()}>+</button>
+              <button onClick={()=>updateField("putts",(parseInt(scores[currentHole].putts)||0)+1)} style={{width:32,height:32,borderRadius:7,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:17,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}} {...pp()}>+</button>
             </div>
           </div>
-
 
         </div>
           );})()}
@@ -2253,11 +2592,11 @@ export default function App() {
             const hActive = hH[hero]===1, bActive = hB[bandit]===1;
             return (
             <div key={idx} style={{display:"grid",gridTemplateColumns:"36px 1fr 48px 1fr 36px",alignItems:"center",gap:2,marginBottom:2,padding:"4px 2px",borderRadius:10,background:hActive?heroColor+"10":bActive?P.red+"08":idx%2===0?P.card:"transparent",border:`1px solid ${hActive?heroColor+"33":bActive?P.red+"22":"transparent"}`,transition:"all 0.18s ease"}}>
-              <button onClick={()=>setScore("heroes",hero,1)} style={{...toggleBtn(P,"green",hActive),width:32,height:32,borderColor:hActive?heroColor:P.greenDim,background:hActive?heroColor:"transparent",boxShadow:hActive?`0 0 12px ${heroColor}44`:"none"}} {...pp()}>{hActive?<Icons.Check color="#fff" size={13}/>:""}</button>
+              <button onClick={()=>setScore("heroes",hero,1)} aria-label={`${hero} hero`} aria-pressed={hActive} style={{...toggleBtn(P,"green",hActive),width:32,height:32,borderColor:hActive?heroColor:P.greenDim,background:hActive?heroColor:"transparent",boxShadow:hActive?`0 0 12px ${heroColor}44`:"none"}}>{hActive?<Icons.Check color="#fff" size={13}/>:""}</button>
               <div style={{fontSize:13,color:hActive?heroColor:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{hero}</div>
               <div style={{textAlign:"center",fontSize:12,color:P.muted,fontStyle:"italic",fontWeight:600}}>{verb}</div>
               <div style={{fontSize:13,color:bActive?P.red:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{bandit}</div>
-              <button onClick={()=>setScore("bandits",bandit,1)} style={{...toggleBtn(P,"red",bActive),width:32,height:32,borderRadius:10}} {...pp()}>{bActive?<Icons.Check color="#fff" size={13}/>:""}</button>
+              <button onClick={()=>setScore("bandits",bandit,1)} aria-label={`${bandit} bandit`} aria-pressed={bActive} style={{...toggleBtn(P,"red",bActive),width:32,height:32,borderRadius:10}}>{bActive?<Icons.Check color="#fff" size={13}/>:""}</button>
             </div>
           );})}
         </div>}
@@ -2283,7 +2622,7 @@ export default function App() {
             <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
               <img src={darkMode?HEROES_LOGO_WHITE:HEROES_LOGO_DARK} alt="Heroes" style={{width:60,height:60,objectFit:"contain",flexShrink:0}}/>
               <div>
-                <div style={{fontSize:8,color:P.green,letterSpacing:1,fontWeight:700,marginBottom:2}}>HEROES</div>
+                <div style={{fontSize:9,color:P.green,letterSpacing:1,fontWeight:700,marginBottom:2}}>HEROES</div>
                 <div style={{display:"flex",alignItems:"baseline",gap:5}}>
                   <span style={{fontSize:36,fontWeight:900,color:P.green,lineHeight:1}}>{hT}</span>
                   {holeHeroes>0&&<span style={{fontSize:11,fontWeight:700,color:P.green,background:P.green+"20",padding:"1px 5px",borderRadius:8}}>+{holeHeroes}</span>}
@@ -2291,13 +2630,13 @@ export default function App() {
               </div>
             </div>
             <div style={{textAlign:"center",flexShrink:0}}>
-              <div style={{fontSize:8,color:P.muted,letterSpacing:2,fontWeight:700,marginBottom:2}}>MENTAL NET</div>
+              <div style={{fontSize:9,color:P.muted,letterSpacing:2,fontWeight:700,marginBottom:2}}>MENTAL NET</div>
               <div style={{fontSize:42,fontWeight:900,lineHeight:1,color:total.net>0?P.green:total.net<0?P.red:P.gold,textShadow:total.net!==0?`0 0 20px ${total.net>0?P.green:P.red}44`:"none",transition:"all 0.2s"}}>{total.net>0?"+":""}{total.net}</div>
               {rd!==null&&<div style={{fontSize:10,fontWeight:700,color:rd<0?P.green:rd>0?P.red:P.gold,marginTop:2}}>{rd>0?"+":""}{rd===0?"E par":rd+" vs par"}</div>}
             </div>
             <div style={{display:"flex",alignItems:"center",gap:10,flex:1,justifyContent:"flex-end"}}>
               <div style={{textAlign:"right"}}>
-                <div style={{fontSize:8,color:P.red,letterSpacing:1,fontWeight:700,marginBottom:2}}>BANDITS</div>
+                <div style={{fontSize:9,color:P.red,letterSpacing:1,fontWeight:700,marginBottom:2}}>BANDITS</div>
                 <div style={{display:"flex",alignItems:"baseline",gap:5,justifyContent:"flex-end"}}>
                   {holeBandits>0&&<span style={{fontSize:11,fontWeight:700,color:P.red,background:P.red+"20",padding:"1px 5px",borderRadius:8}}>+{holeBandits}</span>}
                   <span style={{fontSize:36,fontWeight:900,color:P.red,lineHeight:1}}>{bT}</span>
@@ -2331,18 +2670,18 @@ export default function App() {
           {holeNoteOpen&&<div style={{marginTop:4,animation:"fadeIn 0.2s ease-out"}}><textarea value={scores[currentHole].holeNote} onChange={e=>updateField("holeNote",e.target.value)} placeholder={`Hole ${currentHole+1} notes...`} rows={2} style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:13,outline:"none",resize:"none",lineHeight:1.4}}/></div>}
         </div>
         {/* Navigation + actions */}
-        <div style={{padding:"4px 10px 10px",display:"flex",gap:5,alignItems:"center"}}>
+        <div style={{padding:"4px 10px calc(10px + env(safe-area-inset-bottom, 0px))",display:"flex",gap:5,alignItems:"center"}}>
           {/* Back */}
-          <button onClick={()=>goToHole(Math.max(0,currentHole-1))} disabled={currentHole===0} style={{...navBtnS(P,currentHole===0),padding:"10px 12px",flexShrink:0}} {...pp()}>←</button>
-          <SaveBtn P={P} onSave={saveRound}/>
+          <button onClick={()=>goToHole(Math.max(0,currentHole-1))} disabled={currentHole===0} style={{...navBtnS(P,currentHole===0),padding:"10px 12px",flexShrink:0}} aria-label="Previous hole">←</button>
+          <SaveBtn P={P} onSave={saveRound} hint={savedRounds.length===0&&currentHole>0?"Tap Save to finish early":null}/>
           <ShareBtn P={P} onShare={()=>{const hasData=scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0));if(!hasData){showToast("No data yet — log some heroes or bandits first.", "warn");return;}shareRound({course:courseName||"Unnamed Course",date:roundDate,scores,notes:postRoundNotes,totalPar:getTotalPar(scores),totalStroke:getTotalStroke(scores),...getRoundTotals(scores).total},darkMode);}}/>
 
           <div style={{flex:1}}/>
           {/* Finish or Forward */}
           {currentHole===17?(
-            <button onClick={completeRound} {...pp()} style={{padding:"10px 14px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green+"12",color:P.green,fontSize:13,fontWeight:700,cursor:"pointer",transition:"transform 0.1s ease",flexShrink:0}}>Finish ✓</button>
+            <button onClick={completeRound} aria-label="Finish round" style={{padding:"10px 14px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green+"12",color:P.green,fontSize:13,fontWeight:700,cursor:"pointer",transition:"transform 0.1s ease",flexShrink:0}}>Finish ✓</button>
           ):(
-            <button onClick={advanceHole} style={{...navBtnS(P,false),padding:"10px 12px",flexShrink:0}} {...pp()}>→</button>
+            <button onClick={advanceHole} style={{...navBtnS(P,false),padding:"10px 12px",flexShrink:0}} aria-label="Next hole">→</button>
           )}
         </div>
         </div>{/* end nav ref wrapper */}
@@ -2365,17 +2704,71 @@ export default function App() {
 // LOGIN MODAL
 // ═══════════════════════════════════════
 function LoginModal({P,onClose,onLogin}) {
-  const [email,setEmail]=useState(""); const [pass,setPass]=useState(""); const [mode,setMode]=useState("login"); const [error,setError]=useState("");
-  function handleSubmit(){if(!email.trim()||!pass.trim()){setError("Please fill in all fields.");return;} if(mode==="signup"&&pass.length<6){setError("Password must be at least 6 characters.");return;} onLogin({email:email.trim(),name:email.split("@")[0]});}
+  const [email,setEmail]=useState("");
+  const [pass,setPass]=useState("");
+  const [name,setName]=useState("");
+  const [mode,setMode]=useState("login");
+  const [error,setError]=useState("");
+  const [loading,setLoading]=useState(false);
+  const pp=pressProps;
+
+  async function handleSubmit() {
+    if(!email.trim()||!pass.trim()){setError("Please fill in all fields.");return;}
+    if(mode==="signup"&&pass.length<6){setError("Password must be at least 6 characters.");return;}
+    setLoading(true); setError("");
+    try {
+      // Try Supabase if available, fall back to local
+      if(typeof supabase!=="undefined"&&supabase) {
+        let result;
+        if(mode==="signup") {
+          result = await supabase.auth.signUp({email:email.trim(),password:pass,options:{data:{display_name:name||email.split("@")[0]}}});
+        } else {
+          result = await supabase.auth.signInWithPassword({email:email.trim(),password:pass});
+        }
+        if(result.error) { setError(result.error.message); setLoading(false); return; }
+        const u = result.data.user;
+        onLogin({email:u.email,name:u.user_metadata?.display_name||u.email.split("@")[0],id:u.id});
+      } else {
+        // Offline fallback — local only
+        onLogin({email:email.trim(),name:name||email.split("@")[0]});
+      }
+    } catch(e) {
+      onLogin({email:email.trim(),name:name||email.split("@")[0]});
+    }
+    setLoading(false);
+  }
+
   return (
     <div style={{position:"fixed",inset:0,zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.5)",backdropFilter:"blur(6px)",animation:"fadeIn 0.2s ease-out"}}>
-      <div style={{background:P.card,borderRadius:16,padding:28,width:"90%",maxWidth:360,border:`1.5px solid ${P.border}`,boxShadow:"0 20px 40px rgba(0,0,0,0.12)",animation:"fadeIn 0.25s ease-out"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}><div style={{fontSize:20,fontWeight:700,color:P.white}}>{mode==="login"?"Welcome Back":"Create Account"}</div><button onClick={onClose} style={{width:32,height:32,borderRadius:8,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}} {...pp()}>✕</button></div>
-        <div style={{marginBottom:12}}><div style={{fontSize:11,color:P.muted,fontWeight:600,letterSpacing:1,marginBottom:4}}>EMAIL</div><input value={email} onChange={e=>{setEmail(e.target.value);setError("");}} placeholder="you@email.com" style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:15,outline:"none"}}/></div>
-        <div style={{marginBottom:16}}><div style={{fontSize:11,color:P.muted,fontWeight:600,letterSpacing:1,marginBottom:4}}>PASSWORD</div><input value={pass} onChange={e=>{setPass(e.target.value);setError("");}} type="password" placeholder="••••••••" style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:15,outline:"none"}}/></div>
+      <div style={{background:P.card,borderRadius:16,padding:28,width:"90%",maxWidth:360,border:`1.5px solid ${P.border}`,boxShadow:"0 20px 40px rgba(0,0,0,0.12)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+          <div style={{fontSize:20,fontWeight:700,color:P.white}}>{mode==="login"?"Welcome Back":"Create Account"}</div>
+          <button onClick={onClose} style={{width:32,height:32,borderRadius:9,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:16,cursor:"pointer"}} {...pp()}>✕</button>
+        </div>
+        {mode==="signup"&&(
+          <div style={{marginBottom:12}}>
+            <div style={{fontSize:11,color:P.muted,fontWeight:600,letterSpacing:1,marginBottom:4}}>NAME</div>
+            <input value={name} onChange={e=>{setName(e.target.value);setError("");}} placeholder="Your name" style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:15,outline:"none"}}/>
+          </div>
+        )}
+        <div style={{marginBottom:12}}>
+          <div style={{fontSize:11,color:P.muted,fontWeight:600,letterSpacing:1,marginBottom:4}}>EMAIL</div>
+          <input value={email} onChange={e=>{setEmail(e.target.value);setError("");}} placeholder="you@email.com" inputMode="email" autoCapitalize="none" autoComplete="email" style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:15,outline:"none"}}/>
+        </div>
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:11,color:P.muted,fontWeight:600,letterSpacing:1,marginBottom:4}}>PASSWORD</div>
+          <input value={pass} onChange={e=>{setPass(e.target.value);setError("");}} type="password" autoComplete="current-password" placeholder="••••••••" style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:15,outline:"none"}}/>
+        </div>
         {error&&<div style={{fontSize:13,color:P.red,marginBottom:12}}>{error}</div>}
-        <button onClick={handleSubmit} {...pp()} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:P.accent,color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",letterSpacing:0.5,marginBottom:12,transition:"transform 0.1s ease"}}>{mode==="login"?"Sign In":"Create Account"}</button>
-        <div style={{textAlign:"center",fontSize:13,color:P.muted}}>{mode==="login"?"Don't have an account? ":"Already have an account? "}<button onClick={()=>{setMode(mode==="login"?"signup":"login");setError("");}} style={{background:"none",border:"none",color:P.accent,cursor:"pointer",fontSize:13,fontWeight:600,textDecoration:"underline"}}>{mode==="login"?"Sign Up":"Sign In"}</button></div>
+        <button onClick={handleSubmit} {...pp()} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:P.accent,color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",marginBottom:12,opacity:loading?0.7:1}}>
+          {loading?"...":(mode==="login"?"Sign In":"Create Account")}
+        </button>
+        <div style={{textAlign:"center",fontSize:13,color:P.muted}}>
+          {mode==="login"?"Don't have an account? ":"Already have an account? "}
+          <button onClick={()=>{setMode(mode==="login"?"signup":"login");setError("");}} style={{background:"none",border:"none",color:P.accent,cursor:"pointer",fontSize:13,fontWeight:600,textDecoration:"underline"}}>
+            {mode==="login"?"Sign Up":"Sign In"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -2384,7 +2777,7 @@ function LoginModal({P,onClose,onLogin}) {
 // ═══════════════════════════════════════
 // HOME
 // ═══════════════════════════════════════
-function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggle,S,user,setUser,showLogin,setShowLogin,savedRounds,settings,isPro}) {
+function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggle,S,user,setUser,showLogin,setShowLogin,savedRounds,settings,isPro,roundsRemaining,hasProfile}) {
   const P=useTheme();
   const darkMode = P.bg === "#09090b";
   const [loaded,setLoaded]=useState(false);
@@ -2413,8 +2806,8 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
     {key:"dashboard",IconKey:"Chart",label:"Dashboard",color:"#7c3aed"},
     {key:"badges",IconKey:"Medal",label:"Milestones",color:"#ca8a04"},
     {key:"history",IconKey:"Clock",label:"History",color:"#0d9488"},
-    {key:"transform",IconKey:"Star",label:"Transform",color:"#fbbf24"},
-    {key:"guide",IconKey:"Info",label:"Guide",color:"#64748b"},
+    {key:"transform",IconKey:"Star",label:"Framework",color:"#fbbf24"},
+    {key:"guide",IconKey:"Info",label:"Help",color:"#64748b"},
     {key:"settings",IconKey:"Gear",label:"Settings",color:"#475569"},
   ];
 
@@ -2521,6 +2914,13 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
           </button>
         )}
 
+        {/* Trial counter — shown when not yet profiled and rounds remain */}
+        {!hasProfile&&roundsRemaining<=FREE_ROUNDS_LIMIT&&roundsRemaining>0&&!roundInProgress&&(
+          <div style={{marginBottom:8,padding:"7px 14px",borderRadius:10,background:roundsRemaining===1?P.red+"12":PM_GOLD+"10",border:`1px solid ${roundsRemaining===1?P.red:PM_GOLD}33`,width:"100%",maxWidth:320,textAlign:"center",opacity:loaded?1:0,transition:"opacity 0.6s ease 0.58s"}}>
+            <span style={{fontSize:12,fontWeight:700,color:roundsRemaining===1?P.red:PM_GOLD}}>{roundsRemaining} free round{roundsRemaining!==1?"s":""} remaining</span>
+            <span style={{fontSize:11,color:P.muted}}> — create a profile to continue</span>
+          </div>
+        )}
         {/* Personal bests strip */}
         {savedRounds&&savedRounds.length>=2&&(()=>{
           const bestNet=Math.max(...savedRounds.map(r=>r.net));
@@ -2533,7 +2933,7 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
               {label:"Best Streak",val:streak||"—",color:P.gold}
             ].map((s,i)=>(
               <div key={i} style={{flex:1,textAlign:"center",padding:"5px 4px",borderRadius:8,background:P.card,border:`1px solid ${P.border}`,minWidth:0}}>
-                <div style={{fontSize:7,color:P.muted,fontWeight:700,letterSpacing:0.3,marginBottom:1,whiteSpace:"nowrap"}}>{s.label}</div>
+                <div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:0.3,marginBottom:1,whiteSpace:"nowrap"}}>{s.label}</div>
                 <div style={{fontSize:14,fontWeight:900,color:s.color,lineHeight:1}}>{s.val}</div>
               </div>
             ))}
@@ -2707,7 +3107,7 @@ function PreRoundChecklist({onBack,onStartRound,S,lastIntention,preRoundMeta,set
         </div>
       )}
 
-      <div style={{flex:1,overflowY:"auto",padding:"0 16px 20px"}}>
+      <div style={{flex:1,overflowY:"auto",padding:"0 16px calc(20px + env(safe-area-inset-bottom,0px))"}}>
         {lastIntention&&(
           <div style={{marginBottom:14,padding:"12px 14px",borderRadius:12,background:"linear-gradient(135deg, #ca8a0410, #fbbf2410)",border:"1.5px solid #ca8a0433",animation:"fadeIn 0.4s ease-out"}}>
             <div style={{fontSize:9,color:"#ca8a04",fontWeight:800,letterSpacing:1.5,marginBottom:5}}>YOUR INTENTION FROM LAST ROUND</div>
@@ -3139,7 +3539,7 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                 <div onClick={()=>setSelectedRound(r.id===selectedRound?.id?null:r)} style={{display:"flex",alignItems:"center",padding:"12px 14px",cursor:"pointer",gap:12}}>
                   <div style={{width:46,height:46,borderRadius:12,background:netColor+"15",border:`1.5px solid ${netColor}33`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                     <div style={{fontSize:17,fontWeight:900,color:netColor,lineHeight:1}}>{r.net>0?"+":""}{r.net}</div>
-                    <div style={{fontSize:7,color:PM_GOLD,fontWeight:700,letterSpacing:1}}>NET</div>
+                    <div style={{fontSize:9,color:PM_GOLD,fontWeight:700,letterSpacing:1}}>NET</div>
                   </div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontWeight:800,fontSize:14,color:P.white,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.course}</div>
@@ -3153,7 +3553,7 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                     <div style={{transform:selectedRound?.id===r.id?"rotate(90deg)":"rotate(0)",transition:"transform 0.2s"}}><Icons.Chev color={P.muted} size={14}/></div>
-                    <button onClick={e=>{e.stopPropagation();if(isC){onDelete(r.id);setConfirmId(null);}else{setConfirmId(r.id);setTimeout(()=>setConfirmId(c=>c===r.id?null:c),3000);}}} style={{width:28,height:28,borderRadius:7,border:`1.5px solid ${isC?P.red:P.border}`,background:isC?P.red+"15":"transparent",color:isC?P.red:P.muted,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}} {...pp()}>
+                    <button onClick={e=>{e.stopPropagation();if(isC){onDelete(r.id);setConfirmId(null);}else{setConfirmId(r.id);setTimeout(()=>setConfirmId(c=>c===r.id?null:c),3000);}}} style={{width:36,height:36,borderRadius:9,border:`1.5px solid ${isC?P.red:P.border}`,background:isC?P.red+"15":"transparent",color:isC?P.red:P.muted,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}} {...pp()}>
                       {isC?<Icons.Check color={P.red} size={11}/>:"✕"}
                     </button>
                   </div>
@@ -3187,13 +3587,13 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
             </div>
 
             {/* Detail content */}
-            <div style={{flex:1,overflowY:"auto",padding:"14px 16px 24px"}}>
+            <div style={{flex:1,overflowY:"auto",padding:"14px 16px calc(24px + env(safe-area-inset-bottom,0px))"}}>
 
               {/* Net score strip */}
               <div style={{display:"flex",alignItems:"center",gap:16,padding:"12px 16px",borderRadius:14,background:P.card,border:`1.5px solid ${netColor}33`,marginBottom:12}}>
                 <div style={{textAlign:"center"}}>
                   <div style={{fontSize:42,fontWeight:900,color:netColor,lineHeight:1}}>{r.net>0?"+":""}{r.net}</div>
-                  <div style={{fontSize:8,color:PM_GOLD,fontWeight:700,letterSpacing:1.5}}>MENTAL NET</div>
+                  <div style={{fontSize:9,color:PM_GOLD,fontWeight:700,letterSpacing:1.5}}>MENTAL NET</div>
                 </div>
                 <div style={{flex:1}}>
                   {r.totalStroke>0&&<div style={{fontSize:14,color:P.accent,fontWeight:700,marginBottom:4}}>Shot {r.totalStroke}{stp!==null?` (${stp>0?"+":""}${stp})`:""}</div>}
@@ -3202,9 +3602,9 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                     <span style={{fontSize:13,color:P.red,fontWeight:700}}>{r.bandits} Bandits</span>
                   </div>
                   {r.preRoundMeta&&<div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
-                    {r.preRoundMeta.sleep&&<span style={{fontSize:10,color:P.muted,padding:"2px 8px",borderRadius:20,background:P.cardAlt,border:`1px solid ${P.border}`}}>Sleep {["","Poor","Fair","Okay","Good","Great"][r.preRoundMeta.sleep]}</span>}
-                    {r.preRoundMeta.energy&&<span style={{fontSize:10,color:P.muted,padding:"2px 8px",borderRadius:20,background:P.cardAlt,border:`1px solid ${P.border}`}}>Energy {["","Low","Sluggish","Okay","Energized","Peak"][r.preRoundMeta.energy]}</span>}
-                    {r.preRoundMeta.partners&&<span style={{fontSize:10,color:P.accent,padding:"2px 8px",borderRadius:20,background:P.cardAlt,border:`1px solid ${P.border}`}}>{r.preRoundMeta.partners}</span>}
+                    {r.preRoundMeta?.sleep&&<span style={{fontSize:10,color:P.muted,padding:"2px 8px",borderRadius:20,background:P.cardAlt,border:`1px solid ${P.border}`}}>Sleep {["","Poor","Fair","Okay","Good","Great"][r.preRoundMeta.sleep]}</span>}
+                    {r.preRoundMeta?.energy&&<span style={{fontSize:10,color:P.muted,padding:"2px 8px",borderRadius:20,background:P.cardAlt,border:`1px solid ${P.border}`}}>Energy {["","Low","Sluggish","Okay","Energized","Peak"][r.preRoundMeta.energy]}</span>}
+                    {r.preRoundMeta?.partners&&<span style={{fontSize:10,color:P.accent,padding:"2px 8px",borderRadius:20,background:P.cardAlt,border:`1px solid ${P.border}`}}>{r.preRoundMeta.partners}</span>}
                   </div>}
                 </div>
               </div>
@@ -3280,7 +3680,7 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                   {holeNotes.map(hn=>(
                     <div key={hn.hole} style={{display:"flex",gap:10,marginBottom:6,paddingBottom:6,borderBottom:`1px solid ${P.border}`}}>
                       <div style={{flexShrink:0,textAlign:"center",minWidth:28}}>
-                        <div style={{fontSize:8,color:P.muted}}>H</div>
+                        <div style={{fontSize:9,color:P.muted}}>H</div>
                         <div style={{fontSize:15,fontWeight:800,color:P.white}}>{hn.hole}</div>
                       </div>
                       <div style={{fontSize:12,color:P.white,lineHeight:1.45,borderLeft:`2px solid ${P.border}`,paddingLeft:10}}>{hn.note}</div>
@@ -3483,9 +3883,11 @@ function FavCourseSearch({settings, updateSetting, P}) {
   );
 }
 
-function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,savedRounds,inGameCaddie,setInGameCaddie,onResetTour,isPro,onManageSubscription,onCancelPro,onPrivacyPolicy}) {
+function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,savedRounds,inGameCaddie,setInGameCaddie,onResetTour,isPro,onManageSubscription,onCancelPro,onPrivacyPolicy,communityProfile,onHelp}) {
   const P = useTheme();
   const pp = pressProps;
+  const [confirmClear, setConfirmClear] = React.useState(false);
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
 
   function Toggle({on, onChange}) {
     return (
@@ -3558,6 +3960,22 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
           </div>
         </div>
 
+        <Section title="Account">
+          {communityProfile?.email ? (
+            <>
+              <Row label="Email" sub="Your profile email">
+                <span style={{fontSize:12,color:P.muted,fontWeight:500,maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{communityProfile.email}</span>
+              </Row>
+              <Row label="Cloud Sync" sub="Rounds backed up automatically" last>
+                <span style={{fontSize:12,fontWeight:700,color:communityProfile.cloudSync!==false?P.green:P.muted}}>{communityProfile.cloudSync!==false?"On":"Off"}</span>
+              </Row>
+            </>
+          ) : (
+            <Row label="Create Profile" sub="Back up rounds and get Paul's insights" last>
+              <button onClick={()=>{try{localStorage.removeItem("mgp_onboarded");}catch{}onBack();}} {...pp()} style={{padding:"6px 12px",borderRadius:8,border:`1.5px solid ${PM_GOLD}44`,background:PM_GOLD+"10",color:PM_GOLD,fontSize:12,fontWeight:700,cursor:"pointer"}}>Set Up</button>
+            </Row>
+          )}
+        </Section>
         <Section title="Appearance">
           <Row label="Light Mode" sub="Performs best outdoors" last>
             <Toggle on={!darkMode} onChange={()=>toggleTheme()}/>
@@ -3613,9 +4031,25 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
           </Row>
         </Section>
 
+        <Section title="Coach" style={{display:"none"}}>
+          <Row label="Coach Code" sub="Enter code from your coach to connect">
+            <input
+              defaultValue={(() => { try { return localStorage.getItem("mgp_coach_code")||""; } catch { return ""; } })()}
+              onBlur={e => { try { localStorage.setItem("mgp_coach_code", e.target.value.trim().toUpperCase()); showToast("Coach code saved","success"); } catch {} }}
+              placeholder="e.g. COACH-ABC12"
+              style={{width:130,padding:"6px 10px",borderRadius:8,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:12,outline:"none",textAlign:"center",fontWeight:700,letterSpacing:1}}
+            />
+          </Row>
+        </Section>
         <Section title="About">
+          <Row label="Help & FAQ" sub="Common questions answered">
+            <button onClick={()=>{onBack();setTimeout(()=>onHelp&&onHelp(),50);}} {...pp()} style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,cursor:"pointer"}}>View</button>
+          </Row>
+          <Row label="App Guide" sub="Replay the intro walkthrough">
+            <button onClick={()=>{try{localStorage.removeItem("mgp_onboarded");}catch{}onBack();}} {...pp()} style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,cursor:"pointer"}}>Replay</button>
+          </Row>
           <Row label="Version" sub="Mental Game Scorecard">
-            <span style={{fontSize:13,color:P.muted,fontWeight:500}}>1.0.0</span>
+            <span style={{fontSize:13,color:P.muted,fontWeight:500}}>{typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "1.0.0"}</span>
           </Row>
           <Row label="Built with">
             <span style={{fontSize:12,color:P.muted,fontWeight:500}}>Paul Monahan × Claude</span>
@@ -3626,12 +4060,22 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
         </Section>
 
         <Section title="Data" danger>
-          <Row label="Clear All Round Data" sub="Permanently delete all saved rounds" last>
+          <Row label="Clear All Round Data" sub={confirmClear?"Tap again to confirm":  "Permanently delete all saved rounds"}>
+            <button onClick={()=>{if(confirmClear){try{localStorage.removeItem("mental_game_rounds");localStorage.removeItem("mgp_carry_forward");localStorage.removeItem("mgp_carry_forward_draft");localStorage.removeItem("mgp_tip_step");localStorage.removeItem("mgp_checklist_date");localStorage.removeItem("mgp_rated");}catch{}showToast("All round data deleted — restart the app","info");setConfirmClear(false);}else{setConfirmClear(true);setTimeout(()=>setConfirmClear(false),4000);}}} {...pp()} style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${P.red}`,background:confirmClear?P.red+"18":"transparent",color:P.red,fontSize:12,cursor:"pointer",fontWeight:confirmClear?800:400}}>{confirmClear?"Confirm":"Clear"}</button>
+          </Row>
+          <Row label="Delete Account" sub={confirmDelete?"Tap again to confirm":"Remove all data permanently"} last>
+            <button onClick={()=>{if(confirmDelete){try{const allKeys=Object.keys(localStorage).filter(k=>k.startsWith("mgp_")||k==="mental_game_rounds");allKeys.forEach(k=>localStorage.removeItem(k));}catch{}showToast("All data deleted","info");setConfirmDelete(false);}else{setConfirmDelete(true);setTimeout(()=>setConfirmDelete(false),4000);}}} {...pp()} style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${P.red}`,background:confirmDelete?P.red+"18":"transparent",color:P.red,fontSize:12,cursor:"pointer",fontWeight:confirmDelete?800:400}}>{confirmDelete?"Confirm":"Delete"}</button>
             <button onClick={()=>setShowDeleteConfirm(true)} {...pp()} style={{padding:"7px 14px",borderRadius:9,border:`1.5px solid ${P.red}44`,background:P.red+"10",color:P.red,fontSize:12,fontWeight:700,cursor:"pointer"}}>Delete</button>
           </Row>
         </Section>
 
         <Section title="Legal">
+          <Row label="Send Feedback" sub="Help us improve the app">
+            <button onClick={()=>{try{window.open("mailto:support@mentalgamescorecard.com?subject=Feedback: Mental Game Scorecard","_blank");}catch{}}} {...pp()} style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,cursor:"pointer"}}>Send</button>
+          </Row>
+          <Row label="Contact Support" sub="Questions? We're here to help">
+            <button onClick={()=>{try{window.open("mailto:support@mentalgamescorecard.com?subject=Mental Game Scorecard Support","_blank");}catch{}}} {...pp()} style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,cursor:"pointer"}}>Email</button>
+          </Row>
           <Row label="Privacy Policy" sub="How we handle your data">
             <button onClick={onPrivacyPolicy} {...pp()} style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,cursor:"pointer"}}>View</button>
           </Row>
@@ -3863,7 +4307,7 @@ function generateShareCard(round, darkMode) {
   ctx.fillText("Play Better · Struggle Less · Enjoy More", 540, 1010);
   ctx.fillStyle = netColor;
   ctx.font = "700 22px -apple-system, sans-serif";
-  ctx.fillText("mentalgamescorecard.app", 540, 1048);
+  ctx.fillText("Mental Game Scorecard", 540, 1048);
 
   return canvas.toDataURL("image/png");
 }
@@ -3939,9 +4383,9 @@ function RoundEditView({round, onSave, onBack, S}) {
 
       {/* Hole inputs */}
       <div style={{padding:"2px 12px 4px",display:"flex",gap:5,alignItems:"flex-end"}}>
-        <div style={{textAlign:"center"}}><div style={{fontSize:8,color:P.muted,fontWeight:600}}>PAR</div><input value={scores[currentHole].par} onChange={e=>updateField("par",e.target.value.replace(/\D/g,"").slice(0,1))} style={{...S.miniInput,width:38,fontSize:15}} inputMode="numeric"/></div>
-        <div style={{textAlign:"center"}}><div style={{fontSize:8,color:P.muted,fontWeight:600}}>SCORE</div><input value={scores[currentHole].strokeScore} onChange={e=>updateField("strokeScore",e.target.value.replace(/\D/g,"").slice(0,2))} style={{...S.miniInput,width:38,fontSize:15}} inputMode="numeric"/></div>
-        <div style={{textAlign:"center"}}><div style={{fontSize:8,color:P.muted,fontWeight:600}}>PUTTS</div>
+        <div style={{textAlign:"center"}}><div style={{fontSize:9,color:P.muted,fontWeight:600}}>PAR</div><input value={scores[currentHole].par} onChange={e=>updateField("par",e.target.value.replace(/\D/g,"").slice(0,1))} style={{...S.miniInput,width:38,fontSize:15}} inputMode="numeric"/></div>
+        <div style={{textAlign:"center"}}><div style={{fontSize:9,color:P.muted,fontWeight:600}}>SCORE</div><input value={scores[currentHole].strokeScore} onChange={e=>updateField("strokeScore",e.target.value.replace(/\D/g,"").slice(0,2))} style={{...S.miniInput,width:38,fontSize:15}} inputMode="numeric"/></div>
+        <div style={{textAlign:"center"}}><div style={{fontSize:9,color:P.muted,fontWeight:600}}>PUTTS</div>
           <div style={{display:"flex",alignItems:"center",gap:2}}>
             <button onClick={()=>updateField("putts",Math.max(0,(parseInt(scores[currentHole].putts)||0)-1)||"")} style={{width:20,height:32,borderRadius:5,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:16,cursor:"pointer"}} {...pp()}>−</button>
             <span style={{fontSize:15,fontWeight:700,color:P.white,width:20,textAlign:"center"}}>{scores[currentHole].putts||"—"}</span>
@@ -3953,7 +4397,7 @@ function RoundEditView({round, onSave, onBack, S}) {
           <button onClick={()=>updateField("gir",scores[currentHole].gir===true?null:true)} {...pp()} style={{padding:"4px 7px",borderRadius:6,border:`1.5px solid ${scores[currentHole].gir===true?P.accent:P.border}`,background:scores[currentHole].gir===true?P.accent+"18":"transparent",color:scores[currentHole].gir===true?P.accent:P.muted,fontSize:10,fontWeight:700,cursor:"pointer"}}>GIR</button>
         </div>
         <div style={{marginLeft:"auto",textAlign:"right"}}>
-          <div style={{fontSize:8,color:P.muted,fontWeight:600}}>HOLE {currentHole+1}</div>
+          <div style={{fontSize:9,color:P.muted,fontWeight:600}}>HOLE {currentHole+1}</div>
           <div style={{fontSize:18,fontWeight:800,color:P.accent}}>
             {(()=>{const s=getHoleStats(scores,currentHole);return s.heroes+s.bandits>0?(s.net>0?"+":"")+s.net:"—";})()}
           </div>
@@ -3984,7 +4428,7 @@ function RoundEditView({round, onSave, onBack, S}) {
       {/* Round total + notes */}
       <div style={{padding:"4px 12px 6px",background:total.net>0?P.green+"10":total.net<0?P.red+"10":P.card,borderTop:`1px solid ${P.border}`,display:"flex",alignItems:"center",gap:12}}>
         <div style={{textAlign:"center"}}>
-          <div style={{fontSize:8,color:P.muted,letterSpacing:1,fontWeight:600}}>ROUND NET</div>
+          <div style={{fontSize:9,color:P.muted,letterSpacing:1,fontWeight:600}}>ROUND NET</div>
           <div style={{fontSize:22,fontWeight:900,color:total.net>0?P.green:total.net<0?P.red:P.gold}}>{total.net>0?"+":""}{total.net}</div>
         </div>
         <textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Post-round notes..." rows={2} style={{flex:1,padding:"6px 8px",borderRadius:8,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:12,outline:"none",resize:"none",lineHeight:1.4}}/>
@@ -4032,7 +4476,7 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
     rounds.forEach(r=>{if(!r.scores)return;r.scores.forEach(hole=>{HEROES.forEach(h=>{hT[h]+=hole.heroes[h]||0;});BANDITS.forEach(b=>{bT[b]+=hole.bandits[b]||0;});});});
     const trend=[...rounds].reverse().map(r=>({label:r.date?.slice(5)||"?",net:r.net,stroke:r.totalStroke||null,par:r.totalPar||null,scoreToPar:r.totalStroke&&r.totalPar?r.totalStroke-r.totalPar:null}));
     const topHero=HEROES.reduce((a,b)=>hT[a]>hT[b]?a:b),topBandit=BANDITS.reduce((a,b)=>bT[a]>bT[b]?a:b);
-    const avgNet=rounds.reduce((s,r)=>s+r.net,0)/rounds.length;
+    const avgNet=rounds.reduce((s,r)=>s+(r.net||0),0)/rounds.length;
     const ws=rounds.filter(r=>r.totalStroke>0);const avgStroke=ws.length?ws.reduce((s,r)=>s+r.totalStroke,0)/ws.length:null;const bestStroke=ws.length?Math.min(...ws.map(r=>r.totalStroke)):null;
 
     // Hole heat map: which holes trigger most bandits
@@ -4123,7 +4567,7 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
   function StatTile({label,value,color,sub}) {
     return (
       <div style={{background:P.card,borderRadius:10,padding:"7px 4px",border:`1.5px solid ${P.border}`,textAlign:"center"}}>
-        <div style={{fontSize:7,color:P.muted,fontWeight:700,letterSpacing:0.5,marginBottom:2}}>{label}</div>
+        <div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:0.5,marginBottom:2}}>{label}</div>
         <div style={{fontSize:18,fontWeight:900,color:color||P.white,lineHeight:1}}>{value}</div>
         {sub&&<div style={{fontSize:9,color:P.muted,fontWeight:500,marginTop:1}}>{sub}</div>}
       </div>
@@ -4257,7 +4701,7 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
               <div style={{display:"grid",gridTemplateColumns:"repeat(9,1fr)",gap:3,marginBottom:4}}>
                 {stats.holeMap.slice(0,9).map(h=>(
                   <div key={h.hole} style={{textAlign:"center"}}>
-                    <div style={{fontSize:8,color:P.muted,marginBottom:2,fontWeight:600}}>{h.hole}</div>
+                    <div style={{fontSize:9,color:P.muted,marginBottom:2,fontWeight:600}}>{h.hole}</div>
                     <div style={{height:32,borderRadius:7,background:h.heroes+h.bandits===0?P.border:h.net>0?P.green+(Math.min(255,Math.round(40+h.net*30)).toString(16).padStart(2,"0")):P.red+(Math.min(255,Math.round(40+Math.abs(h.net)*30)).toString(16).padStart(2,"0")),display:"flex",alignItems:"center",justifyContent:"center"}}>
                       <span style={{fontSize:10,fontWeight:800,color:h.heroes+h.bandits===0?P.muted:"rgba(255,255,255,0.9)"}}>{h.heroes+h.bandits===0?"·":(h.net>0?"+":"")+h.net}</span>
                     </div>
@@ -4267,7 +4711,7 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
               <div style={{display:"grid",gridTemplateColumns:"repeat(9,1fr)",gap:3,marginBottom:8}}>
                 {stats.holeMap.slice(9).map(h=>(
                   <div key={h.hole} style={{textAlign:"center"}}>
-                    <div style={{fontSize:8,color:P.muted,marginBottom:2,fontWeight:600}}>{h.hole}</div>
+                    <div style={{fontSize:9,color:P.muted,marginBottom:2,fontWeight:600}}>{h.hole}</div>
                     <div style={{height:32,borderRadius:7,background:h.heroes+h.bandits===0?P.border:h.net>0?P.green+(Math.min(255,Math.round(40+h.net*30)).toString(16).padStart(2,"0")):P.red+(Math.min(255,Math.round(40+Math.abs(h.net)*30)).toString(16).padStart(2,"0")),display:"flex",alignItems:"center",justifyContent:"center"}}>
                       <span style={{fontSize:10,fontWeight:800,color:h.heroes+h.bandits===0?P.muted:"rgba(255,255,255,0.9)"}}>{h.heroes+h.bandits===0?"·":(h.net>0?"+":"")+h.net}</span>
                     </div>
@@ -4276,8 +4720,8 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
               </div>
               {(stats.bestHoles.length>0||stats.worstHoles.length>0)&&(
                 <div style={{display:"flex",gap:8}}>
-                  {stats.bestHoles.length>0&&<div style={{flex:1,padding:"8px 10px",borderRadius:10,background:P.green+"0e",border:`1px solid ${P.green}22`}}><div style={{fontSize:8,color:P.green,fontWeight:800,letterSpacing:1,marginBottom:2}}>STRONG</div><div style={{fontSize:13,fontWeight:700,color:P.white}}>{stats.bestHoles.map(h=>`#${h.hole}`).join(", ")}</div></div>}
-                  {stats.worstHoles.length>0&&<div style={{flex:1,padding:"8px 10px",borderRadius:10,background:P.red+"0e",border:`1px solid ${P.red}22`}}><div style={{fontSize:8,color:P.red,fontWeight:800,letterSpacing:1,marginBottom:2}}>TOUGH</div><div style={{fontSize:13,fontWeight:700,color:P.white}}>{stats.worstHoles.map(h=>`#${h.hole}`).join(", ")}</div></div>}
+                  {stats.bestHoles.length>0&&<div style={{flex:1,padding:"8px 10px",borderRadius:10,background:P.green+"0e",border:`1px solid ${P.green}22`}}><div style={{fontSize:9,color:P.green,fontWeight:800,letterSpacing:1,marginBottom:2}}>STRONG</div><div style={{fontSize:13,fontWeight:700,color:P.white}}>{stats.bestHoles.map(h=>`#${h.hole}`).join(", ")}</div></div>}
+                  {stats.worstHoles.length>0&&<div style={{flex:1,padding:"8px 10px",borderRadius:10,background:P.red+"0e",border:`1px solid ${P.red}22`}}><div style={{fontSize:9,color:P.red,fontWeight:800,letterSpacing:1,marginBottom:2}}>TOUGH</div><div style={{fontSize:13,fontWeight:700,color:P.white}}>{stats.worstHoles.map(h=>`#${h.hole}`).join(", ")}</div></div>}
                 </div>
               )}
             </Section>
@@ -4302,15 +4746,15 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
           {(stats.puttingStats||stats.firPct!==null||stats.girPct!==null)&&(
             <Section title="Shot Quality">
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:stats.puttingStats?10:0}}>
-                {stats.firPct!==null&&<div style={{background:P.cardAlt,borderRadius:10,padding:"10px 8px",textAlign:"center",border:`1px solid ${stats.firPct>=60?P.green+"44":P.border}`}}><div style={{fontSize:8,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:3}}>FIR%</div><div style={{fontSize:22,fontWeight:900,color:stats.firPct>=60?P.green:stats.firPct>=45?P.gold:P.red}}>{stats.firPct}%</div></div>}
-                {stats.girPct!==null&&<div style={{background:P.cardAlt,borderRadius:10,padding:"10px 8px",textAlign:"center",border:`1px solid ${stats.girPct>=50?P.accent+"44":P.border}`}}><div style={{fontSize:8,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:3}}>GIR%</div><div style={{fontSize:22,fontWeight:900,color:stats.girPct>=50?P.accent:stats.girPct>=35?P.gold:P.red}}>{stats.girPct}%</div></div>}
-                {stats.puttingStats&&<div style={{background:P.cardAlt,borderRadius:10,padding:"10px 8px",textAlign:"center",border:`1px solid ${+stats.puttingStats.avg<=1.7?P.green+"44":P.border}`}}><div style={{fontSize:8,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:3}}>AVG PUTTS</div><div style={{fontSize:22,fontWeight:900,color:+stats.puttingStats.avg<=1.7?P.green:+stats.puttingStats.avg>=2.1?P.red:P.gold}}>{stats.puttingStats.avg}</div></div>}
+                {stats.firPct!==null&&<div style={{background:P.cardAlt,borderRadius:10,padding:"10px 8px",textAlign:"center",border:`1px solid ${stats.firPct>=60?P.green+"44":P.border}`}}><div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:3}}>FIR%</div><div style={{fontSize:22,fontWeight:900,color:stats.firPct>=60?P.green:stats.firPct>=45?P.gold:P.red}}>{stats.firPct}%</div></div>}
+                {stats.girPct!==null&&<div style={{background:P.cardAlt,borderRadius:10,padding:"10px 8px",textAlign:"center",border:`1px solid ${stats.girPct>=50?P.accent+"44":P.border}`}}><div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:3}}>GIR%</div><div style={{fontSize:22,fontWeight:900,color:stats.girPct>=50?P.accent:stats.girPct>=35?P.gold:P.red}}>{stats.girPct}%</div></div>}
+                {stats.puttingStats&&<div style={{background:P.cardAlt,borderRadius:10,padding:"10px 8px",textAlign:"center",border:`1px solid ${+stats.puttingStats.avg<=1.7?P.green+"44":P.border}`}}><div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:3}}>AVG PUTTS</div><div style={{fontSize:22,fontWeight:900,color:+stats.puttingStats.avg<=1.7?P.green:+stats.puttingStats.avg>=2.1?P.red:P.gold}}>{stats.puttingStats.avg}</div></div>}
               </div>
               {stats.puttingStats&&(
                 <div style={{display:"flex",gap:8}}>
-                  <div style={{flex:1,background:P.cardAlt,borderRadius:10,padding:"8px 10px",textAlign:"center",border:`1px solid ${P.green}22`}}><div style={{fontSize:8,color:P.muted,fontWeight:700,letterSpacing:0.5,marginBottom:2}}>1-PUTT</div><div style={{fontSize:18,fontWeight:900,color:P.green}}>{stats.puttingStats.onePuttPct}%</div></div>
-                  <div style={{flex:1,background:P.cardAlt,borderRadius:10,padding:"8px 10px",textAlign:"center",border:`1px solid ${stats.puttingStats.threePuttPct>15?P.red:P.border}22`}}><div style={{fontSize:8,color:P.muted,fontWeight:700,letterSpacing:0.5,marginBottom:2}}>3-PUTT</div><div style={{fontSize:18,fontWeight:900,color:stats.puttingStats.threePuttPct>15?P.red:P.gold}}>{stats.puttingStats.threePuttPct}%</div></div>
-                  {stats.puttingStats.girAvg&&<div style={{flex:1,background:P.cardAlt,borderRadius:10,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:8,color:P.muted,fontWeight:700,letterSpacing:0.5,marginBottom:2}}>ON GIR</div><div style={{fontSize:18,fontWeight:900,color:+stats.puttingStats.girAvg<=1.6?P.green:P.gold}}>{stats.puttingStats.girAvg}</div></div>}
+                  <div style={{flex:1,background:P.cardAlt,borderRadius:10,padding:"8px 10px",textAlign:"center",border:`1px solid ${P.green}22`}}><div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:0.5,marginBottom:2}}>1-PUTT</div><div style={{fontSize:18,fontWeight:900,color:P.green}}>{stats.puttingStats.onePuttPct}%</div></div>
+                  <div style={{flex:1,background:P.cardAlt,borderRadius:10,padding:"8px 10px",textAlign:"center",border:`1px solid ${stats.puttingStats.threePuttPct>15?P.red:P.border}22`}}><div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:0.5,marginBottom:2}}>3-PUTT</div><div style={{fontSize:18,fontWeight:900,color:stats.puttingStats.threePuttPct>15?P.red:P.gold}}>{stats.puttingStats.threePuttPct}%</div></div>
+                  {stats.puttingStats.girAvg&&<div style={{flex:1,background:P.cardAlt,borderRadius:10,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:0.5,marginBottom:2}}>ON GIR</div><div style={{fontSize:18,fontWeight:900,color:+stats.puttingStats.girAvg<=1.6?P.green:P.gold}}>{stats.puttingStats.girAvg}</div></div>}
                 </div>
               )}
             </Section>
@@ -4412,23 +4856,58 @@ async function syncUserBadgesToShared(userId, rounds, displayName) {
     const diamond = Object.keys(tiers).filter(k=>tiers[k]>=4).length;
     const gold     = Object.keys(tiers).filter(k=>tiers[k]>=3).length;
     const totalBadges = Object.keys(tiers).reduce((s,k)=>s+tiers[k],0);
+
+    // Hero/bandit tallies across all rounds
+    const heroTotals={}, banditTotals={};
+    rounds.forEach(r=>{
+      if(!r.scores)return;
+      r.scores.forEach(h=>{
+        Object.keys(h.heroes||{}).forEach(k=>{if(h.heroes[k])heroTotals[k]=(heroTotals[k]||0)+1;});
+        Object.keys(h.bandits||{}).forEach(k=>{if(h.bandits[k])banditTotals[k]=(banditTotals[k]||0)+1;});
+      });
+    });
+    const topHero = Object.keys(heroTotals).sort((a,b)=>heroTotals[b]-heroTotals[a])[0]||null;
+    const topBandit = Object.keys(banditTotals).sort((a,b)=>banditTotals[b]-banditTotals[a])[0]||null;
+    const avgNet = rounds.length ? (rounds.reduce((s,r)=>s+(r.net||0),0)/rounds.length).toFixed(1) : null;
+    const bestNet = rounds.length ? Math.max(...rounds.map(r=>r.net||0)) : null;
+    const totalHeroes = rounds.reduce((s,r)=>s+(r.heroes||0),0);
+    const totalBandits = rounds.reduce((s,r)=>s+(r.bandits||0),0);
+    const winRate = rounds.length ? Math.round((rounds.filter(r=>(r.net||0)>0).length/rounds.length)*100) : null;
+
+    // Recent rounds (last 5, no scores — just metadata)
+    const recentRounds = rounds.slice(0,5).map(r=>({
+      date: r.date,
+      course: r.course,
+      net: r.net,
+      heroes: r.heroes,
+      bandits: r.bandits,
+      totalStroke: r.totalStroke,
+    }));
+
+    // Coach code if set
+    const coachCode = (() => { try { return localStorage.getItem("mgp_coach_code")||null; } catch { return null; } })();
+
     const payload = JSON.stringify({
       userId,
       displayName: displayName || null,
       lastSeen: new Date().toISOString(),
       rounds: rounds.length,
-      tiers,
-      diamond, gold,
-      totalBadges,
-      topHero: (() => { const hT={}; rounds.forEach(r=>{if(!r.scores)return;r.scores.forEach(h=>{Object.keys(h.heroes).forEach(k=>{if(h.heroes[k])hT[k]=(hT[k]||0)+1;});});}); return Object.keys(hT).sort((a,b)=>hT[b]-hT[a])[0]||null; })(),
+      tiers, diamond, gold, totalBadges,
+      topHero, topBandit, avgNet, bestNet,
+      totalHeroes, totalBandits, winRate,
+      heroTotals, banditTotals,
+      recentRounds,
+      coachCode,
     });
-    await window.storage.set(`users:${userId}`, payload, true);
+    if(typeof window.storage!=="undefined") await window.storage.set(`users:${userId}`, payload, true);
   } catch(e) { console.warn("Badge sync failed:", e); }
 }
 
 async function loadAdminData() {
   try {
-    const keys = await window.storage.list("users:", true);
+    if(typeof window.storage==="undefined") { setData([]); setLoading(false); return; }
+      if(typeof window.storage==="undefined") { setAllUsers([]); setLoading(false); return; }
+      const keys = await window.storage.list("users:", true);
     if(!keys?.keys) return [];
     const results = await Promise.all(keys.keys.map(async k => {
       try { const r = await window.storage.get(k, true); return r ? JSON.parse(r.value) : null; } catch { return null; }
@@ -4784,7 +5263,7 @@ function BadgesView({rounds, onBack, S}) {
                 <input
                   autoFocus value={nameInput} onChange={e=>setNameInput(e.target.value)}
                   onKeyDown={e=>e.key==="Enter"&&saveName()}
-                  placeholder="Enter your name..." maxLength={20}
+                  placeholder="Enter your name..." maxLength={20} aria-label="Leaderboard display name"
                   style={{flex:1,padding:"8px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:13,outline:"none"}}
                 />
                 <button onClick={saveName} {...pp()} style={{padding:"8px 14px",borderRadius:9,border:"none",background:P.green,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer"}}>Save</button>
@@ -4926,9 +5405,9 @@ function RoundSummaryView({scores,total,courseName,courseData,roundDate,postRoun
           </div>
 
           {[
-            {key:"keep",label:"1. Keep Doing",hint:"What mental habits, routines or moments showed up well? Where did you stay present, committed or composed? Name the specific hero that helped.",color:P.green,icon:"↑"},
-            {key:"stop",label:"2. Stop Doing",hint:"Which bandits crept in most? Fear before a shot, frustration after a bad hole, doubt over a club choice? Be specific — you can't fix what you don't name.",color:P.red,icon:"✕"},
-            {key:"start",label:"3. Start Doing",hint:"One concrete mental habit or pre-shot intention to bring into your next round. Small, specific and actionable beats vague every time.",color:P.accent,icon:"→"},
+            {key:"keep",label:"1. Keep Doing",hint:"What mental habits, routines or moments showed up well? Where did you stay present, committed or composed? Name the specific hero that helped.",color:P.green,icon:"↑",placeholder:"e.g. I stayed committed on every tee shot on the back nine..."},
+            {key:"stop",label:"2. Stop Doing",hint:"Which bandits crept in most? Fear before a shot, frustration after a bad hole, doubt over a club choice? Be specific — you can't fix what you don't name.",color:P.red,icon:"✕",placeholder:"e.g. I let frustration carry over from one hole to the next..."},
+            {key:"start",label:"3. Start Doing",hint:"One concrete mental habit or pre-shot intention to bring into your next round. Small, specific and actionable beats vague every time.",color:P.accent,icon:"→",placeholder:"e.g. One deep breath before every putt..."},
           ].map(q=>{
             const val = (() => { try { const d=JSON.parse(postRoundNotes||"{}"); return d[q.key]||""; } catch { return q.key==="keep"?postRoundNotes:""; } })();
             return (
@@ -4949,7 +5428,7 @@ function RoundSummaryView({scores,total,courseName,courseData,roundDate,postRoun
                       setPostRoundNotes(JSON.stringify({keep:postRoundNotes,stop:"",start:"",[q.key]:e.target.value}));
                     }
                   }}
-                  placeholder={`Write your answer here...`}
+                  placeholder={q.placeholder||"Write your answer here..."}
                   rows={2}
                   style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:13,outline:"none",resize:"vertical",lineHeight:1.5}}
                 />
@@ -4980,6 +5459,7 @@ function RoundStatsView({round,onHome,onShare,S}) {
   const P=useTheme();
   const darkMode = P.bg === "#09090b";
   if(!round) return <div style={S.shell}><div style={{padding:40,textAlign:"center",color:P.muted}}>No round data.</div></div>;
+  const isFirstRound = !round.savedRoundsCount || round.savedRoundsCount <= 1;
   const stp=round.totalStroke&&round.totalPar?round.totalStroke-round.totalPar:null;
   const holeNotes=round.scores?round.scores.map((h,i)=>({hole:i+1,note:h.holeNote,stats:getHoleStats(round.scores,i)})).filter(h=>h.note):[];
 
@@ -5032,6 +5512,14 @@ function RoundStatsView({round,onHome,onShare,S}) {
       </div>
 
       <div style={{flex:1,overflowY:"auto",padding:"0 6px 20px"}}>
+
+        {/* First round encouragement */}
+        {isFirstRound&&(
+          <div style={{margin:"6px 10px 0",padding:"12px 14px",borderRadius:12,background:PM_GOLD+"10",border:`1.5px solid ${PM_GOLD}44`}}>
+            <div style={{fontSize:11,fontWeight:800,color:PM_GOLD,letterSpacing:1,marginBottom:4}}>FIRST ROUND COMPLETE</div>
+            <div style={{fontSize:12,color:P.white,lineHeight:1.6}}>This is your baseline. Play a few more rounds and your Dashboard will start showing patterns — which Heroes show up consistently, which Bandits keep appearing, and whether your mental game is improving.</div>
+          </div>
+        )}
 
         {/* ── FULL SCORECARD TABLE ── */}
         <div style={{fontSize:10,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:6,paddingLeft:8}}>FULL SCORECARD</div>
@@ -5246,7 +5734,7 @@ function ComboTrendChart({P, trend, rounds, onSelectRound}) {
             return (
               <div key={i} style={{flex:1,display:"flex",flexDirection:"column",cursor:round?"pointer":"default",position:"relative"}} onClick={()=>round&&onSelectRound(round)} {...pp()}>
                 {/* label */}
-                <div style={{height:14,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:700,color:pos?P.green:P.red}}>
+                <div style={{height:14,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,color:pos?P.green:P.red}}>
                   {t.net!==0?(t.net>0?"+":"")+t.net:""}
                 </div>
                 {/* positive half */}
@@ -5292,8 +5780,8 @@ function ComboTrendChart({P, trend, rounds, onSelectRound}) {
       <div style={{display:"flex",gap:2,marginTop:1}}>
         {trend.map((t,i)=>(
           <div key={i} style={{flex:1,textAlign:"center"}}>
-            <div style={{fontSize:7,color:P.muted,fontWeight:500,lineHeight:1.2}}>{t.label}</div>
-            {t.stroke&&<div style={{fontSize:8,color:P.gold,fontWeight:700}}>{t.stroke}</div>}
+            <div style={{fontSize:9,color:P.muted,fontWeight:500,lineHeight:1.2}}>{t.label}</div>
+            {t.stroke&&<div style={{fontSize:9,color:P.gold,fontWeight:700}}>{t.stroke}</div>}
           </div>
         ))}
       </div>
@@ -5430,121 +5918,651 @@ function RoundDetailView({round, onBack, onShare, S}) {
 // ═══════════════════════════════════════
 // COACH DASHBOARD
 // ═══════════════════════════════════════
+// ═══════════════════════════════════════
+// ADMIN DASHBOARD (access: /#admin)
+// ═══════════════════════════════════════
 function CoachDashboardView({onBack, S}) {
   const P = useTheme();
+  const dm = P.bg === "#09090b";
+  const pp = pressProps;
   const [data, setData] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [lastRefresh, setLastRefresh] = React.useState(null);
+  const [tab, setTab] = React.useState("overview"); // overview | users | heroes | bandits | emails
+  const [allProfiles, setAllProfiles] = React.useState([]);
+  const [filterHero, setFilterHero] = React.useState("");
+  const [filterBandit, setFilterBandit] = React.useState("");
 
   async function load() {
     setLoading(true);
     try {
+      // Load badge/round data from shared storage
       const keys = await window.storage.list("users:", true);
       const users = await Promise.all(
-        keys.keys.map(async k => {
+        (keys?.keys||[]).map(async k => {
           try { const r = await window.storage.get(k, true); return r ? JSON.parse(r.value) : null; } catch { return null; }
         })
       );
-      setData(users.filter(Boolean));
+      const baseUsers = users.filter(Boolean);
+
+      // Merge with community profiles from Supabase (has email + hero/bandit)
+      let profiles = [];
+      try {
+        if(typeof supabase !== "undefined" && supabase) {
+          const { data } = await supabase.from("community_profiles").select("*").order("last_updated", {ascending:false});
+          if(data) profiles = data;
+        }
+      } catch {}
+
+      // Merge: match by uid, add email to user record
+      const merged = baseUsers.map(u => {
+        const profile = profiles.find(p => p.uid === u.userId);
+        return profile ? {...u, email: profile.email, profileName: profile.name, supabaseData: profile} : u;
+      });
+      // Add profiles that aren't in shared storage yet
+      const storedUids = new Set(baseUsers.map(u=>u.userId));
+      const profilesOnly = profiles.filter(p=>!storedUids.has(p.uid)).map(p=>({
+        userId: p.uid, displayName: p.name||p.email?.split("@")[0],
+        email: p.email, rounds: p.rounds_count||0,
+        avgNet: p.avg_net?.toFixed(1), topHero: p.top_hero, topBandit: p.top_bandit,
+        lastSeen: p.last_updated, supabaseData: p,
+      }));
+
+      setData([...merged, ...profilesOnly]);
+      setAllProfiles(profiles);
       setLastRefresh(new Date());
-    } catch {}
+    } catch(e) { console.warn("Admin load error:", e); }
     setLoading(false);
   }
 
   React.useEffect(()=>{ load(); }, []);
 
-  // Aggregate stats
-  const totalRounds = data.reduce((s,u)=>s+(u.rounds||0), 0);
+  // Aggregates
   const totalUsers = data.length;
-  const heroTotals = {};
-  const banditTotals = {};
-  data.forEach(u => {
-    if(u.topHero) heroTotals[u.topHero] = (heroTotals[u.topHero]||0) + 1;
-  });
-  const topHero = Object.entries(heroTotals).sort((a,b)=>b[1]-a[1])[0]?.[0] || "—";
-  const diamondUsers = data.filter(u=>u.diamond>0).length;
-  const avgRounds = totalUsers ? (totalRounds/totalUsers).toFixed(1) : "0";
+  const totalRounds = data.reduce((s,u)=>s+(u.rounds||0),0);
+  const avgNet = data.filter(u=>u.avgNet).length
+    ? (data.filter(u=>u.avgNet).reduce((s,u)=>s+parseFloat(u.avgNet||0),0)/data.filter(u=>u.avgNet).length).toFixed(1)
+    : "—";
+  const avgWinRate = data.filter(u=>u.winRate!=null).length
+    ? Math.round(data.filter(u=>u.winRate!=null).reduce((s,u)=>s+(u.winRate||0),0)/data.filter(u=>u.winRate!=null).length)
+    : "—";
+  const activeThisWeek = data.filter(u=>{
+    if(!u.lastSeen) return false;
+    return (Date.now()-new Date(u.lastSeen).getTime()) < 7*24*3600*1000;
+  }).length;
 
-  const HERO_COLORS = {Love:"#dc2626",Acceptance:"#ca8a04",Commitment:"#16a34a",Vulnerability:"#7c3aed",Grit:"#2563eb"};
+  // Hero/bandit totals across all users
+  const heroTotals={}, banditTotals={};
+  data.forEach(u=>{
+    Object.entries(u.heroTotals||{}).forEach(([k,v])=>heroTotals[k]=(heroTotals[k]||0)+v);
+    Object.entries(u.banditTotals||{}).forEach(([k,v])=>banditTotals[k]=(banditTotals[k]||0)+v);
+  });
+  const sortedHeroes = Object.entries(heroTotals).sort((a,b)=>b[1]-a[1]);
+  const sortedBandits = Object.entries(banditTotals).sort((a,b)=>b[1]-a[1]);
+  const maxHero = sortedHeroes[0]?.[1]||1;
+  const maxBandit = sortedBandits[0]?.[1]||1;
+
+  const HERO_C = {Love:"#16a34a",Acceptance:"#16a34a",Commitment:"#16a34a",Vulnerability:"#16a34a",Grit:"#16a34a"};
+
+  const card = {background:P.card,borderRadius:14,padding:"14px 16px",border:`1.5px solid ${P.border}`,marginBottom:12};
+  const lbl = {fontSize:9,color:PM_GOLD,fontWeight:800,letterSpacing:1.5,marginBottom:8,textTransform:"uppercase"};
+
+  const tabs = ["overview","users","emails","heroes","bandits"];
 
   return (
     <div style={{...S.shell,position:"relative",overflow:"hidden",background:P.bg}}>
-      <div style={{position:"absolute",inset:0,background:`radial-gradient(ellipse 80% 35% at 50% 0%, rgba(124,58,237,0.08) 0%, transparent 55%)`,zIndex:0,pointerEvents:"none"}}/>
+      <div style={{position:"absolute",inset:0,background:`radial-gradient(ellipse 80% 35% at 50% 0%, rgba(201,168,76,0.08) 0%, transparent 55%)`,zIndex:0,pointerEvents:"none"}}/>
 
       {/* Header */}
-      <div style={{padding:"16px 20px 10px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"relative",zIndex:1,flexShrink:0}}>
-        <button onClick={onBack} style={S.iconBtn} {...pressProps()}><Icons.Back color={P.muted}/></button>
+      <div style={{padding:"14px 16px 10px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"relative",zIndex:1,flexShrink:0,borderBottom:`1px solid ${P.border}`}}>
+        <button onClick={onBack} style={S.iconBtn} {...pp()}><Icons.Back color={P.muted}/></button>
         <div style={{textAlign:"center"}}>
-          <div style={{fontSize:17,fontWeight:900,color:P.white}}>Coach Dashboard</div>
-          <div style={{fontSize:10,color:P.muted,fontWeight:600,letterSpacing:1}}>AGGREGATE · ANONYMOUS</div>
+          <div style={{fontSize:16,fontWeight:900,color:P.white}}>Admin Dashboard</div>
+          <div style={{fontSize:9,color:PM_GOLD,fontWeight:700,letterSpacing:1}}>PAUL MONAHAN GOLF · INTERNAL</div>
         </div>
-        <button onClick={load} {...pressProps()} style={{background:"transparent",border:`1px solid ${P.border}`,borderRadius:8,padding:"5px 9px",cursor:"pointer",fontSize:11,fontWeight:700,color:P.muted}}>↻</button>
+        <button onClick={load} style={{...S.iconBtn}} {...pp()}>↻</button>
       </div>
 
-      <div style={{flex:1,overflowY:"auto",padding:"4px 16px 24px",position:"relative",zIndex:1}}>
+      {/* Tab bar */}
+      <div style={{display:"flex",gap:4,padding:"8px 12px",flexShrink:0,background:P.bg,borderBottom:`1px solid ${P.border}`}}>
+        {tabs.map(t=>(
+          <button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:"6px 4px",borderRadius:8,border:`1.5px solid ${tab===t?PM_GOLD:P.border}`,background:tab===t?PM_GOLD+"15":"transparent",color:tab===t?PM_GOLD:P.muted,fontSize:10,fontWeight:700,cursor:"pointer",textTransform:"capitalize"}}>{t}</button>
+        ))}
+      </div>
+
+      <div style={{flex:1,overflowY:"auto",padding:"12px 14px 24px",position:"relative",zIndex:1}}>
         {loading ? (
-          <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:200,gap:10}}>
-            <div style={{width:12,height:12,borderRadius:"50%",border:`2px solid ${P.border}`,borderTopColor:P.accent,animation:"spin 0.7s linear infinite"}}/>
-            <span style={{color:P.muted,fontSize:13}}>Loading community data...</span>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:200,gap:10,flexDirection:"column"}}>
+            <div style={{width:24,height:24,borderRadius:"50%",border:`3px solid ${P.border}`,borderTopColor:PM_GOLD,animation:"spin 0.7s linear infinite"}}/>
+            <span style={{color:P.muted,fontSize:12}}>Loading app data...</span>
           </div>
-        ) : (
+        ) : tab==="overview" ? (
           <>
-            {/* Stats grid */}
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+            {/* KPI grid */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
               {[
-                {label:"Total Users",val:totalUsers,color:"#7c3aed"},
-                {label:"Total Rounds",val:totalRounds,color:"#16a34a"},
-                {label:"Avg Rounds/User",val:avgRounds,color:"#ca8a04"},
-                {label:"Diamond Members",val:diamondUsers,color:"#1d4ed8"},
+                {label:"Total Users",val:totalUsers,color:"#7c3aed",icon:""},
+                {label:"Total Rounds",val:totalRounds,color:"#16a34a",icon:""},
+                {label:"Active (7d)",val:activeThisWeek,color:PM_GOLD,icon:""},
+                {label:"Avg Win Rate",val:avgWinRate+"%",color:"#60a5fa",icon:""},
+                {label:"Avg Rounds/User",val:totalUsers?(totalRounds/totalUsers).toFixed(1):"—",color:"#34d87a",icon:""},
+                {label:"Community Net",val:avgNet>0?"+"+avgNet:avgNet,color:parseFloat(avgNet)>0?"#16a34a":parseFloat(avgNet)<0?"#dc2626":"#ca8a04",icon:""},
               ].map((s,i)=>(
-                <div key={i} style={{background:P.card,borderRadius:14,padding:"14px",border:`1.5px solid ${P.border}`}}>
-                  <div style={{fontSize:9,color:P.muted,fontWeight:800,letterSpacing:1.5,marginBottom:6,textTransform:"uppercase"}}>{s.label}</div>
-                  <div style={{fontSize:32,fontWeight:900,color:s.color,lineHeight:1}}>{s.val}</div>
+                <div key={i} style={{background:P.card,borderRadius:12,padding:"12px 14px",border:`1.5px solid ${P.border}`}}>
+                  <div style={{fontSize:9,color:P.muted,fontWeight:800,letterSpacing:1.5,marginBottom:4,textTransform:"uppercase"}}>{s.label}</div>
+                  <div style={{fontSize:28,fontWeight:900,color:s.color,lineHeight:1}}>{s.val}</div>
                 </div>
               ))}
             </div>
 
-            {/* Top hero community-wide */}
-            <div style={{background:P.card,borderRadius:14,padding:"14px 16px",border:`1.5px solid ${P.border}`,marginBottom:14}}>
-              <div style={{fontSize:9,color:P.muted,fontWeight:800,letterSpacing:1.5,marginBottom:10,textTransform:"uppercase"}}>Community Top Hero</div>
-              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                {Object.entries(heroTotals).sort((a,b)=>b[1]-a[1]).map(([hero,count])=>(
-                  <div key={hero} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:20,background:(HERO_COLORS[hero]||P.accent)+"18",border:`1px solid ${(HERO_COLORS[hero]||P.accent)}44`}}>
-                    <div style={{width:6,height:6,borderRadius:"50%",background:HERO_COLORS[hero]||P.accent}}/>
-                    <span style={{fontSize:12,fontWeight:700,color:HERO_COLORS[hero]||P.accent}}>{hero}</span>
-                    <span style={{fontSize:11,color:P.muted}}>{count}</span>
-                  </div>
-                ))}
-                {Object.keys(heroTotals).length===0&&<span style={{fontSize:13,color:P.muted}}>Not enough data yet</span>}
+            {/* Top hero/bandit summary */}
+            <div style={card}>
+              <div style={lbl}>Community Mental Trends</div>
+              <div style={{display:"flex",gap:10}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:9,color:P.green,fontWeight:700,letterSpacing:1,marginBottom:4}}>TOP HERO</div>
+                  <div style={{fontSize:18,fontWeight:900,color:P.green}}>{sortedHeroes[0]?.[0]||"—"}</div>
+                  <div style={{fontSize:11,color:P.muted}}>{sortedHeroes[0]?.[1]||0} activations</div>
+                </div>
+                <div style={{width:1,background:P.border}}/>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:9,color:P.red,fontWeight:700,letterSpacing:1,marginBottom:4}}>TOP BANDIT</div>
+                  <div style={{fontSize:18,fontWeight:900,color:P.red}}>{sortedBandits[0]?.[0]||"—"}</div>
+                  <div style={{fontSize:11,color:P.muted}}>{sortedBandits[0]?.[1]||0} appearances</div>
+                </div>
               </div>
             </div>
 
-            {/* User list */}
-            <div style={{fontSize:9,color:P.muted,fontWeight:800,letterSpacing:1.5,marginBottom:8,textTransform:"uppercase"}}>Active Players</div>
-            <div style={{display:"flex",flexDirection:"column",gap:8}}>
-              {data.sort((a,b)=>(b.rounds||0)-(a.rounds||0)).map((u,i)=>(
-                <div key={u.userId||i} style={{background:P.card,borderRadius:12,padding:"10px 14px",border:`1.5px solid ${P.border}`,display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{width:36,height:36,borderRadius:10,background:P.cardAlt,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:P.muted,flexShrink:0}}>
-                    {(u.displayName||"?")[0].toUpperCase()}
+            {/* Recently active */}
+            <div style={card}>
+              <div style={lbl}>Recently Active Players</div>
+              {data.filter(u=>u.lastSeen).sort((a,b)=>new Date(b.lastSeen)-new Date(a.lastSeen)).slice(0,5).map((u,i)=>{
+                const daysAgo = Math.floor((Date.now()-new Date(u.lastSeen).getTime())/86400000);
+                return (
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:10,paddingBottom:8,marginBottom:8,borderBottom:i<4?`1px solid ${P.border}44`:"none"}}>
+                    <div style={{width:32,height:32,borderRadius:9,background:PM_GOLD+"18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:800,color:PM_GOLD,flexShrink:0}}>{(u.displayName||"?")[0].toUpperCase()}</div>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:12,fontWeight:700,color:P.white}}>{u.displayName||"Anonymous"}</div>
+                      <div style={{fontSize:10,color:P.muted}}>{u.rounds} rounds · Avg {u.avgNet||"—"} net</div>
+                    </div>
+                    <div style={{fontSize:10,color:P.muted}}>{daysAgo===0?"Today":daysAgo===1?"Yesterday":daysAgo+"d ago"}</div>
                   </div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:13,fontWeight:700,color:P.white,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.displayName||"Anonymous"}</div>
-                    <div style={{fontSize:11,color:P.muted}}>{u.rounds||0} rounds{u.topHero?` · Top: ${u.topHero}`:""}</div>
+                );
+              })}
+              {data.length===0&&<div style={{color:P.muted,fontSize:13,textAlign:"center",padding:"20px 0"}}>No users yet.</div>}
+            </div>
+          </>
+
+        ) : tab==="users" ? (
+          <>
+            <div style={{fontSize:10,color:P.muted,marginBottom:10}}>{totalUsers} total users · sorted by rounds played</div>
+            {data.sort((a,b)=>(b.rounds||0)-(a.rounds||0)).map((u,i)=>(
+              <div key={i} style={{...card,marginBottom:8}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                  <div style={{width:36,height:36,borderRadius:10,background:PM_GOLD+"18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:800,color:PM_GOLD,flexShrink:0}}>{(u.displayName||"?")[0].toUpperCase()}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:13,fontWeight:800,color:P.white}}>{u.displayName||"Anonymous"}</div>
+                    <div style={{fontSize:10,color:P.muted}}>ID: {(u.userId||"").slice(0,12)}... · Last seen: {u.lastSeen?new Date(u.lastSeen).toLocaleDateString():"—"}</div>
                   </div>
-                  {u.diamond>0&&<div style={{fontSize:10,fontWeight:700,color:"#1d4ed8",background:"#1d4ed818",padding:"2px 7px",borderRadius:10,flexShrink:0}}>{u.diamond}D</div>}
+                  {u.coachCode&&<div style={{fontSize:9,padding:"2px 7px",borderRadius:8,background:"#60a5fa18",border:"1px solid #60a5fa33",color:"#60a5fa",fontWeight:700}}>{u.coachCode}</div>}
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6}}>
+                  {[
+                    {l:"Rounds",v:u.rounds||0,c:P.green},
+                    {l:"Avg Net",v:u.avgNet||"—",c:parseFloat(u.avgNet)>0?P.green:parseFloat(u.avgNet)<0?P.red:P.gold},
+                    {l:"Best Net",v:u.bestNet!=null?(u.bestNet>0?"+":"")+u.bestNet:"—",c:P.green},
+                    {l:"Win Rate",v:u.winRate!=null?u.winRate+"%":"—",c:"#60a5fa"},
+                  ].map((s,j)=>(
+                    <div key={j} style={{background:P.cardAlt,borderRadius:8,padding:"6px 8px",textAlign:"center"}}>
+                      <div style={{fontSize:8,color:P.muted,fontWeight:700,letterSpacing:0.5}}>{s.l}</div>
+                      <div style={{fontSize:14,fontWeight:900,color:s.c}}>{s.v}</div>
+                    </div>
+                  ))}
+                </div>
+                {(u.topHero||u.topBandit)&&(
+                  <div style={{display:"flex",gap:8,marginTop:8}}>
+                    {u.topHero&&<div style={{fontSize:10,color:P.green,fontWeight:700}}>⬆ {u.topHero}</div>}
+                    {u.topBandit&&<div style={{fontSize:10,color:P.red,fontWeight:700}}>⬇ {u.topBandit}</div>}
+                  </div>
+                )}
+                {u.recentRounds?.length>0&&(
+                  <div style={{marginTop:8,display:"flex",gap:4}}>
+                    {u.recentRounds.slice(0,5).map((r,j)=>(
+                      <div key={j} title={r.course} style={{flex:1,height:28,borderRadius:6,background:(r.net>0?P.green:r.net<0?P.red:P.gold)+"20",border:`1px solid ${(r.net>0?P.green:r.net<0?P.red:P.gold)}44`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                        <span style={{fontSize:10,fontWeight:800,color:r.net>0?P.green:r.net<0?P.red:P.gold}}>{r.net>0?"+":""}{r.net}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+            {data.length===0&&<div style={{textAlign:"center",padding:40,color:P.muted}}>No users yet.</div>}
+          </>
+
+        ) : tab==="heroes" ? (
+          <>
+            <div style={{...card}}>
+              <div style={lbl}>Hero Activation Rates — All Users</div>
+              {sortedHeroes.map(([hero,count],i)=>(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                  <div style={{width:80,fontSize:11,fontWeight:700,color:P.white,flexShrink:0}}>{hero}</div>
+                  <div style={{flex:1,height:8,background:P.cardAlt,borderRadius:4,overflow:"hidden"}}>
+                    <div style={{width:`${(count/maxHero)*100}%`,height:"100%",background:P.green,borderRadius:4,transition:"width 0.4s ease"}}/>
+                  </div>
+                  <div style={{width:32,textAlign:"right",fontSize:11,color:P.green,fontWeight:700}}>{count}</div>
                 </div>
               ))}
-              {data.length===0&&<div style={{textAlign:"center",padding:"30px",color:P.muted,fontSize:13}}>No user data yet — share the app to see community stats here.</div>}
+              {sortedHeroes.length===0&&<div style={{color:P.muted,fontSize:13,textAlign:"center"}}>No data yet.</div>}
             </div>
-
-            {lastRefresh&&<div style={{textAlign:"center",marginTop:14,fontSize:10,color:P.muted}}>Updated {lastRefresh.toLocaleTimeString()}</div>}
+            {/* Which users rely on each hero */}
+            <div style={card}>
+              <div style={lbl}>Hero Distribution by User Count</div>
+              {sortedHeroes.map(([hero,count],i)=>{
+                const usersWithHero = data.filter(u=>(u.heroTotals||{})[hero]>0).length;
+                return (
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6,padding:"6px 8px",borderRadius:8,background:P.cardAlt}}>
+                    <div style={{flex:1,fontSize:12,fontWeight:700,color:P.white}}>{hero}</div>
+                    <div style={{fontSize:11,color:P.muted}}>{usersWithHero}/{totalUsers} users</div>
+                    <div style={{fontSize:12,fontWeight:700,color:P.green}}>{totalUsers?Math.round(usersWithHero/totalUsers*100):0}%</div>
+                  </div>
+                );
+              })}
+            </div>
           </>
-        )}
+
+        ) : tab==="emails" ? (
+          <>
+            <div style={{marginBottom:10}}>
+              <div style={{fontSize:10,color:PM_GOLD,fontWeight:800,letterSpacing:1,marginBottom:8}}>FILTER BY MENTAL GAME</div>
+              <div style={{display:"flex",gap:6,marginBottom:6}}>
+                <select value={filterHero} onChange={e=>setFilterHero(e.target.value)} style={{flex:1,padding:"7px 10px",borderRadius:8,border:`1.5px solid ${P.border}`,background:P.card,color:filterHero?P.green:P.muted,fontSize:12,fontWeight:600,outline:"none"}}>
+                  <option value="">All Heroes</option>
+                  {HEROES.map(h=><option key={h} value={h}>{h}</option>)}
+                </select>
+                <select value={filterBandit} onChange={e=>setFilterBandit(e.target.value)} style={{flex:1,padding:"7px 10px",borderRadius:8,border:`1.5px solid ${P.border}`,background:P.card,color:filterBandit?P.red:P.muted,fontSize:12,fontWeight:600,outline:"none"}}>
+                  <option value="">All Bandits</option>
+                  {BANDITS.map(b=><option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
+            </div>
+            {(()=>{
+              const emailUsers = data.filter(u=>u.email);
+              const filtered = emailUsers.filter(u=>{
+                if(filterHero && u.topHero !== filterHero) return false;
+                if(filterBandit && u.topBandit !== filterBandit) return false;
+                return true;
+              });
+              const emailList = filtered.map(u=>u.email).join(",\n");
+              return (
+                <>
+                  <div style={{...card,marginBottom:10}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                      <div style={lbl}>{filtered.length} USERS{filterHero||filterBandit?" (FILTERED)":""}</div>
+                      <button onClick={()=>{try{navigator.clipboard.writeText(emailList);showToast(`Copied ${filtered.length} emails`,"success");}catch{}}} style={{padding:"5px 12px",borderRadius:8,border:`1.5px solid ${PM_GOLD}44`,background:PM_GOLD+"10",color:PM_GOLD,fontSize:11,fontWeight:700,cursor:"pointer"}}>Copy Emails</button>
+                    </div>
+                    <div style={{background:P.cardAlt,borderRadius:8,padding:"10px 12px",maxHeight:120,overflowY:"auto"}}>
+                      {filtered.length>0
+                        ? <div style={{fontSize:11,color:P.muted,lineHeight:1.8,fontFamily:"monospace",whiteSpace:"pre-wrap"}}>{emailList||"—"}</div>
+                        : <div style={{fontSize:12,color:P.muted,textAlign:"center",padding:"10px 0"}}>No users match this filter.</div>
+                      }
+                    </div>
+                  </div>
+                  {filtered.map((u,i)=>(
+                    <div key={i} style={{...card,marginBottom:6}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10}}>
+                        <div style={{width:32,height:32,borderRadius:9,background:PM_GOLD+"18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,color:PM_GOLD,flexShrink:0}}>{(u.displayName||u.email||"?")[0].toUpperCase()}</div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:12,fontWeight:700,color:P.white,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.email}</div>
+                          <div style={{fontSize:10,color:P.muted}}>{u.displayName||u.profileName||""}{u.rounds?" · "+u.rounds+" rounds":""}</div>
+                        </div>
+                      </div>
+                      <div style={{display:"flex",gap:6,marginTop:6}}>
+                        {u.topHero&&<span style={{fontSize:9,fontWeight:700,color:P.green,padding:"2px 7px",borderRadius:8,background:P.green+"12"}}>⬆ {u.topHero}</span>}
+                        {u.topBandit&&<span style={{fontSize:9,fontWeight:700,color:P.red,padding:"2px 7px",borderRadius:8,background:P.red+"12"}}>⬇ {u.topBandit}</span>}
+                        {u.avgNet&&<span style={{fontSize:9,fontWeight:700,color:parseFloat(u.avgNet)>0?P.green:P.red,padding:"2px 7px",borderRadius:8,background:P.cardAlt}}>{parseFloat(u.avgNet)>0?"+":""}{u.avgNet} avg</span>}
+                      </div>
+                    </div>
+                  ))}
+                  {allProfiles.length===0&&<div style={{...card,textAlign:"center",color:P.muted,fontSize:12,padding:"24px"}}>No community signups yet. Users see the join prompt after their first round.</div>}
+                </>
+              );
+            })()}
+          </>
+
+        ) : tab==="bandits" ? (
+          <>
+            <div style={card}>
+              <div style={lbl}>Bandit Appearances — All Users</div>
+              {sortedBandits.map(([bandit,count],i)=>(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                  <div style={{width:80,fontSize:11,fontWeight:700,color:P.white,flexShrink:0}}>{bandit}</div>
+                  <div style={{flex:1,height:8,background:P.cardAlt,borderRadius:4,overflow:"hidden"}}>
+                    <div style={{width:`${(count/maxBandit)*100}%`,height:"100%",background:P.red,borderRadius:4,transition:"width 0.4s ease"}}/>
+                  </div>
+                  <div style={{width:32,textAlign:"right",fontSize:11,color:P.red,fontWeight:700}}>{count}</div>
+                </div>
+              ))}
+              {sortedBandits.length===0&&<div style={{color:P.muted,fontSize:13,textAlign:"center"}}>No data yet.</div>}
+            </div>
+            {/* Coaching insight */}
+            {sortedBandits.length>0&&(
+              <div style={{...card,border:`1.5px solid ${PM_GOLD}44`,background:PM_GOLD+"08"}}>
+                <div style={lbl}>Coaching Insight</div>
+                <div style={{fontSize:13,color:P.white,lineHeight:1.6,fontWeight:500}}>
+                  The most common bandit across all users is <span style={{color:P.red,fontWeight:800}}>{sortedBandits[0][0]}</span>. This suggests the most impactful group coaching focus right now is teaching golfers to deploy <span style={{color:P.green,fontWeight:800}}>{MATCHUPS.find(m=>m.bandit===sortedBandits[0][0])?.hero||"the corresponding hero"}</span>.
+                </div>
+              </div>
+            )}
+          </>
+        ) : null}
+
+        {lastRefresh&&<div style={{textAlign:"center",marginTop:8,fontSize:9,color:P.muted,opacity:0.5}}>Last updated {lastRefresh.toLocaleTimeString()}</div>}
       </div>
       <style>{`@keyframes spin{to{transform:rotate(360deg);}}`}</style>
     </div>
   );
 }
+
+// ═══════════════════════════════════════
+// COACH PORTAL (access: view="coachportal", hidden)
+// ═══════════════════════════════════════
+function CoachPortalView({onBack, S}) {
+  const P = useTheme();
+  const pp = pressProps;
+  const dm = P.bg === "#09090b";
+  const [tab, setTab] = React.useState("roster"); // roster | player | settings
+  const [selectedPlayer, setSelectedPlayer] = React.useState(null);
+  const [allUsers, setAllUsers] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+
+  // Coach identity stored locally
+  const [coachName, setCoachName] = React.useState(()=>{ try{return localStorage.getItem("mgp_coach_name")||"";}catch{return "";} });
+  const [coachCode, setCoachCode] = React.useState(()=>{ try{return localStorage.getItem("mgp_coach_code_own")||"";}catch{return "";} });
+  const [roster, setRoster] = React.useState(()=>{ try{return JSON.parse(localStorage.getItem("mgp_coach_roster")||"[]");}catch{return [];} });
+  const [newPlayerNote, setNewPlayerNote] = React.useState("");
+
+  function saveRoster(r) {
+    setRoster(r);
+    try { localStorage.setItem("mgp_coach_roster",JSON.stringify(r)); } catch {}
+  }
+
+  async function loadAllUsers() {
+    setLoading(true);
+    try {
+      const keys = await window.storage.list("users:", true);
+      const users = await Promise.all(
+        (keys?.keys||[]).map(async k => {
+          try { const r = await window.storage.get(k, true); return r ? JSON.parse(r.value) : null; } catch { return null; }
+        })
+      );
+      setAllUsers(users.filter(Boolean));
+    } catch {}
+    setLoading(false);
+  }
+
+  React.useEffect(()=>{ loadAllUsers(); },[]);
+
+  // Match roster players to live data
+  const rosterWithData = roster.map(p => {
+    const live = allUsers.find(u => u.coachCode === coachCode && u.displayName === p.name) || null;
+    return {...p, live};
+  });
+
+  const card = {background:P.card,borderRadius:14,padding:"14px 16px",border:`1.5px solid ${P.border}`,marginBottom:10};
+  const lbl = {fontSize:9,color:PM_GOLD,fontWeight:800,letterSpacing:1.5,marginBottom:8,textTransform:"uppercase"};
+
+  // Generate unique coach code
+  function generateCode() {
+    const code = "COACH-" + Math.random().toString(36).slice(2,7).toUpperCase();
+    setCoachCode(code);
+    try { localStorage.setItem("mgp_coach_code_own", code); } catch {}
+  }
+
+  function addPlayer(name) {
+    if(!name.trim()) return;
+    const updated = [...roster, {name:name.trim(), addedAt:new Date().toISOString(), notes:""}];
+    saveRoster(updated);
+  }
+
+  function removePlayer(name) {
+    saveRoster(roster.filter(p=>p.name!==name));
+  }
+
+  function updatePlayerNote(name, note) {
+    saveRoster(roster.map(p=>p.name===name?{...p,notes:note}:p));
+  }
+
+  if(selectedPlayer) {
+    const p = rosterWithData.find(r=>r.name===selectedPlayer);
+    const u = p?.live;
+    return (
+      <div style={{...S.shell,background:P.bg}}>
+        <div style={{padding:"14px 16px 10px",display:"flex",alignItems:"center",gap:12,flexShrink:0,borderBottom:`1px solid ${P.border}`}}>
+          <button onClick={()=>setSelectedPlayer(null)} style={S.iconBtn} {...pp()}><Icons.Back color={P.muted}/></button>
+          <div style={{flex:1}}>
+            <div style={{fontSize:16,fontWeight:900,color:P.white}}>{p?.name}</div>
+            <div style={{fontSize:10,color:u?P.green:P.muted}}>{u?"Active · "+u.rounds+" rounds":"Not yet connected"}</div>
+          </div>
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"12px 14px 24px"}}>
+          {!u ? (
+            <div style={{...card,border:`1.5px solid ${PM_GOLD}44`,background:PM_GOLD+"08",textAlign:"center"}}>
+              <div style={{fontSize:13,color:P.white,fontWeight:700,marginBottom:8}}>Player not connected yet</div>
+              <div style={{fontSize:12,color:P.muted,lineHeight:1.6,marginBottom:12}}>Ask {p?.name} to enter your coach code in their app: Settings → Coach Code</div>
+              <div style={{fontSize:18,fontWeight:900,color:PM_GOLD,letterSpacing:2,padding:"10px",background:P.cardAlt,borderRadius:10}}>{coachCode||"Set coach code first"}</div>
+            </div>
+          ) : (
+            <>
+              {/* Performance summary */}
+              <div style={card}>
+                <div style={lbl}>Mental Performance</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
+                  {[
+                    {l:"Avg Net",v:u.avgNet!=null?(parseFloat(u.avgNet)>0?"+":"")+u.avgNet:"—",c:parseFloat(u.avgNet)>0?P.green:parseFloat(u.avgNet)<0?P.red:P.gold},
+                    {l:"Best Net",v:u.bestNet!=null?(u.bestNet>0?"+":"")+u.bestNet:"—",c:P.green},
+                    {l:"Win Rate",v:u.winRate!=null?u.winRate+"%":"—",c:"#60a5fa"},
+                    {l:"Rounds",v:u.rounds||0,c:P.white},
+                    {l:"Heroes",v:u.totalHeroes||0,c:P.green},
+                    {l:"Bandits",v:u.totalBandits||0,c:P.red},
+                  ].map((s,i)=>(
+                    <div key={i} style={{background:P.cardAlt,borderRadius:10,padding:"8px",textAlign:"center"}}>
+                      <div style={{fontSize:8,color:P.muted,fontWeight:700,letterSpacing:0.5,marginBottom:2}}>{s.l}</div>
+                      <div style={{fontSize:16,fontWeight:900,color:s.c}}>{s.v}</div>
+                    </div>
+                  ))}
+                </div>
+                {/* Recent rounds */}
+                {u.recentRounds?.length>0&&(
+                  <>
+                    <div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:6}}>LAST {u.recentRounds.length} ROUNDS</div>
+                    <div style={{display:"flex",gap:4}}>
+                      {u.recentRounds.map((r,i)=>(
+                        <div key={i} title={`${r.course} ${r.date}`} style={{flex:1,borderRadius:8,background:(r.net>0?P.green:r.net<0?P.red:P.gold)+"15",border:`1.5px solid ${(r.net>0?P.green:r.net<0?P.red:P.gold)}33`,padding:"6px 4px",textAlign:"center"}}>
+                          <div style={{fontSize:12,fontWeight:900,color:r.net>0?P.green:r.net<0?P.red:P.gold}}>{r.net>0?"+":""}{r.net}</div>
+                          <div style={{fontSize:8,color:P.muted,marginTop:2}}>{r.date?.slice(5)||""}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Hero/Bandit breakdown */}
+              <div style={card}>
+                <div style={lbl}>Mental Game Profile</div>
+                <div style={{marginBottom:10}}>
+                  <div style={{fontSize:9,color:P.green,fontWeight:700,letterSpacing:1,marginBottom:6}}>HEROES</div>
+                  {Object.entries(u.heroTotals||{}).sort((a,b)=>b[1]-a[1]).map(([h,v],i)=>(
+                    <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+                      <div style={{width:76,fontSize:10,fontWeight:600,color:P.white}}>{h}</div>
+                      <div style={{flex:1,height:6,background:P.cardAlt,borderRadius:3}}>
+                        <div style={{width:`${(v/Math.max(...Object.values(u.heroTotals)))*100}%`,height:"100%",background:P.green,borderRadius:3}}/>
+                      </div>
+                      <div style={{fontSize:10,color:P.green,fontWeight:700,width:20,textAlign:"right"}}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  <div style={{fontSize:9,color:P.red,fontWeight:700,letterSpacing:1,marginBottom:6}}>BANDITS</div>
+                  {Object.entries(u.banditTotals||{}).sort((a,b)=>b[1]-a[1]).map(([b,v],i)=>(
+                    <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+                      <div style={{width:76,fontSize:10,fontWeight:600,color:P.white}}>{b}</div>
+                      <div style={{flex:1,height:6,background:P.cardAlt,borderRadius:3}}>
+                        <div style={{width:`${(v/Math.max(...Object.values(u.banditTotals)))*100}%`,height:"100%",background:P.red,borderRadius:3}}/>
+                      </div>
+                      <div style={{fontSize:10,color:P.red,fontWeight:700,width:20,textAlign:"right"}}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Coaching insight */}
+              {u.topBandit&&(
+                <div style={{...card,border:`1.5px solid ${PM_GOLD}44`,background:PM_GOLD+"08"}}>
+                  <div style={lbl}>Coaching Focus</div>
+                  <div style={{fontSize:13,color:P.white,lineHeight:1.7}}>
+                    {p.name}'s biggest challenge is <span style={{color:P.red,fontWeight:800}}>{u.topBandit}</span>. Their most reliable strength is <span style={{color:P.green,fontWeight:800}}>{u.topHero||"not yet established"}</span>. Focus coaching sessions on deploying <span style={{color:P.green,fontWeight:800}}>{MATCHUPS.find(m=>m.bandit===u.topBandit)?.hero||"Love"}</span> to counter it.
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Coach notes */}
+          <div style={card}>
+            <div style={lbl}>Your Coaching Notes</div>
+            <textarea
+              value={p?.notes||""}
+              onChange={e=>updatePlayerNote(p.name,e.target.value)}
+              placeholder="Session notes, observations, focus areas..."
+              rows={4}
+              style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:13,outline:"none",resize:"vertical",lineHeight:1.5}}
+            />
+          </div>
+
+          <button onClick={()=>{if(roster.length>0)removePlayer(p.name);setSelectedPlayer(null);}} style={{width:"100%",padding:"11px",borderRadius:10,border:`1.5px solid ${P.red}44`,background:"transparent",color:P.red,fontSize:13,cursor:"pointer"}}>Remove from Roster</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{...S.shell,background:P.bg}}>
+      <div style={{padding:"14px 16px 10px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,borderBottom:`1px solid ${P.border}`}}>
+        <button onClick={onBack} style={S.iconBtn} {...pp()}><Icons.Back color={P.muted}/></button>
+        <div style={{textAlign:"center"}}>
+          <div style={{fontSize:16,fontWeight:900,color:P.white}}>Coach Portal</div>
+          <div style={{fontSize:9,color:PM_GOLD,fontWeight:700,letterSpacing:1}}>{coachName||"SET YOUR NAME BELOW"}</div>
+        </div>
+        <button onClick={loadAllUsers} style={S.iconBtn} {...pp()}>↻</button>
+      </div>
+
+      {/* Tabs */}
+      <div style={{display:"flex",gap:4,padding:"8px 12px",flexShrink:0,borderBottom:`1px solid ${P.border}`}}>
+        {["roster","settings"].map(t=>(
+          <button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:"6px",borderRadius:8,border:`1.5px solid ${tab===t?PM_GOLD:P.border}`,background:tab===t?PM_GOLD+"15":"transparent",color:tab===t?PM_GOLD:P.muted,fontSize:10,fontWeight:700,cursor:"pointer",textTransform:"capitalize"}}>{t==="roster"?`Roster (${roster.length})`:t}</button>
+        ))}
+      </div>
+
+      <div style={{flex:1,overflowY:"auto",padding:"12px 14px 24px"}}>
+        {tab==="roster" ? (
+          <>
+            {/* Add player */}
+            <div style={card}>
+              <div style={lbl}>Add Player</div>
+              <div style={{display:"flex",gap:8}}>
+                <input
+                  value={newPlayerNote}
+                  onChange={e=>setNewPlayerNote(e.target.value)}
+                  onKeyDown={e=>{if(e.key==="Enter"&&newPlayerNote.trim()){addPlayer(newPlayerNote);setNewPlayerNote("");}}}
+                  placeholder="Player name..."
+                  style={{flex:1,padding:"9px 12px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:13,outline:"none"}}
+                />
+                <button onClick={()=>{if(newPlayerNote.trim()){addPlayer(newPlayerNote);setNewPlayerNote("");}}} style={{padding:"9px 14px",borderRadius:9,border:"none",background:P.green,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}} {...pp()}>Add</button>
+              </div>
+            </div>
+
+            {/* Roster */}
+            {loading ? (
+              <div style={{textAlign:"center",padding:"30px",color:P.muted}}>Loading player data...</div>
+            ) : rosterWithData.length===0 ? (
+              <div style={{textAlign:"center",padding:"40px 20px",color:P.muted}}>
+                <div style={{fontSize:32,marginBottom:12,color:P.muted,fontWeight:800}}>—</div>
+                <div style={{fontSize:14,fontWeight:700,color:P.white,marginBottom:6}}>No players yet</div>
+                <div style={{fontSize:12,lineHeight:1.6}}>Add players above, then share your coach code with them so their data appears here.</div>
+              </div>
+            ) : rosterWithData.map((p,i)=>{
+              const u = p.live;
+              const connected = !!u;
+              return (
+                <div key={i} onClick={()=>setSelectedPlayer(p.name)} style={{...card,cursor:"pointer",marginBottom:8}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10}}>
+                    <div style={{width:40,height:40,borderRadius:11,background:connected?PM_GOLD+"18":P.cardAlt,border:`1.5px solid ${connected?PM_GOLD:P.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,fontWeight:800,color:connected?PM_GOLD:P.muted,flexShrink:0}}>{p.name[0].toUpperCase()}</div>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:13,fontWeight:800,color:P.white}}>{p.name}</div>
+                      {connected
+                        ? <div style={{fontSize:10,color:P.green}}>{u.rounds} rounds · Avg {u.avgNet||"—"} · Win {u.winRate!=null?u.winRate+"%":"—"}</div>
+                        : <div style={{fontSize:10,color:P.muted}}>Awaiting connection · Share code: <span style={{color:PM_GOLD,fontWeight:700}}>{coachCode||"not set"}</span></div>
+                      }
+                    </div>
+                    {connected&&u.recentRounds?.length>0&&(
+                      <div style={{width:36,height:36,borderRadius:9,background:(u.recentRounds[0].net>0?P.green:u.recentRounds[0].net<0?P.red:P.gold)+"15",border:`1.5px solid ${(u.recentRounds[0].net>0?P.green:u.recentRounds[0].net<0?P.red:P.gold)}33`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        <span style={{fontSize:12,fontWeight:900,color:u.recentRounds[0].net>0?P.green:u.recentRounds[0].net<0?P.red:P.gold}}>{u.recentRounds[0].net>0?"+":""}{u.recentRounds[0].net}</span>
+                      </div>
+                    )}
+                    <Icons.Chev color={P.muted} size={14}/>
+                  </div>
+                  {p.notes&&<div style={{marginTop:6,fontSize:11,color:P.muted,fontStyle:"italic",borderTop:`1px solid ${P.border}44`,paddingTop:5}}>{p.notes}</div>}
+                </div>
+              );
+            })}
+          </>
+        ) : (
+          <>
+            <div style={card}>
+              <div style={lbl}>Your Coach Identity</div>
+              <div style={{marginBottom:12}}>
+                <div style={{fontSize:11,color:P.muted,marginBottom:4,fontWeight:600}}>Your Name</div>
+                <input
+                  value={coachName}
+                  onChange={e=>{setCoachName(e.target.value);try{localStorage.setItem("mgp_coach_name",e.target.value);}catch{}}}
+                  placeholder="e.g. Paul Monahan"
+                  style={{width:"100%",padding:"9px 12px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,fontWeight:700,outline:"none"}}
+                />
+              </div>
+              <div style={{marginBottom:4}}>
+                <div style={{fontSize:11,color:P.muted,marginBottom:4,fontWeight:600}}>Your Coach Code</div>
+                <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                  <div style={{flex:1,padding:"9px 12px",borderRadius:9,border:`1.5px solid ${PM_GOLD}44`,background:PM_GOLD+"08",fontSize:16,fontWeight:900,color:PM_GOLD,letterSpacing:2}}>
+                    {coachCode||"— not set —"}
+                  </div>
+                  <button onClick={generateCode} style={{padding:"9px 14px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.card,color:P.muted,fontSize:11,fontWeight:700,cursor:"pointer"}} {...pp()}>Generate</button>
+                </div>
+                <div style={{fontSize:11,color:P.muted,marginTop:6,lineHeight:1.5}}>Share this code with your players. They enter it in their app Settings to connect with you. Players who enter your code will appear in your roster automatically.</div>
+              </div>
+            </div>
+
+            <div style={card}>
+              <div style={lbl}>How It Works</div>
+              {[
+                {n:1,t:"Set your coach code above",d:"Generate a unique code — it identifies you as their coach."},
+                {n:2,t:"Share with your players",d:"Text or email them your code. They enter it in Mental Game Scorecard → Settings → Coach Code."},
+                {n:3,t:"See their data here",d:"Once connected, their mental performance data syncs to your roster automatically."},
+                {n:4,t:"Add coaching notes",d:"Tap any player to see their full breakdown and add private coaching notes."},
+              ].map((s,i)=>(
+                <div key={i} style={{display:"flex",gap:10,marginBottom:10}}>
+                  <div style={{width:24,height:24,borderRadius:7,background:PM_GOLD+"18",border:`1px solid ${PM_GOLD}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,color:PM_GOLD,flexShrink:0}}>{s.n}</div>
+                  <div><div style={{fontSize:12,fontWeight:700,color:P.white}}>{s.t}</div><div style={{fontSize:11,color:P.muted,marginTop:2}}>{s.d}</div></div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 
 function TransformView({onBack,S,P}) {
   const dm = P.bg === "#09090b";
@@ -5700,7 +6718,7 @@ function TrendMock(){
     <div style={{display:"flex",gap:4,height:100,paddingBottom:16,position:"relative"}}><div style={{position:"absolute",left:0,right:0,bottom:16+40,height:1,background:P.border}}/>
       {data.map((d,i)=>{const mid=40,bH=(Math.abs(d.net)/mx)*mid,pos=d.net>=0; return <div key={i} style={{flex:1,position:"relative",height:84}}><div style={{position:"absolute",bottom:pos?mid:mid-bH,left:"15%",width:"70%",maxWidth:26,height:bH||2,borderRadius:3,background:pos?P.green:P.red,opacity:0.7}}/><div style={{position:"absolute",bottom:pos?mid+bH+2:mid-bH-14,width:"100%",textAlign:"center",fontSize:9,fontWeight:700,color:pos?P.green:P.red}}>{d.net>0?"+":""}{d.net}</div></div>;})}
     </div>
-    <div style={{display:"flex",gap:4}}>{data.map((d,i)=><div key={i} style={{flex:1,textAlign:"center",fontSize:8,color:P.muted}}>{d.l}</div>)}</div>
+    <div style={{display:"flex",gap:4}}>{data.map((d,i)=><div key={i} style={{flex:1,textAlign:"center",fontSize:9,color:P.muted}}>{d.l}</div>)}</div>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginTop:10}}>
       <div style={{background:P.card,borderRadius:8,padding:"8px 6px",textAlign:"center",border:`1px solid ${P.border}`}}><div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1}}>AVG NET</div><div style={{fontSize:18,fontWeight:900,color:P.green}}>+2.3</div></div>
       <div style={{background:P.card,borderRadius:8,padding:"8px 6px",textAlign:"center",border:`1px solid ${P.border}`}}><div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1}}>TOP HERO</div><div style={{fontSize:15,fontWeight:800,color:P.white}}>Grit</div></div>
@@ -5800,13 +6818,13 @@ function PrivacyPolicyView({onBack, S}) {
         <div style={{fontSize:11,color:P.muted,marginBottom:20}}>Last updated: March 2026</div>
 
         {[
-          {title:"What We Collect", body:"We collect the data you enter into the app: round scores, hero and bandit logs, course names, pre-round check-in data (sleep quality, energy level, playing partners), hole notes, and your display name for the leaderboard. We do not collect your name, email address, or any personal identifying information unless you choose to create an account."},
+          {title:"What We Collect", body:"We collect the data you enter into the app: round scores, hero and bandit logs, course names, pre-round check-in data (sleep quality, energy level, playing partners), hole notes, and your display name for the leaderboard.\n\nIf you create a profile, we also collect your name and email address. Your email is used to send you personalized coaching content from Paul Monahan Golf. We do not sell, rent, or share your email with third parties.\n\nIf you choose to save locally only (no account), we do not collect any personally identifying information."},
           {title:"How We Store It", body:"All round data is stored locally on your device using browser localStorage. Leaderboard display names and badge data are stored in shared cloud storage solely to power the in-app leaderboard feature. We do not sell, share, or transfer your data to third parties."},
           {title:"Golf Course API", body:"When you search for a course, your search query is sent to golfcourseapi.com to retrieve course and tee data. No personal information is included in these requests."},
           {title:"Payments", body:"Subscriptions are processed through Apple In-App Purchase or Google Play Billing. We do not store or have access to your payment card information. Your subscription status is stored locally on your device."},
           {title:"Analytics", body:"We do not currently use any third-party analytics or tracking tools. We do not use cookies for advertising purposes."},
           {title:"Children", body:"This app is not directed at children under 13. We do not knowingly collect data from children."},
-          {title:"Your Rights", body:"You can delete all your local data at any time from Settings → Data → Clear All Round Data. To request removal of leaderboard data, contact us at support@mentalgamescorecard.com."},
+          {title:"Your Rights & Account Deletion", body:"You can delete all your local data at any time from Settings → Data → Clear All Round Data.\n\nTo request full account deletion (including any cloud data), go to Settings → Data → Delete Account, or email support@mentalgamescorecard.com with subject \"Delete My Account\". We will process deletion requests within 30 days.\n\nYou may also request a copy of your data at any time by contacting us."},
           {title:"Terms of Service", body:"By using this app you agree to use it for personal, non-commercial purposes only. You may not reverse engineer, copy, or redistribute the app. We reserve the right to suspend access for misuse. The app is provided as-is without warranty. We are not liable for data loss from device issues."},
           {title:"Contact", body:"For privacy questions or data removal requests: support@mentalgamescorecard.com\n\nMental Game Scorecard is a product of Paul Monahan Golf."},
         ].map((s,i)=>(
@@ -5815,6 +6833,215 @@ function PrivacyPolicyView({onBack, S}) {
             <div style={{fontSize:13,color:P.muted,lineHeight:1.7,whiteSpace:"pre-line"}}>{s.body}</div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+
+// ═══════════════════════════════════════
+// HELP & FAQ VIEW
+// ═══════════════════════════════════════
+function HelpView({onBack, S}) {
+  const P = useTheme();
+  const pp = pressProps;
+  const [open, setOpen] = React.useState(null);
+
+  const sections = [
+    {
+      title: "Getting Started",
+      icon: Icons.Flag,
+      color: P.green,
+      faqs: [
+        {
+          q: "What is Mental Net?",
+          a: "Mental Net is your mental score for a round — Heroes minus Bandits. A Hero is a mental strength you deployed on a hole (Commitment, Grit, Love, Acceptance, or Vulnerability). A Bandit is a mental trap that showed up (Doubt, Quit, Fear, Frustration, or Shame). A positive Mental Net means your mind helped you more than it hurt you."
+        },
+        {
+          q: "What are Heroes and Bandits?",
+          a: "They come from Paul Monahan's framework. Five Heroes (Love, Acceptance, Commitment, Vulnerability, Grit) are the mental strengths that unlock your best golf. Five Bandits (Fear, Frustration, Doubt, Shame, Quit) are the mental traps that steal your game. Each Hero directly counters a specific Bandit — for example, Commitment removes Doubt."
+        },
+        {
+          q: "How do I log a Hero or Bandit?",
+          a: "On the scorecard, after each hole tap the green button next to the Hero you felt, or the red button next to the Bandit that showed up. You can log one of each per hole. The matchup grid stays open while you play — tap the header bar to collapse or expand it."
+        },
+        {
+          q: "Do I have to enter my stroke score?",
+          a: "No. Stroke score is optional. The app tracks your mental game independently of your golf score. Many users find it valuable to see both — your stroke score and your Mental Net — but you can use one without the other."
+        },
+        {
+          q: "What does the pre-round routine do?",
+          a: "It runs a guided 3-minute mental preparation before your round. You set an intention, check in with your energy and sleep levels, and choose your playing partners. This data is saved with your round and helps you see patterns — for example, how your Mental Net correlates with your sleep quality."
+        },
+      ]
+    },
+    {
+      title: "Account & Data",
+      icon: Icons.Shield,
+      color: PM_GOLD,
+      faqs: [
+        {
+          q: "Why do I need to create a profile after 3 rounds?",
+          a: "Three rounds are free with no account required. After that, creating a free profile (just your name and email) unlocks unlimited rounds and backs up your data to the cloud. There is no payment — ever. We ask for your email so Paul can send you personalized coaching insights based on your actual Heroes and Bandits data."
+        },
+        {
+          q: "Is it really free? What's the catch?",
+          a: "Yes, completely free. No subscription, no in-app purchases, no hidden fees. The trade is your email address, which Paul uses to send coaching content tailored to your mental game. You can unsubscribe from emails at any time without losing access to the app."
+        },
+        {
+          q: "I switched phones. How do I get my rounds back?",
+          a: "If you created a profile with cloud sync enabled, your rounds are backed up. Currently, to restore them on a new device, email support@mentalgamescorecard.com with your registered email address and we will help you recover your data. Automatic cross-device sync is coming in a future update."
+        },
+        {
+          q: "I uninstalled the app. Did I lose my rounds?",
+          a: "If you had cloud sync enabled (you created a profile and chose Save & Sync to Cloud during setup), your data is safe. If you chose to save locally only, your data was stored on your device and is not recoverable after uninstalling. This is why we recommend creating a profile."
+        },
+        {
+          q: "What email do I use if I forgot which one I signed up with?",
+          a: "Check Settings — Account at the top of the settings screen. It shows the email address connected to your profile. If you chose local only and have no email saved, contact support@mentalgamescorecard.com."
+        },
+        {
+          q: "How do I delete my account and all my data?",
+          a: "Go to Settings → Data → Delete Account and tap Confirm. This removes all locally stored data immediately. To remove cloud data, email support@mentalgamescorecard.com with subject 'Delete My Account' and we will process it within 30 days, as required by applicable privacy law."
+        },
+        {
+          q: "Does the app work without internet?",
+          a: "Yes. All core features work completely offline — logging rounds, viewing history, the pre-round routine, and the caddie. An internet connection is only needed to search for courses (to auto-fill par and yardage) and to sync data to the cloud."
+        },
+      ]
+    },
+    {
+      title: "Coaching & Connection",
+      icon: Icons.Target,
+      color: "#60a5fa",
+      faqs: [
+        {
+          q: "Can Paul see my round data?",
+          a: "Not directly from within the app. Paul uses your aggregate data (top Hero, top Bandit, average Mental Net) to personalize the coaching emails you receive. He cannot browse your individual rounds. If you want to share a specific round with Paul, use the Share button on any round in your history to send him a summary."
+        },
+        {
+          q: "How do I connect to a coach?",
+          a: "Ask your coach for their coach code (a short code like COACH-ABC12). Then go to Settings — scroll to the Coach section — and enter the code. Once entered, your mental performance data will appear in your coach's roster automatically."
+        },
+        {
+          q: "I'm a coach. How do I set up my roster?",
+          a: "The Coach Portal is available to coaches. Contact support@mentalgamescorecard.com to request coach access. You will receive a coach code to share with your students and access to a private dashboard showing each student's Hero and Bandit trends, recent rounds, and mental performance metrics."
+        },
+        {
+          q: "What data does my coach see?",
+          a: "Your coach sees your top Hero, top Bandit, average Mental Net, win rate, number of rounds played, and your last 5 round results. They do not see your hole-by-hole notes, pre-round reflections, or post-round answers — those are private to you."
+        },
+      ]
+    },
+    {
+      title: "Courses & Scoring",
+      icon: Icons.Golf,
+      color: "#34d87a",
+      faqs: [
+        {
+          q: "My course isn't showing up in search. What do I do?",
+          a: "Try searching by the full official club name (e.g. 'Bethpage State Park' rather than just 'Bethpage'). The course database covers 40,000+ courses worldwide. If your course is genuinely missing, you can type the name manually and enter par for each hole yourself."
+        },
+        {
+          q: "The par and yardage didn't fill in automatically. Why?",
+          a: "This happens if a course was found but the specific tee you selected doesn't have hole data in our database. Select a different tee, or enter par manually on the scorecard. You can also set a default course and tee in Settings so it pre-fills every time."
+        },
+        {
+          q: "What does FIR and GIR mean?",
+          a: "FIR is Fairway in Regulation — you hit the fairway off the tee on a par 4 or par 5. GIR is Green in Regulation — you reached the green in the expected number of strokes (par minus 2). These are standard golf statistics that help you identify whether your misses are coming off the tee or into the green."
+        },
+        {
+          q: "How is my handicap used?",
+          a: "If you enter your handicap in Settings, the scorecard shows your net score alongside your gross score. It does not currently calculate hole-by-hole stroke allowances — that is planned for a future update."
+        },
+      ]
+    },
+    {
+      title: "Troubleshooting",
+      icon: Icons.Info,
+      color: P.accent,
+      faqs: [
+        {
+          q: "The app went blank / crashed. What do I do?",
+          a: "Close the app completely and reopen it. Your data is saved automatically after every action so you should not lose anything. If the problem persists, go to Settings → Data → and try clearing the app cache. If it continues, contact support@mentalgamescorecard.com with a description of what happened."
+        },
+        {
+          q: "My round disappeared after I saved it.",
+          a: "Check Settings — Data — and make sure you haven't cleared round data recently. If you had cloud sync enabled, contact support@mentalgamescorecard.com and we can check if your round was saved to the cloud."
+        },
+        {
+          q: "The course search isn't working.",
+          a: "Course search requires an internet connection. Check that you have a signal. If you are connected and still seeing no results, the course API may be temporarily unavailable — try again in a few minutes or enter the course name manually."
+        },
+        {
+          q: "Something else is wrong.",
+          a: "Contact us at support@mentalgamescorecard.com and describe what happened. Include your device model, iOS version, and what you were doing when the issue occurred. We aim to respond within 24 hours."
+        },
+      ]
+    },
+  ];
+
+  return (
+    <div style={{...S.shell,background:P.bg}}>
+      <div style={{padding:"14px 16px 10px",display:"flex",alignItems:"center",gap:12,flexShrink:0,borderBottom:`1px solid ${P.border}`}}>
+        <button onClick={onBack} style={S.iconBtn} {...pp()}><Icons.Back color={P.muted}/></button>
+        <div>
+          <div style={{fontSize:17,fontWeight:800,color:P.white}}>Help & FAQ</div>
+          <div style={{fontSize:10,color:P.muted,fontWeight:600}}>Answers to common questions</div>
+        </div>
+      </div>
+      <div style={{flex:1,overflowY:"auto",padding:"12px 14px 32px"}}>
+        {sections.map((section,si)=>{
+          const SIcon = section.icon;
+          return (
+            <div key={si} style={{marginBottom:16}}>
+              {/* Section header */}
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                <div style={{width:26,height:26,borderRadius:8,background:section.color+"18",border:`1px solid ${section.color}33`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <SIcon color={section.color} size={13}/>
+                </div>
+                <div style={{fontSize:11,fontWeight:800,color:section.color,letterSpacing:1,textTransform:"uppercase"}}>{section.title}</div>
+              </div>
+              {/* FAQ items */}
+              <div style={{background:P.card,borderRadius:12,border:`1.5px solid ${P.border}`,overflow:"hidden"}}>
+                {section.faqs.map((faq,fi)=>{
+                  const key = `${si}-${fi}`;
+                  const isOpen = open === key;
+                  const isLast = fi === section.faqs.length - 1;
+                  return (
+                    <div key={fi}>
+                      <button
+                        onClick={()=>setOpen(isOpen ? null : key)}
+                        style={{width:"100%",padding:"12px 14px",background:"transparent",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,textAlign:"left"}}
+                        {...pp()}
+                      >
+                        <span style={{fontSize:13,fontWeight:600,color:isOpen?P.white:P.white,lineHeight:1.4,flex:1}}>{faq.q}</span>
+                        <div style={{transform:isOpen?"rotate(180deg)":"rotate(0)",transition:"transform 0.2s",flexShrink:0}}><Icons.Chev color={isOpen?section.color:P.muted} size={14}/></div>
+                      </button>
+                      {isOpen&&(
+                        <div style={{padding:"0 14px 14px",borderTop:`1px solid ${P.border}44`}}>
+                          <div style={{fontSize:13,color:P.muted,lineHeight:1.7,paddingTop:10,whiteSpace:"pre-line"}}>{faq.a}</div>
+                        </div>
+                      )}
+                      {!isLast&&<div style={{height:1,background:P.border+"66",marginLeft:14}}/>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Contact card */}
+        <div style={{background:P.card,borderRadius:12,border:`1.5px solid ${PM_GOLD}44`,padding:"14px 16px",marginTop:8}}>
+          <div style={{fontSize:11,fontWeight:800,color:PM_GOLD,letterSpacing:1,marginBottom:6}}>STILL NEED HELP?</div>
+          <div style={{fontSize:13,color:P.muted,lineHeight:1.6,marginBottom:12}}>Our support team responds within 24 hours, Monday through Friday.</div>
+          <button
+            onClick={()=>{try{window.open("mailto:support@mentalgamescorecard.com?subject=Mental Game Scorecard Support","_blank");}catch{}}}
+            style={{width:"100%",padding:"11px",borderRadius:10,border:`1.5px solid ${PM_GOLD}44`,background:PM_GOLD+"10",color:PM_GOLD,fontSize:13,fontWeight:700,cursor:"pointer"}}
+            {...pp()}
+          >Email Support</button>
+        </div>
       </div>
     </div>
   );
@@ -5852,7 +7079,7 @@ function PaywallView({onUnlock, onBack, P, S}) {
   }
 
   return (
-    <div style={{height:"100dvh",display:"flex",flexDirection:"column",background:P.bg,maxWidth:480,margin:"0 auto",overflow:"hidden",fontFamily:"'Avenir Next','SF Pro Display',-apple-system,sans-serif"}}>
+    <div style={{height:"100svh",display:"flex",flexDirection:"column",background:P.bg,maxWidth:480,margin:"0 auto",overflow:"hidden",fontFamily:"'Avenir Next','SF Pro Display',-apple-system,sans-serif"}}>
       {/* Header */}
       <div style={{background:dm?`linear-gradient(175deg,${PM_NAVY} 0%,#141416 60%,#1c1c1f 100%)`:`linear-gradient(175deg,${PM_NAVY} 0%,#2a3020 100%)`,borderBottom:`2px solid ${PM_GOLD}44`,padding:"16px 20px 20px",flexShrink:0,position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",border:"1px solid rgba(255,255,255,0.04)"}}/>
@@ -5904,9 +7131,9 @@ function PaywallView({onUnlock, onBack, P, S}) {
         <div style={{fontSize:10,color:P.muted,textAlign:"center",lineHeight:1.6,marginBottom:8}}>
           Subscription auto-renews. Cancel anytime in your App Store settings.{"\n"}
           By subscribing you agree to our{" "}
-          <span style={{color:"#16a34a",fontWeight:600,cursor:"pointer"}} onClick={()=>{}}>Terms</span>
+          <span style={{color:"#16a34a",fontWeight:600,cursor:"pointer"}} onClick={()=>onPrivacy&&onPrivacy()}>Terms</span>
           {" & "}
-          <span style={{color:"#16a34a",fontWeight:600,cursor:"pointer"}} onClick={()=>{}}>Privacy Policy</span>.
+          <span style={{color:"#16a34a",fontWeight:600,cursor:"pointer"}} onClick={()=>onPrivacy&&onPrivacy()}>Privacy Policy</span>.
         </div>
       </div>
 
@@ -5937,7 +7164,7 @@ function PaywallView({onUnlock, onBack, P, S}) {
 // ═══════════════════════════════════════
 // ONBOARDING
 // ═══════════════════════════════════════
-function OnboardingFlow({onFinish,P,S}){
+function OnboardingFlow({onFinish,onPrivacy,P,S}){
   const [cur,setCur]=useState(0); const [dir,setDir]=useState(1);
   const dm = P.bg === "#09090b";
   const qb={padding:"14px 16px",borderRadius:12,background:dm?"#141416":P.cardAlt,border:`1px solid ${PM_GOLD}44`,marginBottom:10};
@@ -6078,6 +7305,95 @@ function OnboardingFlow({onFinish,P,S}){
     </div>;
   }
 
+  // Profile slide state
+  const [profileEmail, setProfileEmail] = React.useState("");
+  const [profileName, setProfileName] = React.useState("");
+  const [profileSubmitting, setProfileSubmitting] = React.useState(false);
+  const [profileDone, setProfileDone] = React.useState(false);
+
+  async function submitProfileFromOnboarding(skipCloud) {
+    if(!skipCloud && (!profileEmail.trim() || !profileEmail.includes("@"))) return false;
+    setProfileSubmitting(true);
+    const uid = (() => { try { let id=localStorage.getItem("mgp_uid"); if(!id){id="user_"+Math.random().toString(36).slice(2,10);localStorage.setItem("mgp_uid",id);} return id; } catch { return "anon"; } })();
+    const profile = {
+      email: profileEmail.trim().toLowerCase()||null,
+      name: profileName.trim()||null,
+      joinedAt: new Date().toISOString(),
+      uid,
+      source: "onboarding",
+      cloudSync: !skipCloud,
+    };
+    try { localStorage.setItem("mgp_community_profile", JSON.stringify(profile)); if(!skipCloud) localStorage.setItem("mgp_community_joined","true"); } catch {}
+    // Sync to Supabase
+    if(!skipCloud && profile.email) {
+      try {
+        if(typeof supabase !== "undefined" && supabase) {
+          await supabase.from("community_profiles").upsert({
+            uid: profile.uid, email: profile.email, name: profile.name,
+            source: "onboarding", joined_at: profile.joinedAt, opted_in: true,
+          }, { onConflict: "uid" });
+        }
+      } catch(e) { console.warn("Supabase sync:", e); }
+    }
+    setProfileDone(true);
+    setProfileSubmitting(false);
+    return true;
+  }
+
+  function ProfileSlide() {
+    return (
+      <div>
+        {profileDone ? (
+          <div style={{textAlign:"center",padding:"30px 0"}}>
+            
+            <div style={{fontSize:18,fontWeight:900,color:P.white,marginBottom:8}}>You're all set!</div>
+            <div style={{fontSize:13,color:P.muted,lineHeight:1.6}}>Your progress will sync across devices. Paul will send you insights tailored to your mental game.</div>
+          </div>
+        ) : (
+          <>
+            <div style={{fontSize:14,color:P.muted,lineHeight:1.7,marginBottom:16}}>
+              Create a free profile to <span style={{color:P.white,fontWeight:700}}>save your rounds to the cloud</span>, sync across devices, and receive personalized mental game insights from Paul.
+            </div>
+            {/* Value cards */}
+            <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:16}}>
+              {[
+                {icon:"", title:"Cloud backup", desc:"Your rounds are safe, even if you change phones."},
+                {icon:"", title:"Personalized insights", desc:"Paul sends coaching content matched to your Heroes & Bandits."},
+                {icon:"", title:"Track your journey", desc:"See how your mental game improves over time."},
+              ].map((f,i)=>(
+                <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"8px 10px",borderRadius:10,background:P.card,border:`1px solid ${P.border}`}}>
+                  <span style={{fontSize:18,flexShrink:0}}>{f.icon}</span>
+                  <div><div style={{fontSize:12,fontWeight:700,color:P.white}}>{f.title}</div><div style={{fontSize:11,color:P.muted,marginTop:1}}>{f.desc}</div></div>
+                </div>
+              ))}
+            </div>
+            {/* Form */}
+            <input
+              value={profileName}
+              onChange={e=>setProfileName(e.target.value)}
+              placeholder="First name"
+              style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",marginBottom:8}}
+            />
+            <input
+              value={profileEmail}
+              onChange={e=>setProfileEmail(e.target.value)}
+              placeholder="Email address"
+              inputMode="email"
+              autoCapitalize="none"
+              autoComplete="email"
+              style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",marginBottom:10}}
+            />
+            <div style={{fontSize:10,color:P.muted,lineHeight:1.5,textAlign:"center"}}>
+              By continuing you agree to Paul Monahan Golf's{" "}
+              <span style={{color:PM_GOLD,cursor:"pointer"}} onClick={()=>onPrivacy&&onPrivacy()}>Privacy Policy</span>.
+              Your mental game data personalizes your experience.
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
   const slides=[
     {IconKey:"GolfTee",iconColor:"#5cc8fa",title:"Welcome to the\nMental Game Scorecard",render:()=><Slide0/>},
     {IconKey:"Sun",iconColor:"#fbbf24",title:"Before Your Round",subtitle:"Pre-Round Checklist",render:()=><Slide1/>},
@@ -6085,16 +7401,18 @@ function OnboardingFlow({onFinish,P,S}){
     {IconKey:"FlagHole",iconColor:"#60a5fa",title:"Playing Your Round",subtitle:"The Mental Scorecard",render:()=><Slide3/>},
     {IconKey:"Brain",iconColor:"#a78bfa",title:"Your In-Game Caddie",subtitle:"Wisdom on Demand",render:()=><CaddieExample/>},
     {IconKey:"Chart",iconColor:"#34d87a",title:"Review & Grow",subtitle:"After Your Round",render:()=><Slide5/>},
+    {IconKey:"Shield",iconColor:PM_GOLD,title:"Create Your Profile",subtitle:"Save Your Progress",render:()=><ProfileSlide/>,skip:!!communityProfile?.email},
   ];
-  const slide=slides[cur]; const isLast=cur===slides.length-1; const Ic=Icons[slide.IconKey];
+  const activeSlides=slides.filter(s=>!s.skip);
+  const slide=activeSlides[cur]; const isLast=cur===activeSlides.length-1; const isProfile=isLast&&!communityProfile?.email; const Ic=Icons[slide.IconKey];
 
-  return <div style={{height:"100dvh",display:"flex",flexDirection:"column",background:P.bg,fontFamily:"'Avenir Next','SF Pro Display',-apple-system,sans-serif",maxWidth:480,margin:"0 auto",overflow:"hidden"}}>
+  return <div style={{height:"100svh",display:"flex",flexDirection:"column",background:P.bg,fontFamily:"'Avenir Next','SF Pro Display',-apple-system,sans-serif",maxWidth:480,margin:"0 auto",overflow:"hidden"}}>
     {/* Header */}
     <div style={{background:dm?`linear-gradient(175deg,${PM_NAVY} 0%,#141416 60%,#1c1c1f 100%)`:`linear-gradient(175deg,${PM_NAVY} 0%,#2a3020 100%)`,borderBottom:`2px solid ${PM_GOLD}44`,padding:"10px 20px 14px",flexShrink:0,position:"relative",overflow:"hidden"}}>
       <div style={{position:"absolute",top:-30,right:-40,width:140,height:140,borderRadius:"50%",border:"1px solid rgba(255,255,255,0.04)"}}/>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,position:"relative",zIndex:1}}>
-        <button onClick={onFinish} {...pp()} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:"6px 14px",fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.45)",cursor:"pointer"}}>Skip</button>
-        <div style={{display:"flex",gap:5}}>{slides.map((_,i)=><div key={i} onClick={()=>{setDir(i>cur?1:-1);setCur(i);}} style={{width:i===cur?18:6,height:6,borderRadius:3,background:i===cur?"rgba(255,255,255,0.7)":"rgba(255,255,255,0.2)",transition:"all 0.25s",cursor:"pointer"}}/>)}</div>
+        <button onClick={onFinish} {...pp()} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:"6px 14px",fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.45)",cursor:"pointer"}}>Skip intro</button>
+        <div style={{display:"flex",gap:5}}>{activeSlides.map((_,i)=><div key={i} onClick={()=>{setDir(i>cur?1:-1);setCur(i);}} style={{width:i===cur?18:6,height:6,borderRadius:3,background:i===cur?"rgba(255,255,255,0.7)":"rgba(255,255,255,0.2)",transition:"all 0.25s",cursor:"pointer"}}/>)}</div>
         <div style={{width:52}}/>
       </div>
       <div key={cur} style={{animation:"headerIn 0.35s cubic-bezier(0.16,1,0.3,1)",position:"relative",zIndex:1}}>
@@ -6104,15 +7422,31 @@ function OnboardingFlow({onFinish,P,S}){
       </div>
     </div>
     {/* Slide content */}
-    <div key={cur+"c"} style={{flex:1,overflow:"auto",padding:"12px 18px 8px",background:P.bg,animation:`slideIn 0.3s cubic-bezier(0.16,1,0.3,1)`}}>{slide.render()}</div>
+    <div key={cur+"c"} style={{flex:1,overflow:"auto",padding:"12px 18px 8px",background:P.bg,animation:`slideIn 0.3s cubic-bezier(0.16,1,0.3,1)`}}>{slide?.render?.()}</div>
     {/* Footer nav */}
-    <div style={{padding:"8px 20px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",borderTop:`1px solid ${P.border}`,background:P.bg,flexShrink:0}}>
-      <button onClick={()=>{if(cur>0){setDir(-1);setCur(c=>c-1);}}} {...pp()} style={{width:42,height:42,borderRadius:12,border:`1.5px solid ${P.border}`,background:P.card,display:"flex",alignItems:"center",justifyContent:"center",cursor:cur===0?"default":"pointer",opacity:cur===0?0.3:1}}><Icons.Back color={P.muted} size={16}/></button>
-      <div style={{width:42}}/>
-      {isLast
-        ?<button onClick={onFinish} {...pp()} style={{padding:"11px 24px",borderRadius:12,background:P.green,border:"none",color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",boxShadow:`0 4px 16px ${P.green}44`}}>Let's Play</button>
-        :<button onClick={()=>{setDir(1);setCur(c=>c+1);}} {...pp()} style={{width:42,height:42,borderRadius:12,border:"none",background:dm?"#fff":"#0f172a",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}><Icons.Chev color={dm?"#09090b":"#fff"} size={16}/></button>
-      }
+    <div style={{padding:isLast&&!profileDone?"12px 20px 20px":"8px 20px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",borderTop:`1px solid ${P.border}`,background:P.bg,flexShrink:0}}>
+      <button onClick={()=>{if(cur>0){setDir(-1);setCur(c=>c-1);}}} {...pp()} style={{width:42,height:42,borderRadius:12,border:`1.5px solid ${P.border}`,background:P.card,display:"flex",alignItems:"center",justifyContent:"center",cursor:cur===0?"default":"pointer",opacity:(cur===0||profileDone)?0.3:1,flexShrink:0}}><Icons.Back color={P.muted} size={16}/></button>
+      <div style={{flex:1,marginLeft:10}}>
+      {isLast ? (
+        profileDone ? (
+          <button onClick={onFinish} {...pp()} style={{width:"100%",padding:"13px",borderRadius:12,background:P.green,border:"none",color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",boxShadow:`0 4px 16px ${P.green}44`}}>Let's Play</button>
+        ) : (
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            <button
+              onClick={async ()=>{ await submitProfileFromOnboarding(false); }}
+              disabled={profileSubmitting||!profileEmail.includes("@")}
+              style={{width:"100%",padding:"13px",borderRadius:12,background:profileEmail.includes("@")?P.green:"#2a2a2e",border:"none",color:profileEmail.includes("@")?"#fff":"#71717a",fontSize:14,fontWeight:800,cursor:profileEmail.includes("@")?"pointer":"default",transition:"all 0.2s",opacity:profileSubmitting?0.7:1}}
+            >{profileSubmitting?"Saving...":"Save & Sync to Cloud →"}</button>
+            <button
+              onClick={async ()=>{ await submitProfileFromOnboarding(true); onFinish(); }}
+              style={{width:"100%",padding:"12px",borderRadius:12,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:13,fontWeight:600,cursor:"pointer"}}
+            >Continue without account</button>
+          </div>
+        )
+      ) : (
+        <button onClick={()=>{setDir(1);setCur(c=>c+1);}} {...pp()} style={{width:"100%",padding:"12px",borderRadius:12,border:"none",background:dm?"#fff":"#0f172a",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}><Icons.Chev color={dm?"#09090b":"#fff"} size={16}/></button>
+      )}
+      </div>
     </div>
     <style>{`@keyframes slideIn{from{opacity:0;transform:translateX(${dir>0?"20px":"-20px"});}to{opacity:1;transform:translateX(0);}} @keyframes headerIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}} @keyframes expandIn{from{opacity:0;max-height:0;}to{opacity:1;max-height:800px;}}`}</style>
   </div>;
