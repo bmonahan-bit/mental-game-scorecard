@@ -4,6 +4,11 @@ import React, { useState, useEffect, useMemo, useRef, useCallback, createContext
 // Sign up free at https://golfcourseapi.com — paste your key here
 const GOLF_API_KEY = import.meta.env.VITE_GOLF_API_KEY;
 const GOLF_API_BASE = "https://api.golfcourseapi.com/v1";
+// Clerk + Convex — loaded via providers in main.jsx
+// These hooks are available globally once ClerkProvider wraps the app
+const { useUser, useClerk, SignIn, SignUp, SignInButton, SignOutButton, UserButton } =
+  window.Clerk || {};
+
 const PM_NAVY = "#1a2b4a";
 const PM_GOLD = "#c9a84c";
 const FREE_ROUNDS_LIMIT = 3;
