@@ -6,7 +6,7 @@ import ReactDOM from 'react-dom/client';
 import * as Sentry from '@sentry/react';
 import { ClerkProvider, useAuth } from '@clerk/clerk-react';
 import { ConvexProviderWithClerk } from 'convex/react-clerk';
-import { ConvexReactClient } from 'convex';
+import { ConvexReactClient } from 'convex/react';
 import App from './mental-game-scorecard.jsx';
 
 // ── Clients ─────────────────────────────────────────────────
