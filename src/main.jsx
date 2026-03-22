@@ -4,12 +4,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import * as Sentry from '@sentry/react';
-import { ClerkProvider, useAuth } from '@clerk/clerk-react';
+import { ClerkProvider, useAuth, useClerk, useUser } from '@clerk/clerk-react';
 import { ConvexProviderWithClerk } from 'convex/react-clerk';
 import { ConvexReactClient } from 'convex/react';
 import App from './mental-game-scorecard.jsx';
 
-// ── Clients ─────────────────────────────────────────────────
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
@@ -33,6 +32,19 @@ if (sentryDsn) {
   };
 }
 
+// ── Bridge — exposes Clerk hooks to the app file ────────────
+function ClerkBridge() {
+  const { openSignUp, openSignIn } = useClerk();
+  const { user, isSignedIn, isLoaded } = useUser();
+
+  // Expose to window so mental-game-scorecard.jsx can access
+  window.__clerkOpenSignUp = () => openSignUp({});
+  window.__clerkOpenSignIn = () => openSignIn({});
+  window.__useUser = () => ({ user, isSignedIn, isLoaded });
+
+  return null;
+}
+
 // ── Splash ──────────────────────────────────────────────────
 function hideSplash() {
   try { if (window.__hideSplash) window.__hideSplash(); } catch {}
@@ -45,6 +57,7 @@ root.render(
     <Sentry.ErrorBoundary fallback={<p>An error has occurred</p>}>
       <ClerkProvider publishableKey={clerkPubKey}>
         <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+          <ClerkBridge />
           <App />
         </ConvexProviderWithClerk>
       </ClerkProvider>

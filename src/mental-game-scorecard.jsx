@@ -2896,16 +2896,20 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
       <div style={{position:"absolute",top:"22%",left:"50%",transform:"translateX(-50%)",width:480,height:480,borderRadius:"50%",border:`1px solid ${ringColor}`,zIndex:1,pointerEvents:"none"}}/>
       {/* Top bar */}
       <div style={{padding:"16px 20px 0",display:"flex",justifyContent:"space-between",alignItems:"center",position:"relative",zIndex:2}}>
-        {user?(
-          <button onClick={()=>setUser(null)} style={{display:"flex",alignItems:"center",gap:8,background:overlay1,border:`1px solid ${overlay2}`,borderRadius:10,padding:"6px 12px",cursor:"pointer"}} {...pp()}>
-            <div style={{width:24,height:24,borderRadius:"50%",background:overlay2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:textHigh}}>{user.name[0].toUpperCase()}</div>
-            <span style={{fontSize:12,color:textMid,fontWeight:500}}>{user.name}</span>
-          </button>
-        ):(
-          <button onClick={()=>setShowLogin(true)} style={{display:"flex",alignItems:"center",gap:6,background:overlay1,border:`1px solid ${overlay2}`,borderRadius:10,padding:"7px 12px",fontSize:12,fontWeight:600,color:textMid,cursor:"pointer"}} {...pp()}>
-            <Icons.User color={textMid} size={14}/> Sign In
-          </button>
-        )}
+        {(()=>{
+          const clerkUser = window.__useUser ? window.__useUser() : null;
+          if (clerkUser?.isSignedIn) return (
+            <button onClick={()=>window.__clerkOpenSignIn?.()} style={{display:"flex",alignItems:"center",gap:8,background:overlay1,border:`1px solid ${overlay2}`,borderRadius:10,padding:"6px 12px",cursor:"pointer"}} {...pp()}>
+              <div style={{width:24,height:24,borderRadius:"50%",background:overlay2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:textHigh}}>{(clerkUser.user?.firstName||"?")[0].toUpperCase()}</div>
+              <span style={{fontSize:12,color:textMid,fontWeight:500}}>{clerkUser.user?.firstName||"Account"}</span>
+            </button>
+          );
+          return (
+            <button onClick={()=>window.__clerkOpenSignIn ? window.__clerkOpenSignIn() : setShowLogin(true)} style={{display:"flex",alignItems:"center",gap:6,background:overlay1,border:`1px solid ${overlay2}`,borderRadius:10,padding:"7px 12px",fontSize:12,fontWeight:600,color:textMid,cursor:"pointer"}} {...pp()}>
+              <Icons.User color={textMid} size={14}/> Sign In
+            </button>
+          );
+        })()}
         <div style={{display:"flex",gap:6,alignItems:"center"}}>
           {themeToggle}
         </div>
