@@ -9,6 +9,7 @@ import App from './mental-game-scorecard.jsx';
 // ── Sentry initialisation ───────────────────────────────────
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
 if (sentryDsn) {
+console.log("[Sentry] Initializing with DSN:", sentryDsn.slice(0, 20) + "...");
   Sentry.init({
     dsn: sentryDsn,
     environment: import.meta.env.MODE || 'production',
