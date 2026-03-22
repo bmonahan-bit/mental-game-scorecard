@@ -7549,19 +7549,24 @@ function OnboardingFlow({onFinish,onPrivacy,P,S,communityProfile}){
       {isLast ? (
         profileDone ? (
           <button onClick={onFinish} {...pp()} style={{width:"100%",padding:"13px",borderRadius:12,background:P.green,border:"none",color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",boxShadow:`0 4px 16px ${P.green}44`}}>Let's Play</button>
-        ) : (
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            <button
-              onClick={async ()=>{ await submitProfileFromOnboarding(false); }}
-              disabled={profileSubmitting||!profileEmail.includes("@")}
-              style={{width:"100%",padding:"13px",borderRadius:12,background:profileEmail.includes("@")?P.green:"#2a2a2e",border:"none",color:profileEmail.includes("@")?"#fff":"#71717a",fontSize:14,fontWeight:800,cursor:profileEmail.includes("@")?"pointer":"default",transition:"all 0.2s",opacity:profileSubmitting?0.7:1}}
-            >{profileSubmitting?"Saving...":"Save & Sync to Cloud →"}</button>
-            <button
-              onClick={async ()=>{ await submitProfileFromOnboarding(true); onFinish(); }}
-              style={{width:"100%",padding:"12px",borderRadius:12,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:13,fontWeight:600,cursor:"pointer"}}
-            >Continue without account</button>
-          </div>
-        )
+        ) : (()=>{
+          const { isSignedIn } = window.__useUser ? window.__useUser() : {};
+          if (isSignedIn) return (
+            <button onClick={onFinish} {...pp()} style={{width:"100%",padding:"13px",borderRadius:12,background:P.green,border:"none",color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",boxShadow:`0 4px 16px ${P.green}44`}}>Let's Play</button>
+          );
+          return (
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              <button
+                onClick={()=>{ window.__clerkOpenSignUp ? window.__clerkOpenSignUp() : window.__clerkOpenSignIn?.(); }}
+                style={{width:"100%",padding:"13px",borderRadius:12,background:P.green,border:"none",color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer"}}
+              >Create Free Account →</button>
+              <button
+                onClick={async ()=>{ await submitProfileFromOnboarding(true); onFinish(); }}
+                style={{width:"100%",padding:"12px",borderRadius:12,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:13,fontWeight:600,cursor:"pointer"}}
+              >Continue without account</button>
+            </div>
+          );
+        })()
       ) : (
         <button onClick={()=>{setDir(1);setCur(c=>c+1);}} {...pp()} style={{width:"100%",padding:"12px",borderRadius:12,border:"none",background:dm?"#fff":"#0f172a",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}><Icons.Chev color={dm?"#09090b":"#fff"} size={16}/></button>
       )}
