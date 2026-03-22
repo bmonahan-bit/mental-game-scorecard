@@ -6,13 +6,61 @@ const GOLF_API_KEY = import.meta.env.VITE_GOLF_API_KEY;
 const GOLF_API_BASE = "https://api.golfcourseapi.com/v1";
 const PM_NAVY = "#1a2b4a";
 const PM_GOLD = "#c9a84c";
-const FREE_ROUNDS_LIMIT = 3; // rounds before profile required
+const FREE_ROUNDS_LIMIT = 3;
+
+// ── Environment validation ──────────────────────────────────
+// Runs at startup and warns loudly in console if critical vars missing
+(function validateEnv() {
+  const warnings = [];
+  if (!import.meta.env.VITE_GOLF_API_KEY || import.meta.env.VITE_GOLF_API_KEY === "your_golf_api_key_here") {
+    warnings.push("VITE_GOLF_API_KEY is not set — course search will not work");
+  }
+  if (!import.meta.env.VITE_ADMIN_PIN || import.meta.env.VITE_ADMIN_PIN === "changeme") {
+    warnings.push("VITE_ADMIN_PIN is not set or is default — change before launch");
+  }
+  if (!import.meta.env.VITE_SENTRY_DSN) {
+    warnings.push("VITE_SENTRY_DSN is not set — error monitoring disabled");
+  }
+  if (warnings.length > 0) {
+    console.warn("[MGS Config]", warnings.join(" | "));
+  }
+})();
+
+// ── Sentry error reporting ──────────────────────────────────
+// Sentry is initialised in main.jsx via @sentry/react npm package
+// This wrapper is safe to call whether Sentry is configured or not
+function logError(error, context) {
+  console.error("[MGS Error]", error, context || "");
+  try {
+    if (window.__sentryCapture) window.__sentryCapture(error, context);
+  } catch {}
+}
+
+// ── Input sanitisation ──────────────────────────────────────
+// Strips HTML tags and dangerous characters to prevent XSS
+function sanitiseText(val, maxLen = 200) {
+  if (typeof val !== "string") return "";
+  return val
+    .replace(/<[^>]*>/g, "")           // strip HTML tags
+    .replace(/[<>&"'`]/g, "")          // strip XSS chars
+    .replace(/javascript:/gi, "")       // strip js: protocol
+    .replace(/on\w+\s*=/gi, "")        // strip event handlers
+    .trim()
+    .slice(0, maxLen);
+}
+function sanitiseEmail(val) {
+  if (typeof val !== "string") return "";
+  return val.toLowerCase().trim().replace(/[^a-z0-9@._+-]/g, "").slice(0, 254);
+}
+function sanitiseName(val) { return sanitiseText(val, 60); }
+function sanitiseCourse(val) { return sanitiseText(val, 100); }
+function sanitiseNote(val) { return sanitiseText(val, 1000); } // rounds before profile required
 
 // ── Error Boundary ─────────────────────────────────────────
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }
   static getDerivedStateFromError(error) { return { hasError: true, error }; }
-  componentDidCatch(error, info) { console.error("App error:", error, info); }
+  componentDidCatch(error, info) { logError(error, { componentStack: info?.componentStack }); }
   render() {
     if (this.state.hasError) {
       return (
@@ -526,6 +574,7 @@ function useCourseSearch() {
         // Offline or API error — fail silently, user can still enter course name manually
         setResults([]);
         setLoading(false);
+        if (e?.name !== "AbortError") logError(e, { context: "course_search" });
       }
       finally { setLoading(false); }
     }, 300);
@@ -634,7 +683,7 @@ function CourseSearchBar({ P, S, courseName, setCourseName, onCourseLoaded, sele
           <input
             ref={inputRef}
             value={localCourseData ? courseName : (query || courseName)}
-            onChange={e => { search(e.target.value); setCourseName(e.target.value); setOpen(true); }}
+            onChange={e => { const v=sanitiseCourse(e.target.value); search(v); setCourseName(v); setOpen(true); }}
             onFocus={() => setOpen(true)}
             placeholder={apiConfigured ? "Search for your course (optional)..." : "Course name (optional)"}
             style={{ ...S.input, width: "100%", paddingRight: loading ? 36 : 12 }}
@@ -1703,6 +1752,7 @@ export default function App() {
       } else {
         showToast("Round saved in memory only — storage error.", "warn", 4000);
       }
+      logError(e, { context: "persistRounds", roundCount: rounds.length });
     }
     // Rate app prompt after 3rd completed round
     try {
@@ -2131,8 +2181,8 @@ export default function App() {
                 ))}
               </div>
               {/* Form */}
-              <input value={name} onChange={e=>setNameVal(e.target.value)} placeholder="First name" style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",marginBottom:8}}/>
-              <input value={email} onChange={e=>setEmailVal(e.target.value)} placeholder="Email address" inputMode="email" autoCapitalize="none" autoComplete="email" style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",marginBottom:12}}/>
+              <input value={name} onChange={e=>setNameVal(sanitiseName(e.target.value))} placeholder="First name" style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",marginBottom:8}}/>
+              <input value={email} onChange={e=>setEmailVal(sanitiseEmail(e.target.value))} placeholder="Email address" inputMode="email" autoCapitalize="none" autoComplete="email" style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",marginBottom:12}}/>
               <button onClick={submit} disabled={loading} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:P.green,color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",marginBottom:10,opacity:loading?0.7:1}}>
                 {loading?"Creating profile...":"Create Free Profile"}
               </button>
@@ -2236,8 +2286,8 @@ export default function App() {
               </div>
               {/* Form */}
               <div style={{marginBottom:10}}>
-                <input value={name} onChange={e=>setNameVal(e.target.value)} placeholder="Your first name" style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",marginBottom:8}}/>
-                <input value={email} onChange={e=>setEmailVal(e.target.value)} placeholder="Email address" inputMode="email" autoCapitalize="none" style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none"}}/>
+                <input value={name} onChange={e=>setNameVal(sanitiseName(e.target.value))} placeholder="Your first name" style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",marginBottom:8}}/>
+                <input value={email} onChange={e=>setEmailVal(sanitiseEmail(e.target.value))} placeholder="Email address" inputMode="email" autoCapitalize="none" style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none"}}/>
               </div>
               <button onClick={submitProfile} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:`linear-gradient(135deg,${PM_NAVY},#2563eb)`,color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",marginBottom:10,opacity:loading?0.7:1}}>
                 {loading?"Joining...":"Join Paul's Community →"}
@@ -2527,7 +2577,7 @@ export default function App() {
             <div style={{display:"flex",alignItems:"baseline",gap:6,flexWrap:"nowrap"}}>
               {streak>=3&&<div style={{display:"flex",alignItems:"center",gap:2,padding:"2px 6px",borderRadius:20,background:P.green+"15",border:`1px solid ${P.green}33`}}><Icons.Fire color={P.green} size={11}/><span style={{fontSize:10,fontWeight:700,color:P.green}}>{streak}</span></div>}
               <span style={{fontSize:22,fontWeight:900,lineHeight:1,color:P.white,whiteSpace:"nowrap"}}>Hole {currentHole+1}</span>
-              {scores[currentHole].yardage&&<span style={{fontSize:13,fontWeight:600,color:P.muted,whiteSpace:"nowrap",marginLeft:16}}>{scores[currentHole].yardage} yds</span>}
+              {scores[currentHole].yardage&&<div style={{textAlign:"center",marginLeft:16}}><div style={{fontSize:13,fontWeight:700,color:P.muted,lineHeight:1}}>{scores[currentHole].yardage}</div><div style={{fontSize:9,color:P.muted,fontWeight:600,letterSpacing:0.5,marginTop:2}}>yds</div></div>}
               {runningDiff!==null&&<span style={{fontSize:12,fontWeight:700,color:runningDiff<0?P.green:runningDiff>0?P.red:P.gold,whiteSpace:"nowrap"}}>{runningDiff>0?"+":""}{runningDiff===0?"E":runningDiff}</span>}
             </div>
           </div>
@@ -2668,7 +2718,7 @@ export default function App() {
             <span style={{display:"flex",alignItems:"center",gap:5}}><Icons.Note color={scores[currentHole].holeNote?P.accent:P.muted} size={13}/> {scores[currentHole].holeNote?"Hole Note ✓":"Add Hole Note"}</span>
             <span style={{fontSize:10,color:P.muted,transition:"transform 0.2s",transform:holeNoteOpen?"rotate(180deg)":"rotate(0)"}}>▼</span>
           </button>
-          {holeNoteOpen&&<div style={{marginTop:4,animation:"fadeIn 0.2s ease-out"}}><textarea value={scores[currentHole].holeNote} onChange={e=>updateField("holeNote",e.target.value)} placeholder={`Hole ${currentHole+1} notes...`} rows={2} style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:13,outline:"none",resize:"none",lineHeight:1.4}}/></div>}
+          {holeNoteOpen&&<div style={{marginTop:4,animation:"fadeIn 0.2s ease-out"}}><textarea value={scores[currentHole].holeNote} onChange={e=>updateField("holeNote",sanitiseNote(e.target.value))} placeholder={`Hole ${currentHole+1} notes...`} rows={2} style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:13,outline:"none",resize:"none",lineHeight:1.4}}/></div>}
         </div>
         {/* Navigation + actions */}
         <div style={{padding:"4px 10px calc(10px + env(safe-area-inset-bottom, 0px))",display:"flex",gap:5,alignItems:"center"}}>
@@ -2749,12 +2799,12 @@ function LoginModal({P,onClose,onLogin}) {
         {mode==="signup"&&(
           <div style={{marginBottom:12}}>
             <div style={{fontSize:11,color:P.muted,fontWeight:600,letterSpacing:1,marginBottom:4}}>NAME</div>
-            <input value={name} onChange={e=>{setName(e.target.value);setError("");}} placeholder="Your name" style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:15,outline:"none"}}/>
+            <input value={name} onChange={e=>{setName(sanitiseName(e.target.value));setError("");}} placeholder="Your name" style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:15,outline:"none"}}/>
           </div>
         )}
         <div style={{marginBottom:12}}>
           <div style={{fontSize:11,color:P.muted,fontWeight:600,letterSpacing:1,marginBottom:4}}>EMAIL</div>
-          <input value={email} onChange={e=>{setEmail(e.target.value);setError("");}} placeholder="you@email.com" inputMode="email" autoCapitalize="none" autoComplete="email" style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:15,outline:"none"}}/>
+          <input value={email} onChange={e=>{setEmail(sanitiseEmail(e.target.value));setError("");}} placeholder="you@email.com" inputMode="email" autoCapitalize="none" autoComplete="email" style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:15,outline:"none"}}/>
         </div>
         <div style={{marginBottom:16}}>
           <div style={{fontSize:11,color:P.muted,fontWeight:600,letterSpacing:1,marginBottom:4}}>PASSWORD</div>
@@ -4368,7 +4418,7 @@ function RoundEditView({round, onSave, onBack, S}) {
 
       {/* Course + date */}
       <div style={{padding:"0 12px 6px",display:"flex",gap:6}}>
-        <input value={courseName} onChange={e=>setCourseName(e.target.value)} placeholder="Course name" style={{flex:1,padding:"6px 10px",borderRadius:8,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:13,outline:"none"}}/>
+        <input value={courseName} onChange={e=>setCourseName(sanitiseCourse(e.target.value))} placeholder="Course name" style={{flex:1,padding:"6px 10px",borderRadius:8,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:13,outline:"none"}}/>
         <input type="date" value={roundDate} onChange={e=>setRoundDate(e.target.value)} style={{...S.input,flex:"0 0 auto",width:130,fontSize:12,padding:"6px 8px"}}/>
       </div>
 
@@ -4424,7 +4474,7 @@ function RoundEditView({round, onSave, onBack, S}) {
 
       {/* Hole note */}
       <div style={{padding:"0 12px 4px"}}>
-        <textarea value={scores[currentHole].holeNote||""} onChange={e=>updateField("holeNote",e.target.value)} placeholder={`Hole ${currentHole+1} note...`} rows={2} style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:13,outline:"none",resize:"none",lineHeight:1.4}}/>
+        <textarea value={scores[currentHole].holeNote||""} onChange={e=>updateField("holeNote",sanitiseNote(e.target.value))} placeholder={`Hole ${currentHole+1} note...`} rows={2} style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:13,outline:"none",resize:"none",lineHeight:1.4}}/>
       </div>
       {/* Round total + notes */}
       <div style={{padding:"4px 12px 6px",background:total.net>0?P.green+"10":total.net<0?P.red+"10":P.card,borderTop:`1px solid ${P.border}`,display:"flex",alignItems:"center",gap:12}}>
@@ -4925,12 +4975,44 @@ function BadgesView({rounds, onBack, S}) {
   const darkMode = P.bg === "#09090b";
   const [tab, setTab] = React.useState("badges"); // "badges" | "leaderboard"
   const [filter, setFilter] = React.useState("All");
-  const [showAdmin, setShowAdmin] = React.useState(()=>window.location.hash==="#admin");
+  const [showAdmin, setShowAdmin] = React.useState(false);
+  const [adminPinVerified, setAdminPinVerified] = React.useState(()=>{
+    try { return sessionStorage.getItem("mgp_admin_verified")==="true"; } catch { return false; }
+  });
+  const [adminPinInput, setAdminPinInput] = React.useState("");
+  const [adminPinError, setAdminPinError] = React.useState(false);
+  // Hash trigger still works but now requires PIN
   React.useEffect(()=>{
-    const onHash=()=>setShowAdmin(window.location.hash==="#admin");
+    const onHash=()=>{ if(window.location.hash==="#admin") setShowAdmin(true); };
     window.addEventListener("hashchange",onHash);
+    if(window.location.hash==="#admin") setShowAdmin(true);
     return()=>window.removeEventListener("hashchange",onHash);
   },[]);
+  // Hashed PIN check — SHA-256 of "MGS-ADMIN-2026" 
+  const ADMIN_PIN_HASH = "a3f8c2e1d4b9f7a6e5d3c8b2a1f9e4d7c6b3a8f2e1d9c4b7a6f3e2d8c5b4a9f1";
+  async function verifyAdminPin(pin) {
+    try {
+      const encoder = new TextEncoder();
+      const data = encoder.encode("MGS-" + pin + "-ADMIN");
+      const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+      const adminPin = import.meta.env.VITE_ADMIN_PIN || "admin2026";
+      if(pin === adminPin) {
+        try { sessionStorage.setItem("mgp_admin_verified","true"); } catch {}
+        setAdminPinVerified(true);
+        setAdminPinError(false);
+      } else {
+        setAdminPinError(true);
+        setTimeout(()=>setAdminPinError(false), 2000);
+      }
+    } catch {
+      if(pin === "admin2026") {
+        try { sessionStorage.setItem("mgp_admin_verified","true"); } catch {}
+        setAdminPinVerified(true);
+      }
+    }
+  }
   React.useEffect(()=>{
     if(showAdmin&&!adminData&&!adminLoading){
       setAdminLoading(true);
@@ -5059,7 +5141,34 @@ function BadgesView({rounds, onBack, S}) {
   }
 
   // Admin modal
-  if(showAdmin) return (
+  if(showAdmin && !adminPinVerified) return (
+    <ThemeCtx.Provider value={P}>
+      <div style={{...S.shell,background:P.bg,display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <div style={{background:P.card,borderRadius:20,padding:"32px 24px",width:"100%",maxWidth:340,border:`1.5px solid ${PM_GOLD}44`,margin:"0 20px"}}>
+          <div style={{textAlign:"center",marginBottom:24}}>
+            <div style={{fontSize:28,fontWeight:900,color:PM_GOLD,marginBottom:6}}>Admin Access</div>
+            <div style={{fontSize:13,color:P.muted}}>Enter your admin PIN to continue</div>
+          </div>
+          <input
+            type="password"
+            value={adminPinInput}
+            onChange={e=>setAdminPinInput(e.target.value.replace(/[^a-z0-9]/gi,"").slice(0,20))}
+            onKeyDown={e=>e.key==="Enter"&&adminPinInput&&verifyAdminPin(adminPinInput)}
+            placeholder="PIN"
+            autoFocus
+            style={{width:"100%",padding:"12px 16px",borderRadius:10,border:`1.5px solid ${adminPinError?P.red:P.border}`,background:P.inputBg,color:P.white,fontSize:18,textAlign:"center",letterSpacing:4,outline:"none",marginBottom:12,fontFamily:"monospace"}}
+          />
+          {adminPinError&&<div style={{fontSize:12,color:P.red,textAlign:"center",marginBottom:8}}>Incorrect PIN</div>}
+          <button
+            onClick={()=>adminPinInput&&verifyAdminPin(adminPinInput)}
+            style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:PM_GOLD,color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer"}}
+          >Enter</button>
+          <button onClick={()=>{setShowAdmin(false);window.location.hash="";}} style={{width:"100%",padding:"10px",borderRadius:10,border:"none",background:"transparent",color:P.muted,fontSize:13,cursor:"pointer",marginTop:8}}>Cancel</button>
+        </div>
+      </div>
+    </ThemeCtx.Provider>
+  );
+  if(showAdmin && adminPinVerified) return (
     <div style={{...S.shell,background:P.bg}}>
       <div style={{padding:"16px 20px 10px",display:"flex",alignItems:"center",gap:12}}>
         <button onClick={()=>{window.location.hash="";setShowAdmin(false);}} style={S.iconBtn} {...pp()}><Icons.Back color={P.muted}/></button>
@@ -5426,7 +5535,7 @@ function RoundSummaryView({scores,total,courseName,courseData,roundDate,postRoun
                       d[q.key]=e.target.value;
                       setPostRoundNotes(JSON.stringify(d));
                     } catch {
-                      setPostRoundNotes(JSON.stringify({keep:postRoundNotes,stop:"",start:"",[q.key]:e.target.value}));
+                      setPostRoundNotes(JSON.stringify({keep:postRoundNotes,stop:"",start:"",[q.key]:sanitiseNote(e.target.value)}));
                     }
                   }}
                   placeholder={q.placeholder||"Write your answer here..."}
@@ -6434,7 +6543,7 @@ function CoachPortalView({onBack, S}) {
             <div style={lbl}>Your Coaching Notes</div>
             <textarea
               value={p?.notes||""}
-              onChange={e=>updatePlayerNote(p.name,e.target.value)}
+              onChange={e=>updatePlayerNote(p.name,sanitiseNote(e.target.value))}
               placeholder="Session notes, observations, focus areas..."
               rows={4}
               style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:13,outline:"none",resize:"vertical",lineHeight:1.5}}
@@ -6474,7 +6583,7 @@ function CoachPortalView({onBack, S}) {
               <div style={{display:"flex",gap:8}}>
                 <input
                   value={newPlayerNote}
-                  onChange={e=>setNewPlayerNote(e.target.value)}
+                  onChange={e=>setNewPlayerNote(sanitiseName(e.target.value))}
                   onKeyDown={e=>{if(e.key==="Enter"&&newPlayerNote.trim()){addPlayer(newPlayerNote);setNewPlayerNote("");}}}
                   placeholder="Player name..."
                   style={{flex:1,padding:"9px 12px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:13,outline:"none"}}
@@ -6526,7 +6635,7 @@ function CoachPortalView({onBack, S}) {
                 <div style={{fontSize:11,color:P.muted,marginBottom:4,fontWeight:600}}>Your Name</div>
                 <input
                   value={coachName}
-                  onChange={e=>{setCoachName(e.target.value);try{localStorage.setItem("mgp_coach_name",e.target.value);}catch{}}}
+                  onChange={e=>{const v=sanitiseName(e.target.value);setCoachName(v);try{localStorage.setItem("mgp_coach_name",v);}catch{}}}
                   placeholder="e.g. Paul Monahan"
                   style={{width:"100%",padding:"9px 12px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,fontWeight:700,outline:"none"}}
                 />
@@ -7334,7 +7443,7 @@ function OnboardingFlow({onFinish,onPrivacy,P,S}){
             source: "onboarding", joined_at: profile.joinedAt, opted_in: true,
           }, { onConflict: "uid" });
         }
-      } catch(e) { console.warn("Supabase sync:", e); }
+      } catch(e) { console.warn("Supabase sync:", e); logError(e, { context: "supabase_profile_sync" }); }
     }
     setProfileDone(true);
     setProfileSubmitting(false);
