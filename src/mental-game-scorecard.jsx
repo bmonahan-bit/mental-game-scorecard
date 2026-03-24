@@ -41,6 +41,54 @@ function logError(error, context) {
   } catch {}
 }
 
+// ── Push notifications ───────────────────────────────────────
+// Schedules local re-engagement notifications based on mental game data
+async function schedulePushNotifications(rounds, settings) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  if (!settings?.notifications) return;
+
+  // Find top bandit across recent rounds (last 5)
+  const recent = rounds.slice(0, 5);
+  const banditCounts = {};
+  recent.forEach(r => {
+    if (!r.scores) return;
+    r.scores.forEach(h => Object.keys(h.bandits || {}).forEach(k => {
+      if (h.bandits[k]) banditCounts[k] = (banditCounts[k] || 0) + 1;
+    }));
+  });
+  const topBandit = Object.keys(banditCounts).sort((a, b) => banditCounts[b] - banditCounts[a])[0];
+
+  // Personalized messages based on top bandit
+  const messages = {
+    Fear:        { title: "Conquer Fear today", body: "Love is your weapon against Fear. Head out and practice staying present on every shot." },
+    Frustration: { title: "Channel Acceptance", body: "Your last rounds showed Frustration creeping in. Acceptance turns every bad shot into feedback." },
+    Doubt:       { title: "Commitment is waiting", body: "Doubt has been showing up in your game. Today, commit fully to every shot — no second-guessing." },
+    Shame:       { title: "Vulnerability is strength", body: "Golf humbles everyone. Show up anyway — Vulnerability is what separates good golfers from great ones." },
+    Quit:        { title: "Grit wins today", body: "You have Grit in you. Your last rounds showed the Quit bandit — go out and beat it back today." },
+  };
+
+  const msg = topBandit ? messages[topBandit] : {
+    title: "Time to play some golf",
+    body: "Track your mental game today — Heroes and Bandits are waiting.",
+  };
+
+  // Only show if user hasn't played in 4+ days
+  const lastRoundDate = rounds[0]?.date;
+  if (lastRoundDate) {
+    const daysSince = Math.floor((Date.now() - new Date(lastRoundDate).getTime()) / 86400000);
+    if (daysSince < 4) return;
+  }
+
+  try {
+    new Notification(msg.title, {
+      body: msg.body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      tag: "mgp-reengagement",
+    });
+  } catch {}
+}
+
 // ── Input sanitisation ──────────────────────────────────────
 // Strips HTML tags and dangerous characters to prevent XSS
 function sanitiseText(val, maxLen = 200) {
@@ -1625,6 +1673,8 @@ export default function App() {
   const [editingRound, setEditingRound] = useState(null);
   const [saving, setSaving] = useState(false);
   const [showCommunityPrompt, setShowCommunityPrompt] = useState(false);
+  const lastConvexSync = React.useRef(0);
+  const CONVEX_SYNC_THROTTLE_MS = 30000; // max one sync per 30 seconds
   const [showProfileGate, setShowProfileGate] = useState(false);
   const [showCoursePrompt, setShowCoursePrompt] = useState(false);
   const [coursePromptCallback, setCoursePromptCallback] = useState(null);
@@ -1759,6 +1809,8 @@ export default function App() {
       }
       logError(e, { context: "persistRounds", roundCount: rounds.length });
     }
+    // Schedule re-engagement push notification
+    try { schedulePushNotifications(rounds, settings); } catch {}
     // Rate app prompt after 3rd completed round
     try {
       const rated = localStorage.getItem("mgp_rated");
@@ -6051,6 +6103,9 @@ function CoachDashboardView({onBack, S}) {
   const [allProfiles, setAllProfiles] = React.useState([]);
   const [filterHero, setFilterHero] = React.useState("");
   const [filterBandit, setFilterBandit] = React.useState("");
+  const [userPage, setUserPage] = React.useState(0);
+  const [emailPage, setEmailPage] = React.useState(0);
+  const ADMIN_PAGE_SIZE = 20;
 
   async function load() {
     setLoading(true);
@@ -6214,8 +6269,20 @@ function CoachDashboardView({onBack, S}) {
 
         ) : tab==="users" ? (
           <>
-            <div style={{fontSize:10,color:P.muted,marginBottom:10}}>{totalUsers} total users · sorted by rounds played</div>
-            {data.sort((a,b)=>(b.rounds||0)-(a.rounds||0)).map((u,i)=>(
+            {(()=>{
+              const sorted = [...data].sort((a,b)=>(b.rounds||0)-(a.rounds||0));
+              const pageData = sorted.slice(userPage*ADMIN_PAGE_SIZE, (userPage+1)*ADMIN_PAGE_SIZE);
+              const totalPages = Math.ceil(sorted.length/ADMIN_PAGE_SIZE);
+              return (<>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div style={{fontSize:10,color:P.muted}}>{totalUsers} total users · sorted by rounds played</div>
+                {totalPages>1&&<div style={{display:"flex",gap:6,alignItems:"center"}}>
+                  <button onClick={()=>setUserPage(p=>Math.max(0,p-1))} disabled={userPage===0} style={{padding:"3px 8px",borderRadius:6,border:`1px solid ${P.border}`,background:"transparent",color:userPage===0?P.border:P.muted,cursor:userPage===0?"default":"pointer",fontSize:11}}>←</button>
+                  <span style={{fontSize:10,color:P.muted}}>{userPage+1}/{totalPages}</span>
+                  <button onClick={()=>setUserPage(p=>Math.min(totalPages-1,p+1))} disabled={userPage===totalPages-1} style={{padding:"3px 8px",borderRadius:6,border:`1px solid ${P.border}`,background:"transparent",color:userPage===totalPages-1?P.border:P.muted,cursor:userPage===totalPages-1?"default":"pointer",fontSize:11}}>→</button>
+                </div>}
+              </div>
+              {pageData.map((u,i)=>(
               <div key={i} style={{...card,marginBottom:8}}>
                 <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
                   <div style={{width:36,height:36,borderRadius:10,background:PM_GOLD+"18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:800,color:PM_GOLD,flexShrink:0}}>{(u.displayName||"?")[0].toUpperCase()}</div>
@@ -6255,7 +6322,8 @@ function CoachDashboardView({onBack, S}) {
                 )}
               </div>
             ))}
-            {data.length===0&&<div style={{textAlign:"center",padding:40,color:P.muted}}>No users yet.</div>}
+            {sorted.length===0&&<div style={{textAlign:"center",padding:40,color:P.muted}}>No users yet.</div>}
+          </>); })()}
           </>
 
         ) : tab==="heroes" ? (
@@ -6578,13 +6646,87 @@ function CoachPortalView({onBack, S}) {
 
       {/* Tabs */}
       <div style={{display:"flex",gap:4,padding:"8px 12px",flexShrink:0,borderBottom:`1px solid ${P.border}`}}>
-        {["roster","settings"].map(t=>(
+        {["roster","team","settings"].map(t=>(
           <button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:"6px",borderRadius:8,border:`1.5px solid ${tab===t?PM_GOLD:P.border}`,background:tab===t?PM_GOLD+"15":"transparent",color:tab===t?PM_GOLD:P.muted,fontSize:10,fontWeight:700,cursor:"pointer",textTransform:"capitalize"}}>{t==="roster"?`Roster (${roster.length})`:t}</button>
         ))}
       </div>
 
       <div style={{flex:1,overflowY:"auto",padding:"12px 14px 24px"}}>
-        {tab==="roster" ? (
+        {tab==="team" ? (
+          <>
+            <div style={{...card}}>
+              <div style={lbl}>Team Mental Stats</div>
+              {rosterWithData.filter(p=>p.live).length === 0 ? (
+                <div style={{textAlign:"center",padding:"20px 0",color:P.muted,fontSize:13}}>No connected players yet. Share your coach code to see team stats here.</div>
+              ) : (
+                <>
+                  {/* Team aggregate */}
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
+                    {[
+                      {l:"Players",v:rosterWithData.filter(p=>p.live).length,c:PM_GOLD},
+                      {l:"Avg Net",v:(()=>{const nets=rosterWithData.filter(p=>p.live&&p.live.avgNet!=null).map(p=>parseFloat(p.live.avgNet));return nets.length?(nets.reduce((s,n)=>s+n,0)/nets.length).toFixed(1):"—";})(),c:P.green},
+                      {l:"Avg Win%",v:(()=>{const rates=rosterWithData.filter(p=>p.live&&p.live.winRate!=null).map(p=>p.live.winRate);return rates.length?Math.round(rates.reduce((s,r)=>s+r,0)/rates.length)+"%":"—";})(),c:"#60a5fa"},
+                    ].map((s,i)=>(
+                      <div key={i} style={{background:P.cardAlt,borderRadius:10,padding:"10px",textAlign:"center"}}>
+                        <div style={{fontSize:8,color:P.muted,fontWeight:700,letterSpacing:0.5,marginBottom:2}}>{s.l}</div>
+                        <div style={{fontSize:20,fontWeight:900,color:s.c}}>{s.v}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Hero trends across team */}
+                  <div style={{marginBottom:12}}>
+                    <div style={{fontSize:9,color:P.green,fontWeight:800,letterSpacing:1,marginBottom:6}}>TEAM HEROES</div>
+                    {(()=>{
+                      const totals={};
+                      rosterWithData.filter(p=>p.live).forEach(p=>Object.entries(p.live.heroTotals||{}).forEach(([k,v])=>totals[k]=(totals[k]||0)+v));
+                      const sorted=Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+                      const max=sorted[0]?.[1]||1;
+                      return sorted.map(([h,v],i)=>(
+                        <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+                          <div style={{width:80,fontSize:10,fontWeight:600,color:P.white}}>{h}</div>
+                          <div style={{flex:1,height:6,background:P.cardAlt,borderRadius:3}}><div style={{width:`${(v/max)*100}%`,height:"100%",background:P.green,borderRadius:3}}/></div>
+                          <div style={{fontSize:10,color:P.green,fontWeight:700,width:24,textAlign:"right"}}>{v}</div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                  {/* Bandit trends */}
+                  <div>
+                    <div style={{fontSize:9,color:P.red,fontWeight:800,letterSpacing:1,marginBottom:6}}>TEAM BANDITS</div>
+                    {(()=>{
+                      const totals={};
+                      rosterWithData.filter(p=>p.live).forEach(p=>Object.entries(p.live.banditTotals||{}).forEach(([k,v])=>totals[k]=(totals[k]||0)+v));
+                      const sorted=Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+                      const max=sorted[0]?.[1]||1;
+                      return sorted.map(([b,v],i)=>(
+                        <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+                          <div style={{width:80,fontSize:10,fontWeight:600,color:P.white}}>{b}</div>
+                          <div style={{flex:1,height:6,background:P.cardAlt,borderRadius:3}}><div style={{width:`${(v/max)*100}%`,height:"100%",background:P.red,borderRadius:3}}/></div>
+                          <div style={{fontSize:10,color:P.red,fontWeight:700,width:24,textAlign:"right"}}>{v}</div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                  {/* Player leaderboard */}
+                  <div style={{marginTop:14}}>
+                    <div style={{fontSize:9,color:P.muted,fontWeight:800,letterSpacing:1,marginBottom:8}}>PLAYER LEADERBOARD</div>
+                    {rosterWithData.filter(p=>p.live).sort((a,b)=>(parseFloat(b.live.avgNet)||0)-(parseFloat(a.live.avgNet)||0)).map((p,i)=>(
+                      <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<rosterWithData.filter(x=>x.live).length-1?`1px solid ${P.border}44`:"none"}}>
+                        <div style={{width:20,fontSize:11,fontWeight:800,color:P.muted,textAlign:"center"}}>{i+1}</div>
+                        <div style={{width:32,height:32,borderRadius:9,background:PM_GOLD+"18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,color:PM_GOLD}}>{p.name[0].toUpperCase()}</div>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:12,fontWeight:700,color:P.white}}>{p.name}</div>
+                          <div style={{fontSize:10,color:P.muted}}>{p.live.rounds} rounds · {p.live.topBandit||"—"}</div>
+                        </div>
+                        <div style={{fontSize:14,fontWeight:900,color:parseFloat(p.live.avgNet)>0?P.green:parseFloat(p.live.avgNet)<0?P.red:P.gold}}>{parseFloat(p.live.avgNet)>0?"+":""}{p.live.avgNet||"—"}</div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </>
+        ) : tab==="roster" ? (
           <>
             {/* Add player */}
             <div style={card}>

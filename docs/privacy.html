@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — Mental Game Scorecard</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap');
+    :root {
+      --navy: #1a2b4a;
+      --gold: #c9a84c;
+      --bg: #f8f6f1;
+      --text: #1a1a2e;
+      --muted: #64748b;
+      --border: #e2ddd6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 16px;
+    }
+    header {
+      background: var(--navy);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    header .logo {
+      width: 36px; height: 36px;
+      background: var(--gold);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'DM Serif Display', serif;
+      font-size: 18px; color: #fff;
+    }
+    header h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 18px;
+      color: #fff;
+      font-weight: 400;
+    }
+    header span {
+      font-size: 12px;
+      color: var(--gold);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+    .hero {
+      margin-bottom: 48px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 36px;
+      font-weight: 400;
+      color: var(--navy);
+      margin-bottom: 8px;
+      line-height: 1.2;
+    }
+    .hero p {
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .hero .gold-bar {
+      width: 48px; height: 3px;
+      background: var(--gold);
+      border-radius: 2px;
+      margin-bottom: 16px;
+    }
+    section {
+      margin-bottom: 36px;
+      padding-bottom: 36px;
+      border-bottom: 1px solid var(--border);
+    }
+    section:last-child { border-bottom: none; }
+    section h3 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 20px;
+      font-weight: 400;
+      color: var(--navy);
+      margin-bottom: 12px;
+    }
+    section p {
+      color: #374151;
+      font-size: 15px;
+      line-height: 1.75;
+      margin-bottom: 12px;
+    }
+    section p:last-child { margin-bottom: 0; }
+    .highlight {
+      background: #fff;
+      border-left: 3px solid var(--gold);
+      padding: 14px 18px;
+      border-radius: 0 8px 8px 0;
+      margin: 16px 0;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    a { color: var(--navy); font-weight: 600; }
+    footer {
+      text-align: center;
+      padding: 32px 24px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--muted);
+    }
+    footer strong { color: var(--navy); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">5</div>
+    <div>
+      <h1>Mental Game Scorecard</h1>
+      <span>by Paul Monahan Golf</span>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="hero">
+      <div class="gold-bar"></div>
+      <h2>Privacy Policy</h2>
+      <p>Last updated: March 2026 &nbsp;·&nbsp; Effective immediately</p>
+    </div>
+
+    <section>
+      <h3>What We Collect</h3>
+      <p>We collect the data you enter into the app: round scores, hero and bandit logs, course names, pre-round check-in data (sleep quality, energy level, playing partners), hole notes, and your display name.</p>
+      <p>If you create a profile, we also collect your name and email address. Your email is used to send you personalized coaching content from Paul Monahan Golf. We do not sell, rent, or share your email with third parties.</p>
+      <div class="highlight">If you choose to save locally only (no account), we do not collect any personally identifying information.</div>
+    </section>
+
+    <section>
+      <h3>How We Store It</h3>
+      <p>All round data is stored locally on your device using browser localStorage. If you create a profile with cloud sync enabled, your data is securely stored in Convex — a SOC 2 compliant cloud database. Leaderboard display names and badge data are stored in shared cloud storage solely to power the in-app leaderboard feature.</p>
+      <p>We do not sell, share, or transfer your data to third parties.</p>
+    </section>
+
+    <section>
+      <h3>Third-Party Services</h3>
+      <p><strong>Golf Course API</strong> — When you search for a course, your search query is sent to golfcourseapi.com to retrieve course and tee data. No personal information is included in these requests.</p>
+      <p><strong>Clerk</strong> — Authentication is handled by Clerk (clerk.com). When you sign in with Apple, Google, or email, your credentials are processed by Clerk. We never see or store your password.</p>
+      <p><strong>Sentry</strong> — We use Sentry for error monitoring. Errors are reported anonymously — no personally identifying information is included.</p>
+      <p><strong>Open-Meteo</strong> — Weather data is fetched using your approximate location. No personal data is sent.</p>
+    </section>
+
+    <section>
+      <h3>Authentication</h3>
+      <p>You can sign in with Apple, Google, or email. Sign In with Apple may use a private relay email address — we treat this the same as any other email address. We never share your email with Apple for marketing purposes.</p>
+    </section>
+
+    <section>
+      <h3>Coaching Data</h3>
+      <p>If you connect to a coach through the app, your mental game data — including your Mental Net scores, top Hero, top Bandit, and round history — will be visible to that coach in their private Coach Portal. Your hole notes and post-round reflections remain private and are never shared with coaches.</p>
+      <p>You can disconnect from a coach at any time in Settings.</p>
+    </section>
+
+    <section>
+      <h3>Payments</h3>
+      <p>The app is currently free. If in-app purchases are introduced in the future, they will be processed through Apple In-App Purchase or Google Play Billing. We will never store or have access to your payment card information.</p>
+    </section>
+
+    <section>
+      <h3>Children</h3>
+      <p>This app is not directed at children under 13. We do not knowingly collect data from children under 13. Coaches using the Coach Portal must confirm that all players on their roster are 13 years of age or older.</p>
+    </section>
+
+    <section>
+      <h3>Your Rights & Account Deletion</h3>
+      <p>You can delete all your local data at any time from <strong>Settings → Data → Clear All Round Data</strong>.</p>
+      <p>To request full account deletion including cloud data, go to <strong>Settings → Data → Delete Account</strong>, or email <a href="mailto:support@mentalgamescorecard.com">support@mentalgamescorecard.com</a> with the subject line <em>"Delete My Account"</em>. We will process deletion requests within 30 days.</p>
+      <p>You may also request a copy of your data at any time by contacting us at the email above.</p>
+    </section>
+
+    <section>
+      <h3>Changes to This Policy</h3>
+      <p>We may update this policy from time to time. The "last updated" date at the top of this page will reflect any changes. Continued use of the app after changes constitutes acceptance of the updated policy.</p>
+    </section>
+
+    <section>
+      <h3>Contact</h3>
+      <p>For privacy questions, data requests, or account deletion:</p>
+      <p><a href="mailto:support@mentalgamescorecard.com">support@mentalgamescorecard.com</a></p>
+      <p>Mental Game Scorecard is a product of Paul Monahan Golf.<br>
+      <a href="https://paulmonahan.com">paulmonahan.com</a></p>
+    </section>
+  </div>
+
+  <footer>
+    <strong>Mental Game Scorecard</strong> · Paul Monahan Golf · <a href="https://paulmonahan.com">paulmonahan.com</a>
+  </footer>
+</body>
+</html>
