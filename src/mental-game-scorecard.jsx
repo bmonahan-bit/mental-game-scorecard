@@ -1093,8 +1093,8 @@ function scoreNotation(strokeScore, par) {
 }
 
 function initScores() { return Array.from({ length: TOTAL_HOLES }, () => ({ bandits: Object.fromEntries(BANDITS.map(b=>[b,0])), heroes: Object.fromEntries(HEROES.map(h=>[h,0])), par:"", strokeScore:"", holeNote:"", yardage:"", putts:"", routine:0, fairway:null, gir:null, strokeIndex:"" })); }
-function getHoleStats(sc,i) { const b=Object.values(sc[i].bandits).reduce((a,c)=>a+c,0), h=Object.values(sc[i].heroes).reduce((a,c)=>a+c,0); return {bandits:b,heroes:h,net:h-b}; }
-function getNineStats(sc,s,e) { let b=0,h=0; for(let i=s;i<e;i++){const st=getHoleStats(sc,i);b+=st.bandits;h+=st.heroes;} return {bandits:b,heroes:h,net:h-b}; }
+function getHoleStats(sc,i) { if(!sc[i])return{bandits:0,heroes:0,net:0}; const b=Object.values(sc[i].bandits||{}).reduce((a,c)=>a+c,0), h=Object.values(sc[i].heroes||{}).reduce((a,c)=>a+c,0); return {bandits:b,heroes:h,net:h-b}; }
+function getNineStats(sc,s,e) { let b=0,h=0; for(let i=s;i<e;i++){if(!sc[i])continue;const st=getHoleStats(sc,i);b+=st.bandits;h+=st.heroes;} return {bandits:b,heroes:h,net:h-b}; }
 function getRoundTotals(sc) { const f=getNineStats(sc,0,9),bk=getNineStats(sc,9,18); return {front:f,back:bk,total:{bandits:f.bandits+bk.bandits,heroes:f.heroes+bk.heroes,net:f.net+bk.net}}; }
 function getTotalPar(s) { return s.reduce((a,h)=>a+(parseInt(h.par)||0),0); }
 function getTotalStroke(s) { return s.reduce((a,h)=>a+(parseInt(h.strokeScore)||0),0); }
@@ -1651,6 +1651,7 @@ export default function App() {
   const [showRateApp, setShowRateApp] = useState(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showMentalNetInfo, setShowMentalNetInfo] = useState(false);
   const [streakBanner, setStreakBanner] = useState(null); // {count}
   const [showConfetti, setShowConfetti] = useState(false);
   const [showFireworks, setShowFireworks] = useState(false);
@@ -1819,7 +1820,7 @@ export default function App() {
     // Community prompt disabled — captured in onboarding now
     // try { ... } catch {}
   }
-  function toggleTheme() { const next=!darkMode; setDarkMode(next); try{localStorage.setItem(THEME_KEY,next?"dark":"light");}catch{} }
+  function toggleTheme() { const next=!darkMode; setDarkMode(next); try{localStorage.setItem(THEME_KEY,next?"dark":"light");window.dispatchEvent(new Event("mgp_theme_change"));}catch{} }
 
   // Called when user selects a course + tee — auto-populates par and yardage
   function onCourseLoaded(course, teeName, gender) {
@@ -1996,57 +1997,23 @@ export default function App() {
 
   function saveRound() {
     if(saving) return;
-    const hasData = scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0));
-    if (!hasData) { showToast("No data yet — log some heroes or bandits first.", "warn"); return; }
     setSaving(true); setTimeout(()=>setSaving(false), 2000);
-    if (!courseName.trim()) {
-      setCoursePromptCallback(()=>()=>{});
-      setShowCoursePrompt(true);
-      setSaving(false);
-      return;
-    }
-    // Overwrite existing draft for same date+course to prevent duplicates
+    const ts=getTrimmedScores(scores);
     const course = courseName||"Unnamed Course";
     const existing = savedRounds.find(r=>r.date===roundDate&&r.course===course);
-    const ts=getTrimmedScores(scores);
     const round = { id:existing?.id||Date.now(), course, date:roundDate, scores:ts, totalPar:getTotalPar(ts), totalStroke:getTotalStroke(ts), notes:postRoundNotes, preRoundMeta:JSON.parse(JSON.stringify(preRoundMeta)), ...getRoundTotals(ts).total };
     persistRounds(existing ? savedRounds.map(r=>r.id===existing.id?round:r) : [round, ...savedRounds]);
     vibrate([10,20,10]);
     showToast(existing ? "Draft updated!" : "Draft saved!", "success");
   }
 
-  function saveDraftAndStartNew() {
-    const ts2=getTrimmedScores(scores);
-    const round = { id:Date.now(), course:courseName||"Unnamed Course", date:roundDate, scores:ts2, totalPar:getTotalPar(ts2), totalStroke:getTotalStroke(ts2), notes:postRoundNotes, preRoundMeta:JSON.parse(JSON.stringify(preRoundMeta)), ...getRoundTotals(ts2).total };
-    persistRounds([round, ...savedRounds]);
-    showToast("Round saved as draft!", "success");
-    setScores(initScores()); setCurrentHole(0); setCourseName(""); setRoundDate(new Date().toISOString().split("T")[0]); setPostRoundNotes(""); setHoleNoteOpen(false); setCourseData(null); setSelectedTee(null);
-    try{const cf=localStorage.getItem("mgp_carry_forward");if(cf)setCarryForward(cf);}catch{}
-    setShowOpenRoundModal(false);
-    setView("preround");
-  }
-
-  function discardAndStartNew() {
-    setScores(initScores()); setCurrentHole(0); setCourseName(""); setRoundDate(new Date().toISOString().split("T")[0]); setPostRoundNotes(""); setHoleNoteOpen(false); setCourseData(null); setSelectedTee(null);
-    try{const cf=localStorage.getItem("mgp_carry_forward");if(cf)setCarryForward(cf);}catch{}
-    setShowOpenRoundModal(false);
-    setView("preround");
-  }
-
   function completeRound() {
-    const hasData = scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0));
-    if (!hasData) { showToast("No data yet — log some heroes or bandits first.", "warn"); return; }
-    if (!courseName.trim()) {
-      setCoursePromptCallback(()=>()=>setView("roundsummary"));
-      setShowCoursePrompt(true);
-      return;
-    }
     setView("roundsummary");
   }
 
   function saveAndFinish() {
     const trimmedScores = getTrimmedScores(scores);
-    const round = { id:Date.now(), course:courseName||"Unnamed Course", date:roundDate, scores:trimmedScores, totalPar:getTotalPar(trimmedScores), totalStroke:getTotalStroke(trimmedScores), notes:postRoundNotes, preRoundMeta:JSON.parse(JSON.stringify(preRoundMeta)), ...getRoundTotals(trimmedScores).total };
+    const round = { id:Date.now(), course:courseName||"Unnamed Course", date:roundDate, scores:trimmedScores, totalPar:getTotalPar(trimmedScores), totalStroke:getTotalStroke(trimmedScores), notes:postRoundNotes, preRoundMeta:JSON.parse(JSON.stringify(preRoundMeta)), savedRoundsCount: savedRounds.length + 1, ...getRoundTotals(trimmedScores).total };
     persistRounds([round, ...savedRounds]);
     setCompletedRound(round);
     try { localStorage.setItem("mgp_carry_forward", carryForward); } catch {}
@@ -2419,6 +2386,31 @@ export default function App() {
         <FlameCanvas active={!caddieCard&&showFlame} onDone={()=>setShowFlame(false)}/>
         <StarburstCanvas active={!caddieCard&&showStarburst} onDone={()=>setShowStarburst(false)}/>
 
+        {/* Mental Net Info Modal */}
+        {showMentalNetInfo&&(
+          <div onClick={()=>setShowMentalNetInfo(false)} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 20px"}}>
+            <div onClick={e=>e.stopPropagation()} style={{background:P.card,borderRadius:20,padding:"24px 20px",width:"100%",maxWidth:360,border:`1.5px solid ${P.border}`}}>
+              <div style={{fontSize:17,fontWeight:900,color:P.white,marginBottom:4}}>Mental Net</div>
+              <div style={{fontSize:13,color:P.muted,lineHeight:1.6,marginBottom:14}}>Mental Net = Heroes minus Bandits. It measures how much your mental game helped vs. hurt you this round.</div>
+              <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+                <div style={{padding:"10px 14px",borderRadius:10,background:P.green+"12",border:`1px solid ${P.green}33`}}>
+                  <div style={{fontSize:12,fontWeight:700,color:P.green,marginBottom:2}}>Positive (+)</div>
+                  <div style={{fontSize:12,color:P.muted}}>Your heroes outnumbered your bandits. Your mind was an asset today.</div>
+                </div>
+                <div style={{padding:"10px 14px",borderRadius:10,background:P.red+"12",border:`1px solid ${P.red}33`}}>
+                  <div style={{fontSize:12,fontWeight:700,color:P.red,marginBottom:2}}>Negative (−)</div>
+                  <div style={{fontSize:12,color:P.muted}}>Bandits crept in more than heroes. Use the caddie to bounce back.</div>
+                </div>
+                <div style={{padding:"10px 14px",borderRadius:10,background:P.gold+"12",border:`1px solid ${P.gold}33`}}>
+                  <div style={{fontSize:12,fontWeight:700,color:P.gold,marginBottom:2}}>Zero (E)</div>
+                  <div style={{fontSize:12,color:P.muted}}>Heroes and bandits are balanced. Push for positive on the back nine.</div>
+                </div>
+              </div>
+              <button onClick={()=>setShowMentalNetInfo(false)} style={{width:"100%",padding:"12px",borderRadius:12,border:"none",background:P.green,color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer"}}>Got it</button>
+            </div>
+          </div>
+        )}
+
         {/* Multi-step tooltip tour */}
         {!tipDone&&(()=>{
           const tips=[
@@ -2571,27 +2563,8 @@ export default function App() {
         </div>
         <div style={{padding:"0 12px 4px",display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
           <input type="date" value={roundDate} onChange={e=>setRoundDate(e.target.value)} style={{...S.input,flex:"0 0 auto",width:136,fontSize:12,padding:"6px 8px"}}/>
-          <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <LiveClock P={P}/>
-          </div>
-          {loadingWeather && (
-            <div style={{display:"flex",alignItems:"center",gap:5,padding:"5px 8px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.card,flexShrink:0}}>
-              <div style={{width:10,height:10,borderRadius:"50%",border:`2px solid ${P.border}`,borderTopColor:P.accent,animation:"spin 0.7s linear infinite"}}/>
-              <span style={{fontSize:11,color:P.muted,fontWeight:500}}>Weather...</span>
-            </div>
-          )}
-          {weather && !loadingWeather && (
-            <div style={{display:"flex",alignItems:"center",gap:5,padding:"5px 8px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.card,flexShrink:0}}>
-              <span style={{fontSize:16,lineHeight:1}}>{weatherIcon(weather.code)}</span>
-              <span style={{fontSize:12,fontWeight:700,color:P.white}}>{weather.temp??"-"}°{settings?.units==="metric"?"C":"F"}</span>
-              <span style={{fontSize:11,color:P.muted}}>{weatherLabel(weather.code)}</span>
-            </div>
-          )}
-          {!weather && !loadingWeather && courseData && (
-            <div style={{padding:"5px 8px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.card,fontSize:11,color:P.muted,flexShrink:0}}>
-              No location data
-            </div>
-          )}
+          <div style={{flex:1}}/>
+          <LiveClock P={P}/>
         </div>
 
         {/* Hole Grid */}
@@ -2621,10 +2594,18 @@ export default function App() {
         {/* Single row: Hole N · PAR · SCORE · PUTTS · FIR/GIR */}
         {(()=>{
           const notation = scoreNotation(scores[currentHole].strokeScore, scores[currentHole].par);
-          const scoredHoles = scores.slice(0,currentHole+1).filter(h=>h.strokeScore&&h.par);
-          const runningStroke = scoredHoles.reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0);
-          const runningPar = scoredHoles.reduce((s,h)=>s+(parseInt(h.par)||0),0);
-          const runningDiff = scoredHoles.length > 0 ? runningStroke - runningPar : null;
+          // Include all completed holes (score + par both entered)
+          const completedHoles = scores.slice(0,currentHole).filter(h=>h.strokeScore&&h.par);
+          const completedStroke = completedHoles.reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0);
+          const completedPar = completedHoles.reduce((s,h)=>s+(parseInt(h.par)||0),0);
+          // Only include current hole in running total if score has been entered
+          const hasCurrentScore = !!scores[currentHole].strokeScore;
+          const hasCurrentPar = !!scores[currentHole].par;
+          const curScore = hasCurrentScore ? (parseInt(scores[currentHole].strokeScore)||0) : 0;
+          const curPar = (hasCurrentScore && hasCurrentPar) ? (parseInt(scores[currentHole].par)||0) : 0;
+          const runningStroke = completedStroke + curScore;
+          const runningPar = completedPar + curPar;
+          const runningDiff = (completedHoles.length > 0 || (hasCurrentScore && hasCurrentPar)) ? runningStroke - runningPar : null;
           return (
         <div ref={tipRefs.scoreRow} key={animKey} style={{padding:"2px 6px 4px",display:"flex",alignItems:"center",gap:5,animation:"fadeSlide 0.25s ease-out",flexShrink:0}}>
 
@@ -2720,9 +2701,10 @@ export default function App() {
         {/* Mental Net Bar — merged with matchup toggle */}
         <div ref={tipRefs.mentalBar}>
         {matchupOpen&&(()=>{
-          const rs=scores.slice(0,currentHole+1).reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0);
-          const rp=scores.slice(0,currentHole+1).reduce((s,h)=>s+(parseInt(h.par)||0),0);
-          const rd=rs&&rp?rs-rp:null;
+          const scoredHoles=scores.slice(0,currentHole+1).filter(h=>h.strokeScore&&h.par);
+          const rs=scoredHoles.reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0);
+          const rp=scoredHoles.reduce((s,h)=>s+(parseInt(h.par)||0),0);
+          const rd=scoredHoles.length>0?rs-rp:null;
           const holeHeroes=hH?Object.values(hH).filter(v=>v>0).length:0;
           const holeBandits=hB?Object.values(hB).filter(v=>v>0).length:0;
           return (
@@ -2738,7 +2720,7 @@ export default function App() {
               </div>
             </div>
             <div style={{textAlign:"center",flexShrink:0}}>
-              <div style={{fontSize:8,color:P.muted,letterSpacing:1.5,fontWeight:700,marginBottom:1,display:"flex",alignItems:"center",gap:3,justifyContent:"center"}}>MENTAL NET <span onClick={()=>showToast("Mental Net = Heroes minus Bandits. Positive means your mind helped more than it hurt.","info",4000)} style={{width:13,height:13,borderRadius:"50%",border:`1px solid ${P.border}`,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:7,color:P.muted,cursor:"pointer",flexShrink:0}}>?</span></div>
+              <div style={{fontSize:8,color:P.muted,letterSpacing:1.5,fontWeight:700,marginBottom:1,display:"flex",alignItems:"center",gap:3,justifyContent:"center"}}>MENTAL NET <span onClick={()=>setShowMentalNetInfo(true)} style={{width:13,height:13,borderRadius:"50%",border:`1px solid ${P.border}`,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:7,color:P.muted,cursor:"pointer",flexShrink:0}}>?</span></div>
               <div style={{fontSize:36,fontWeight:900,lineHeight:1,color:total.net>0?P.green:total.net<0?P.red:P.gold,textShadow:total.net!==0?`0 0 20px ${total.net>0?P.green:P.red}44`:"none",transition:"all 0.2s"}}>{total.net>0?"+":""}{total.net}</div>
               {rd!==null&&<div style={{fontSize:10,fontWeight:700,color:rd<0?P.green:rd>0?P.red:P.gold,marginTop:1}}>{rd>0?"+":""}{rd===0?"E par":rd+" vs par"}</div>}
             </div>
@@ -2825,7 +2807,6 @@ function LoginModal({P,onClose,onLogin}) {
     if(mode==="signup"&&pass.length<6){setError("Password must be at least 6 characters.");return;}
     setLoading(true); setError("");
     try {
-      // Try Supabase if available, fall back to local
       if(typeof supabase!=="undefined"&&supabase) {
         let result;
         if(mode==="signup") {
@@ -2837,7 +2818,6 @@ function LoginModal({P,onClose,onLogin}) {
         const u = result.data.user;
         onLogin({email:u.email,name:u.user_metadata?.display_name||u.email.split("@")[0],id:u.id});
       } else {
-        // Offline fallback — local only
         onLogin({email:email.trim(),name:name||email.split("@")[0]});
       }
     } catch(e) {
@@ -2846,34 +2826,52 @@ function LoginModal({P,onClose,onLogin}) {
     setLoading(false);
   }
 
+  const inputStyle = {
+    width:"100%", padding:"12px 14px", borderRadius:10,
+    border:`1.5px solid ${P.border}`, background:P.inputBg||P.cardAlt,
+    color:P.white, fontSize:14, outline:"none", boxSizing:"border-box",
+    fontFamily:"inherit",
+  };
+  const labelStyle = {fontSize:10,color:P.muted,fontWeight:700,letterSpacing:1.2,marginBottom:5,display:"block"};
+
   return (
-    <div style={{position:"fixed",inset:0,zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.5)",backdropFilter:"blur(6px)",animation:"fadeIn 0.2s ease-out"}}>
-      <div style={{background:P.card,borderRadius:16,padding:28,width:"90%",maxWidth:360,border:`1.5px solid ${P.border}`,boxShadow:"0 20px 40px rgba(0,0,0,0.12)"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-          <div style={{fontSize:20,fontWeight:700,color:P.white}}>{mode==="login"?"Welcome Back":"Create Account"}</div>
-          <button onClick={onClose} style={{width:32,height:32,borderRadius:9,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:16,cursor:"pointer"}} {...pp()}>✕</button>
+    <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",animation:"fadeIn 0.2s ease-out",padding:"0 20px"}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:P.card,borderRadius:20,padding:"28px 24px",width:"100%",maxWidth:360,border:`1.5px solid ${P.border}`}}>
+
+        {/* Header */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24}}>
+          <div>
+            <div style={{fontSize:20,fontWeight:900,color:P.white,marginBottom:2}}>{mode==="login"?"Welcome back":"Create account"}</div>
+            <div style={{fontSize:12,color:P.muted}}>{mode==="login"?"Sign in to sync your rounds":"Start tracking your mental game"}</div>
+          </div>
+          <button onClick={onClose} {...pp()} style={{width:30,height:30,borderRadius:8,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>✕</button>
         </div>
+
+        {/* Fields */}
         {mode==="signup"&&(
-          <div style={{marginBottom:12}}>
-            <div style={{fontSize:11,color:P.muted,fontWeight:600,letterSpacing:1,marginBottom:4}}>NAME</div>
-            <input value={name} onChange={e=>{setName(sanitiseName(e.target.value));setError("");}} placeholder="Your name" style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:15,outline:"none"}}/>
+          <div style={{marginBottom:14}}>
+            <label style={labelStyle}>NAME</label>
+            <input value={name} onChange={e=>{setName(sanitiseName(e.target.value));setError("");}} placeholder="First name" style={inputStyle}/>
           </div>
         )}
-        <div style={{marginBottom:12}}>
-          <div style={{fontSize:11,color:P.muted,fontWeight:600,letterSpacing:1,marginBottom:4}}>EMAIL</div>
-          <input value={email} onChange={e=>{setEmail(sanitiseEmail(e.target.value));setError("");}} placeholder="you@email.com" inputMode="email" autoCapitalize="none" autoComplete="email" style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:15,outline:"none"}}/>
+        <div style={{marginBottom:14}}>
+          <label style={labelStyle}>EMAIL</label>
+          <input value={email} onChange={e=>{setEmail(sanitiseEmail(e.target.value));setError("");}} placeholder="you@email.com" inputMode="email" autoCapitalize="none" autoComplete="email" style={inputStyle}/>
         </div>
-        <div style={{marginBottom:16}}>
-          <div style={{fontSize:11,color:P.muted,fontWeight:600,letterSpacing:1,marginBottom:4}}>PASSWORD</div>
-          <input value={pass} onChange={e=>{setPass(e.target.value);setError("");}} type="password" autoComplete="current-password" placeholder="••••••••" style={{width:"100%",padding:"10px 12px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:15,outline:"none"}}/>
+        <div style={{marginBottom:error?12:20}}>
+          <label style={labelStyle}>PASSWORD</label>
+          <input value={pass} onChange={e=>{setPass(e.target.value);setError("");}} type="password" autoComplete="current-password" placeholder="••••••••" style={inputStyle}/>
         </div>
-        {error&&<div style={{fontSize:13,color:P.red,marginBottom:12}}>{error}</div>}
-        <button onClick={handleSubmit} {...pp()} style={{width:"100%",padding:"12px",borderRadius:10,border:"none",background:P.accent,color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",marginBottom:12,opacity:loading?0.7:1}}>
+
+        {error&&<div style={{fontSize:12,color:P.red,marginBottom:14,padding:"8px 12px",borderRadius:8,background:P.red+"12",border:`1px solid ${P.red}33`}}>{error}</div>}
+
+        <button onClick={handleSubmit} {...pp()} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:P.green,color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",marginBottom:14,opacity:loading?0.7:1}}>
           {loading?"...":(mode==="login"?"Sign In":"Create Account")}
         </button>
-        <div style={{textAlign:"center",fontSize:13,color:P.muted}}>
-          {mode==="login"?"Don't have an account? ":"Already have an account? "}
-          <button onClick={()=>{setMode(mode==="login"?"signup":"login");setError("");}} style={{background:"none",border:"none",color:P.accent,cursor:"pointer",fontSize:13,fontWeight:600,textDecoration:"underline"}}>
+
+        <div style={{textAlign:"center",fontSize:12,color:P.muted}}>
+          {mode==="login"?"No account yet? ":"Already have an account? "}
+          <button onClick={()=>{setMode(mode==="login"?"signup":"login");setError("");}} style={{background:"none",border:"none",color:P.green,cursor:"pointer",fontSize:12,fontWeight:700,padding:0}}>
             {mode==="login"?"Sign Up":"Sign In"}
           </button>
         </div>
@@ -3041,10 +3039,10 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
           const noStroke = !savedRounds.some(r=>r.totalStroke>0);
           return <div style={{display:"flex",gap:5,marginBottom:10,width:"100%",maxWidth:320,opacity:loaded?1:0,transition:"opacity 0.6s ease 0.6s"}}>
             {[
-              {label:"Best Net",val:(bestNet>0?"+":"")+bestNet,color:P.green},
-              {label:"Best Streak",val:streak||"—",color:P.gold}
+              {label:"Best Net",val:(bestNet>0?"+":"")+bestNet,color:P.green,flex:1},
+              {label:"Best Streak",val:streak||"—",color:P.gold,flex:"0 0 90px"}
             ].map((s,i)=>(
-              <div key={i} style={{flex:1,textAlign:"center",padding:"5px 4px",borderRadius:8,background:P.card,border:`1px solid ${P.border}`,minWidth:0}}>
+              <div key={i} style={{flex:s.flex,textAlign:"center",padding:"5px 4px",borderRadius:8,background:P.card,border:`1px solid ${P.border}`,minWidth:0}}>
                 <div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:0.3,marginBottom:1,whiteSpace:"nowrap"}}>{s.label}</div>
                 <div style={{fontSize:14,fontWeight:900,color:s.color,lineHeight:1}}>{s.val}</div>
               </div>
@@ -3497,7 +3495,7 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
         <table style={{borderCollapse:"collapse",fontSize:11,minWidth:"100%"}}>
           <thead>
             <tr>
-              {["#","Par","Scr",...(hasHCP?["HCP"]:[]),"Putts","FIR","GIR","H","B","Net",...(hcpAllowance&&hasHCP?["Nett"]:[])].map(h=>(
+              {["#","Par","Scr","+/-","Putts","FIR","GIR","H","B","Net"].map(h=>(
                 <th key={h} style={{padding:"5px 4px",textAlign:"center",color:P.muted,borderBottom:`1.5px solid ${P.border}`,fontSize:9,fontWeight:700,whiteSpace:"nowrap",position:"sticky",top:0,background:P.bg,zIndex:1}}>{h}</th>
               ))}
             </tr>
@@ -3508,6 +3506,9 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
               const h=scores[i];
               const nt=scoreNotation(h.strokeScore,h.par);
               const ns=getNetScore(h.strokeScore,h.par,h.strokeIndex);
+              const runStroke=scores.slice(0,i+1).filter(x=>x.strokeScore&&x.par).reduce((a,x)=>a+(parseInt(x.strokeScore)||0),0);
+              const runPar=scores.slice(0,i+1).filter(x=>x.strokeScore&&x.par).reduce((a,x)=>a+(parseInt(x.par)||0),0);
+              const runDiff=(h.strokeScore&&h.par)?runStroke-runPar:null;
               return [
                 <tr key={i} ref={!scores[i].strokeScore&&!scores.slice(0,i).some(h=>!h.strokeScore)?activeRowRef:null} onClick={()=>onSelectHole(i)} style={{cursor:"pointer",background:i%2===0?P.card:"transparent"}}>
                   <td style={{...S.cell,fontWeight:700,color:P.accent}}>{i+1}</td>
@@ -3546,21 +3547,20 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
                       );
                     })():"—"}
                   </td>
-                  {hasHCP&&<td style={{...S.cell,color:P.muted,fontSize:9}}>{h.strokeIndex||"—"}</td>}
+                  <td style={{...S.cell,fontWeight:700,color:runDiff===null?P.muted:runDiff<0?P.green:runDiff>0?P.red:P.gold}}>{runDiff===null?"—":runDiff===0?"E":(runDiff>0?"+":"")+runDiff}</td>
                   <td style={{...S.cell,color:h.putts>2?P.red:h.putts===1?P.green:P.white,fontWeight:h.putts?700:400}}>{h.putts||"—"}</td>
                   <td style={{...S.cell,color:h.fairway===true?P.green:P.muted,fontWeight:700}}>{h.fairway===true?"✓":"—"}</td>
                   <td style={{...S.cell,color:h.gir===true?P.accent:P.muted,fontWeight:700}}>{h.gir===true?"✓":"—"}</td>
                   <td style={{...S.cell,color:P.green,fontWeight:600}}>{s.heroes||"—"}</td>
                   <td style={{...S.cell,color:P.red,fontWeight:600}}>{s.bandits||"—"}</td>
                   <td style={{...S.cell,fontWeight:700,color:s.net>0?P.green:s.net<0?P.red:s.heroes+s.bandits>0?P.gold:P.muted}}>{s.heroes+s.bandits>0?(s.net>0?"+":"")+s.net:"—"}</td>
-                  {hcpAllowance&&hasHCP&&<td style={{...S.cell,fontWeight:700,color:ns!==null?(ns<0?P.green:ns>0?P.red:P.gold):P.muted}}>{ns!==null?(ns>0?"+":"")+ns:"—"}</td>}
                 </tr>,
                 i===8&&<tr key="out" style={{background:P.cardAlt,borderTop:`1.5px solid ${P.border}`}}>
                   <td style={{...S.cell,fontWeight:800,fontSize:9,color:P.muted}}>OUT</td>
                   <td style={{...S.cell,fontWeight:700}}>{fp||"—"}</td>
                   <td style={{...S.cell,fontWeight:700}}>{fs||"—"}</td>
+                  <td style={{...S.cell,fontWeight:700,color:fs&&fp?(fs-fp)<0?P.green:(fs-fp)>0?P.red:P.gold:P.muted}}>{fs&&fp?(fs-fp)===0?"E":((fs-fp)>0?"+":"")+(fs-fp):"—"}</td>
                   <td style={{...S.cell,fontWeight:700,color:P.white}}>{fPutts||"—"}</td>
-                  <td style={S.cell}/>
                   <td style={{...S.cell,fontWeight:700,color:P.green}}>{fFir}/9</td>
                   <td style={{...S.cell,fontWeight:700,color:P.accent}}>{fGir}/9</td>
                   <td style={{...S.cell,color:P.green,fontWeight:700}}>{front.heroes}</td>
@@ -3573,8 +3573,8 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
               <td style={{...S.cell,fontWeight:800,fontSize:9,color:P.muted}}>IN</td>
               <td style={{...S.cell,fontWeight:700}}>{bp||"—"}</td>
               <td style={{...S.cell,fontWeight:700}}>{bs||"—"}</td>
+              <td style={{...S.cell,fontWeight:700,color:bs&&bp?(bs-bp)<0?P.green:(bs-bp)>0?P.red:P.gold:P.muted}}>{bs&&bp?(bs-bp)===0?"E":((bs-bp)>0?"+":"")+(bs-bp):"—"}</td>
               <td style={{...S.cell,fontWeight:700,color:P.white}}>{bPutts||"—"}</td>
-              <td style={S.cell}/>
               <td style={{...S.cell,fontWeight:700,color:P.green}}>{bFir}/9</td>
               <td style={{...S.cell,fontWeight:700,color:P.accent}}>{bGir}/9</td>
               <td style={{...S.cell,color:P.green,fontWeight:700}}>{back.heroes}</td>
@@ -3585,8 +3585,8 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
               <td style={{...S.cell,fontWeight:800,fontSize:9,color:P.accent}}>TOT</td>
               <td style={{...S.cell,fontWeight:800}}>{fp+bp||"—"}</td>
               <td style={{...S.cell,fontWeight:800}}>{fs+bs||"—"}</td>
+              <td style={{...S.cell,fontWeight:800,color:(fs+bs)&&(fp+bp)?(fs+bs-(fp+bp))<0?P.green:(fs+bs-(fp+bp))>0?P.red:P.gold:P.muted}}>{(fs+bs)&&(fp+bp)?(fs+bs-(fp+bp))===0?"E":((fs+bs-(fp+bp))>0?"+":"")+(fs+bs-(fp+bp)):"—"}</td>
               <td style={{...S.cell,fontWeight:800,color:P.white}}>{fPutts+bPutts||"—"}</td>
-              <td style={S.cell}/>
               <td style={{...S.cell,fontWeight:800,color:P.green}}>{fFir+bFir}/18</td>
               <td style={{...S.cell,fontWeight:800,color:P.accent}}>{fGir+bGir}/18</td>
               <td style={{...S.cell,color:P.green,fontWeight:800}}>{total.heroes}</td>
@@ -3751,14 +3751,26 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
               )}
 
               {/* Scorecard table */}
-              {r.scores&&(
+              {r.scores&&(()=>{
+                const hFp=r.scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.par)||0),0);
+                const hBp=r.scores.slice(9).reduce((s,h)=>s+(parseInt(h.par)||0),0);
+                const hFs=r.scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0);
+                const hBs=r.scores.slice(9).reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0);
+                const hFfir=r.scores.slice(0,9).filter(h=>h.fairway===true&&(parseInt(h.par)===4||parseInt(h.par)===5)).length;
+                const hBfir=r.scores.slice(9).filter(h=>h.fairway===true&&(parseInt(h.par)===4||parseInt(h.par)===5)).length;
+                const hFgir=r.scores.slice(0,9).filter(h=>h.gir===true).length;
+                const hBgir=r.scores.slice(9).filter(h=>h.gir===true).length;
+                const hFront=getNineStats(r.scores,0,9);
+                const hBack=getNineStats(r.scores,9,18);
+                const hTotal=getRoundTotals(r.scores).total;
+                return (
                 <div style={{background:P.card,borderRadius:12,border:`1.5px solid ${P.border}`,marginBottom:12,overflow:"hidden"}}>
                   <div style={{fontSize:9,color:PM_GOLD,fontWeight:800,letterSpacing:1.5,padding:"10px 14px 6px"}}>SCORECARD</div>
                   <div style={{overflowX:"auto"}}>
                     <table style={{width:"100%",borderCollapse:"collapse",fontSize:10}}>
                       <thead>
                         <tr style={{background:P.cardAlt}}>
-                          {["#","Par","Score","Putts","H","B","Net"].map(h=>(
+                          {["#","Par","Score","+/-","Putts","FIR","GIR","H","B","Net"].map(h=>(
                             <th key={h} style={{padding:"5px 3px",textAlign:"center",color:P.muted,borderBottom:`1px solid ${P.border}`,fontSize:9,fontWeight:700}}>{h}</th>
                           ))}
                         </tr>
@@ -3767,23 +3779,66 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                         {r.scores.map((hole,i)=>{
                           const s=getHoleStats(r.scores,i);
                           const diff=hole.strokeScore&&hole.par?+hole.strokeScore-+hole.par:null;
+                          const runStroke=r.scores.slice(0,i+1).filter(x=>x.strokeScore&&x.par).reduce((a,x)=>a+(parseInt(x.strokeScore)||0),0);
+                          const runPar=r.scores.slice(0,i+1).filter(x=>x.strokeScore&&x.par).reduce((a,x)=>a+(parseInt(x.par)||0),0);
+                          const runDiff=(hole.strokeScore&&hole.par)?runStroke-runPar:null;
                           return (
                             <tr key={i} style={{background:i%2===0?P.cardAlt+"60":"transparent",borderBottom:i===8?`2px solid ${P.border}`:undefined}}>
                               <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,color:P.accent,fontSize:10}}>{i+1}</td>
                               <td style={{padding:"4px 3px",textAlign:"center",fontSize:10}}>{hole.par||"—"}</td>
                               <td style={{padding:"4px 3px",textAlign:"center",fontWeight:hole.strokeScore?700:400,color:diff===null?P.white:diff<0?P.green:diff>0?P.red:P.white,fontSize:10}}>{hole.strokeScore||"—"}</td>
+                              <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,fontSize:10,color:runDiff===null?P.muted:runDiff<0?P.green:runDiff>0?P.red:P.gold}}>{runDiff===null?"—":runDiff===0?"E":(runDiff>0?"+":"")+runDiff}</td>
                               <td style={{padding:"4px 3px",textAlign:"center",color:hole.putts>2?P.red:hole.putts===1?P.green:P.white,fontWeight:hole.putts?600:400,fontSize:10}}>{hole.putts||"—"}</td>
+                              <td style={{padding:"4px 3px",textAlign:"center",color:hole.fairway===true?P.green:P.muted,fontWeight:700,fontSize:10}}>{parseInt(hole.par)===4||parseInt(hole.par)===5?(hole.fairway===true?"✓":"—"):"—"}</td>
+                              <td style={{padding:"4px 3px",textAlign:"center",color:hole.gir===true?P.accent:P.muted,fontWeight:700,fontSize:10}}>{hole.gir===true?"✓":"—"}</td>
                               <td style={{padding:"4px 3px",textAlign:"center",color:P.green,fontWeight:600,fontSize:10}}>{s.heroes||"—"}</td>
                               <td style={{padding:"4px 3px",textAlign:"center",color:P.red,fontWeight:600,fontSize:10}}>{s.bandits||"—"}</td>
                               <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,fontSize:10,color:s.net>0?P.green:s.net<0?P.red:s.heroes+s.bandits>0?P.gold:P.muted}}>{s.heroes+s.bandits>0?(s.net>0?"+":"")+s.net:"—"}</td>
                             </tr>
                           );
                         })}
+                        <tr style={{background:P.cardAlt,borderTop:`1.5px solid ${P.border}`}}>
+                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:800,fontSize:9,color:P.muted}}>OUT</td>
+                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,fontSize:10}}>{hFp||"—"}</td>
+                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,fontSize:10}}>{hFs||"—"}</td>
+                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,fontSize:10,color:hFs&&hFp?(hFs-hFp)<0?P.green:(hFs-hFp)>0?P.red:P.gold:P.muted}}>{hFs&&hFp?(hFs-hFp)===0?"E":((hFs-hFp)>0?"+":"")+(hFs-hFp):"—"}</td>
+                          <td style={{padding:"4px 3px",textAlign:"center",fontSize:10}}/>
+                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,color:P.green,fontSize:10}}>{hFfir}/9</td>
+                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,color:P.accent,fontSize:10}}>{hFgir}/9</td>
+                          <td style={{padding:"4px 3px",textAlign:"center",color:P.green,fontWeight:700,fontSize:10}}>{hFront.heroes}</td>
+                          <td style={{padding:"4px 3px",textAlign:"center",color:P.red,fontWeight:700,fontSize:10}}>{hFront.bandits}</td>
+                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:800,fontSize:10,color:hFront.net>0?P.green:hFront.net<0?P.red:P.gold}}>{hFront.net>0?"+":""}{hFront.net}</td>
+                        </tr>
+                        <tr style={{background:P.cardAlt,borderTop:`1px solid ${P.border}`}}>
+                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:800,fontSize:9,color:P.muted}}>IN</td>
+                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,fontSize:10}}>{hBp||"—"}</td>
+                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,fontSize:10}}>{hBs||"—"}</td>
+                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,fontSize:10,color:hBs&&hBp?(hBs-hBp)<0?P.green:(hBs-hBp)>0?P.red:P.gold:P.muted}}>{hBs&&hBp?(hBs-hBp)===0?"E":((hBs-hBp)>0?"+":"")+(hBs-hBp):"—"}</td>
+                          <td style={{padding:"4px 3px",textAlign:"center",fontSize:10}}/>
+                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,color:P.green,fontSize:10}}>{hBfir}/9</td>
+                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,color:P.accent,fontSize:10}}>{hBgir}/9</td>
+                          <td style={{padding:"4px 3px",textAlign:"center",color:P.green,fontWeight:700,fontSize:10}}>{hBack.heroes}</td>
+                          <td style={{padding:"4px 3px",textAlign:"center",color:P.red,fontWeight:700,fontSize:10}}>{hBack.bandits}</td>
+                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:800,fontSize:10,color:hBack.net>0?P.green:hBack.net<0?P.red:P.gold}}>{hBack.net>0?"+":""}{hBack.net}</td>
+                        </tr>
+                        <tr style={{background:P.accent+"10",borderTop:`2px solid ${P.accent}44`}}>
+                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:800,fontSize:9,color:P.accent}}>TOT</td>
+                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:800,fontSize:10}}>{hFp+hBp||"—"}</td>
+                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:800,fontSize:10}}>{hFs+hBs||"—"}</td>
+                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:800,fontSize:10,color:(hFs+hBs)&&(hFp+hBp)?(hFs+hBs-(hFp+hBp))<0?P.green:(hFs+hBs-(hFp+hBp))>0?P.red:P.gold:P.muted}}>{(hFs+hBs)&&(hFp+hBp)?(hFs+hBs-(hFp+hBp))===0?"E":((hFs+hBs-(hFp+hBp))>0?"+":"")+(hFs+hBs-(hFp+hBp)):"—"}</td>
+                          <td style={{padding:"4px 3px",textAlign:"center",fontSize:10}}/>
+                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:800,color:P.green,fontSize:10}}>{hFfir+hBfir}/18</td>
+                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:800,color:P.accent,fontSize:10}}>{hFgir+hBgir}/18</td>
+                          <td style={{padding:"4px 3px",textAlign:"center",color:P.green,fontWeight:800,fontSize:10}}>{hTotal.heroes}</td>
+                          <td style={{padding:"4px 3px",textAlign:"center",color:P.red,fontWeight:800,fontSize:10}}>{hTotal.bandits}</td>
+                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:900,fontSize:12,color:hTotal.net>0?P.green:hTotal.net<0?P.red:P.gold}}>{hTotal.net>0?"+":""}{hTotal.net}</td>
+                        </tr>
                       </tbody>
                     </table>
                   </div>
                 </div>
-              )}
+                );
+              })()}
 
               {/* Hole notes */}
               {holeNotes.length>0&&(
@@ -4595,9 +4650,9 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
     const holeMap = Array.from({length:18}, (_,i) => {
       let totalBandits=0, totalHeroes=0;
       rounds.forEach(r => {
-        if (!r.scores) return;
-        totalBandits += Object.values(r.scores[i].bandits).reduce((a,c)=>a+c,0);
-        totalHeroes += Object.values(r.scores[i].heroes).reduce((a,c)=>a+c,0);
+        if (!r.scores || !r.scores[i]) return;
+        totalBandits += Object.values(r.scores[i].bandits||{}).reduce((a,c)=>a+c,0);
+        totalHeroes += Object.values(r.scores[i].heroes||{}).reduce((a,c)=>a+c,0);
       });
       return { hole:i+1, bandits:totalBandits, heroes:totalHeroes, net:totalHeroes-totalBandits };
     });
@@ -4639,6 +4694,11 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
       rounds.forEach(r=>{if(!r.scores)return;r.scores.forEach(hole=>{const stp=parseInt(hole.strokeScore)-(parseInt(hole.par)||0);if(isNaN(stp)||!hole.par)return;if(hole.heroes[hero]===1)withHero.push(stp);else withoutHero.push(stp);});});
       if(withHero.length>=3&&withoutHero.length>=3){const wa=withHero.reduce((s,v)=>s+v,0)/withHero.length,woa=withoutHero.reduce((s,v)=>s+v,0)/withoutHero.length;scoreDelta[hero]=(woa-wa).toFixed(2);}
     });
+    BANDITS.forEach(bandit=>{
+      const withBandit=[],withoutBandit=[];
+      rounds.forEach(r=>{if(!r.scores)return;r.scores.forEach(hole=>{const stp=parseInt(hole.strokeScore)-(parseInt(hole.par)||0);if(isNaN(stp)||!hole.par)return;if(hole.bandits[bandit]===1)withBandit.push(stp);else withoutBandit.push(stp);});});
+      if(withBandit.length>=3&&withoutBandit.length>=3){const wa=withBandit.reduce((s,v)=>s+v,0)/withBandit.length,woa=withoutBandit.reduce((s,v)=>s+v,0)/withoutBandit.length;scoreDelta[bandit]=(wa-woa).toFixed(2);}
+    });
 
     // Front 9 vs Back 9 split
     const front9={heroes:0,bandits:0,net:0},back9={heroes:0,bandits:0,net:0};
@@ -4657,11 +4717,11 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
     let totalFir=0,firHoles=0,totalGir=0,girHoles=0;
     rounds.forEach(r=>{if(!r.scores)return;r.scores.forEach(hole=>{
       if(hole.putts){totalPutts+=parseInt(hole.putts)||0;puttHoles++;if(+hole.putts>=3)threePutts++;if(+hole.putts===1)onePutts++;if(hole.gir===true)girPutts.push(+hole.putts);else nonGirPutts.push(+hole.putts);}
-      if(hole.fairway!==null&&hole.fairway!==undefined){firHoles++;if(hole.fairway===true)totalFir++;}
+      if(hole.fairway!==null&&hole.fairway!==undefined&&(parseInt(hole.par)===4||parseInt(hole.par)===5)){firHoles++;if(hole.fairway===true)totalFir++;}
       if(hole.gir!==null&&hole.gir!==undefined){girHoles++;if(hole.gir===true)totalGir++;}
     });});
-    const puttingStats=puttHoles>=9?{avg:(totalPutts/puttHoles).toFixed(2),threePuttPct:Math.round((threePutts/puttHoles)*100),onePuttPct:Math.round((onePutts/puttHoles)*100),girAvg:girPutts.length?( girPutts.reduce((s,v)=>s+v,0)/girPutts.length).toFixed(2):null,total:totalPutts,holes:puttHoles}:null;
-    const firPct=firHoles>=9?Math.round((totalFir/firHoles)*100):null;
+    const puttingStats=puttHoles>=9?{avg:(totalPutts/puttHoles).toFixed(2),threePuttPct:Math.round((threePutts/puttHoles)*100),onePuttPct:Math.round((onePutts/puttHoles)*100),girAvg:girPutts.length?(girPutts.reduce((s,v)=>s+v,0)/girPutts.length).toFixed(2):null,total:totalPutts,holes:puttHoles}:null;
+    const firPct=firHoles>=4?Math.round((totalFir/firHoles)*100):null;
     const girPct=girHoles>=9?Math.round((totalGir/girHoles)*100):null;
 
     return {hT,bT,trend,topHero,topBandit,avgNet,avgStroke,bestStroke,improving,holeMap,bestHoles,worstHoles,bestStreak,recoveryRate,heroRate,banditRate,scoreDelta,front9,back9,topPairs,sleepCorr,puttingStats,firPct,girPct};
@@ -4858,7 +4918,7 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
           {(stats.puttingStats||stats.firPct!==null||stats.girPct!==null)&&(
             <Section title="Shot Quality">
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:stats.puttingStats?10:0}}>
-                {stats.firPct!==null&&<div style={{background:P.cardAlt,borderRadius:10,padding:"10px 8px",textAlign:"center",border:`1px solid ${stats.firPct>=60?P.green+"44":P.border}`}}><div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:3}}>FIR%</div><div style={{fontSize:22,fontWeight:900,color:stats.firPct>=60?P.green:stats.firPct>=45?P.gold:P.red}}>{stats.firPct}%</div></div>}
+                {stats.firPct!==null&&<div style={{background:P.cardAlt,borderRadius:10,padding:"10px 8px",textAlign:"center",border:`1px solid ${stats.firPct>=60?P.green+"44":P.border}`}}><div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:3}}>FIR%</div><div style={{fontSize:22,fontWeight:900,color:stats.firPct>=60?P.green:stats.firPct>=45?P.gold:P.red}}>{stats.firPct}%</div><div style={{fontSize:8,color:P.muted,marginTop:2}}>par 4 & 5 only</div></div>}
                 {stats.girPct!==null&&<div style={{background:P.cardAlt,borderRadius:10,padding:"10px 8px",textAlign:"center",border:`1px solid ${stats.girPct>=50?P.accent+"44":P.border}`}}><div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:3}}>GIR%</div><div style={{fontSize:22,fontWeight:900,color:stats.girPct>=50?P.accent:stats.girPct>=35?P.gold:P.red}}>{stats.girPct}%</div></div>}
                 {stats.puttingStats&&<div style={{background:P.cardAlt,borderRadius:10,padding:"10px 8px",textAlign:"center",border:`1px solid ${+stats.puttingStats.avg<=1.7?P.green+"44":P.border}`}}><div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:3}}>AVG PUTTS</div><div style={{fontSize:22,fontWeight:900,color:+stats.puttingStats.avg<=1.7?P.green:+stats.puttingStats.avg>=2.1?P.red:P.gold}}>{stats.puttingStats.avg}</div></div>}
               </div>
@@ -5662,9 +5722,9 @@ function RoundStatsView({round,onHome,onShare,S}) {
       </div>
 
       {/* Summary strip */}
-      <div style={{display:"flex",gap:6,padding:"4px 14px 8px",justifyContent:"center",alignItems:"center"}}>
+      <div style={{display:"flex",gap:6,padding:"4px 14px 8px",justifyContent:"center",alignItems:"stretch"}}>
         {/* Mental Net */}
-        <div style={{textAlign:"center",padding:"8px 16px",borderRadius:14,background:(round.net>0?P.green:round.net<0?P.red:P.gold)+"12",border:`1.5px solid ${(round.net>0?P.green:round.net<0?P.red:P.gold)}33`}}>
+        <div style={{flex:1,textAlign:"center",padding:"10px 12px",borderRadius:14,background:(round.net>0?P.green:round.net<0?P.red:P.gold)+"12",border:`1.5px solid ${(round.net>0?P.green:round.net<0?P.red:P.gold)}33`,display:"flex",flexDirection:"column",justifyContent:"center"}}>
           <div style={{fontSize:9,color:PM_GOLD,fontWeight:800,letterSpacing:2,marginBottom:2}}>MENTAL NET</div>
           <div style={{fontSize:44,fontWeight:900,lineHeight:1,color:round.net>0?P.green:round.net<0?P.red:P.gold}}>{round.net>0?"+":""}{round.net}</div>
           <div style={{display:"flex",gap:8,justifyContent:"center",marginTop:4}}>
@@ -5673,13 +5733,16 @@ function RoundStatsView({round,onHome,onShare,S}) {
           </div>
         </div>
         {/* Round Score */}
-        {round.totalStroke>0&&(
-          <div style={{textAlign:"center",padding:"8px 16px",borderRadius:14,background:P.card,border:`1.5px solid ${P.border}`}}>
-            <div style={{fontSize:9,color:P.muted,fontWeight:800,letterSpacing:2,marginBottom:2}}>ROUND SCORE</div>
-            <div style={{fontSize:44,fontWeight:900,lineHeight:1,color:P.accent}}>{round.totalStroke}</div>
-            {stp!==null&&<div style={{fontSize:13,fontWeight:700,marginTop:4,color:stp<0?P.green:stp>0?P.red:P.gold}}>{stp>0?"+":""}{stp===0?"E":stp}</div>}
-          </div>
-        )}
+        <div style={{flex:1,textAlign:"center",padding:"10px 12px",borderRadius:14,background:P.card,border:`1.5px solid ${P.border}`,display:"flex",flexDirection:"column",justifyContent:"center"}}>
+          <div style={{fontSize:9,color:P.muted,fontWeight:800,letterSpacing:2,marginBottom:2}}>ROUND SCORE</div>
+          {round.totalStroke>0
+            ? <>
+                <div style={{fontSize:44,fontWeight:900,lineHeight:1,color:P.accent}}>{round.totalStroke}</div>
+                {stp!==null&&<div style={{fontSize:13,fontWeight:700,marginTop:4,color:stp<0?P.green:stp>0?P.red:P.gold}}>{stp>0?"+":""}{stp===0?"E":stp} vs par</div>}
+              </>
+            : <div style={{fontSize:22,fontWeight:700,color:P.muted,marginTop:4}}>—</div>
+          }
+        </div>
       </div>
 
       <div style={{flex:1,overflowY:"auto",padding:"0 6px 20px"}}>
@@ -5697,19 +5760,23 @@ function RoundStatsView({round,onHome,onShare,S}) {
         <div style={{overflowX:"auto",marginBottom:14,background:P.card,borderRadius:12,border:`1.5px solid ${P.border}`}}>
           <table style={{borderCollapse:"collapse",fontSize:10,minWidth:"100%"}}>
             <thead>
-              <tr>{["#","Par","Scr","Putts","FIR","GIR","H","B","Net"].map(h=>(
+              <tr>{["#","Par","Scr","+/-","Putts","FIR","GIR","H","B","Net"].map(h=>(
                 <th key={h} style={{...cell,padding:"6px 3px",color:P.muted,borderBottom:`1.5px solid ${P.border}`,fontSize:9,fontWeight:700}}>{h}</th>
               ))}</tr>
             </thead>
             <tbody>
               {round.scores&&Array.from({length:18},(_,i)=>{
                 const s=getHoleStats(round.scores,i);
-                const h=round.scores[i];
+                const h=round.scores[i]||{par:"",strokeScore:"",putts:"",fairway:null,gir:null,heroes:{},bandits:{}};
+                const runStR=round.scores.slice(0,i+1).filter(x=>x&&x.strokeScore&&x.par).reduce((a,x)=>a+(parseInt(x.strokeScore)||0),0);
+                const runPaR=round.scores.slice(0,i+1).filter(x=>x&&x.strokeScore&&x.par).reduce((a,x)=>a+(parseInt(x.par)||0),0);
+                const runDiR=(h.strokeScore&&h.par)?runStR-runPaR:null;
                     return [
                   <tr key={i} style={{background:i%2===0?P.cardAlt:"transparent"}}>
                     <td style={{...cell,fontWeight:700,color:P.accent}}>{i+1}</td>
                     <td style={cell}>{h.par||"—"}</td>
                     <td style={{...cell,color:h.strokeScore&&h.par?(+h.strokeScore-+h.par>0?P.red:+h.strokeScore-+h.par<0?P.green:P.white):P.white,fontWeight:h.strokeScore?700:400}}>{h.strokeScore||"—"}</td>
+                    <td style={{...cell,fontWeight:700,color:runDiR===null?P.muted:runDiR<0?P.green:runDiR>0?P.red:P.gold}}>{runDiR===null?"—":runDiR===0?"E":(runDiR>0?"+":"")+runDiR}</td>
                     <td style={{...cell,color:h.putts>2?P.red:h.putts===1?P.green:P.white,fontWeight:h.putts?700:400}}>{h.putts||"—"}</td>
                     <td style={{...cell,color:h.fairway===true?P.green:P.muted,fontWeight:700}}>{h.fairway===true?"✓":"—"}</td>
                     <td style={{...cell,color:h.gir===true?P.accent:P.muted,fontWeight:700}}>{h.gir===true?"✓":"—"}</td>
@@ -5721,8 +5788,8 @@ function RoundStatsView({round,onHome,onShare,S}) {
                     <td style={{...cell,fontWeight:800,fontSize:9,color:P.muted}}>OUT</td>
                     <td style={{...cell,fontWeight:700}}>{fp||"—"}</td>
                     <td style={{...cell,fontWeight:700}}>{fs||"—"}</td>
+                    <td style={{...cell,fontWeight:700,color:fs&&fp?(fs-fp)<0?P.green:(fs-fp)>0?P.red:P.gold:P.muted}}>{fs&&fp?(fs-fp)===0?"E":((fs-fp)>0?"+":"")+(fs-fp):"—"}</td>
                     <td style={{...cell,fontWeight:700}}>{fPutts||"—"}</td>
-                    <td style={cell}/>
                     <td style={{...cell,fontWeight:700,color:P.green}}>{fFir}/9</td>
                     <td style={{...cell,fontWeight:700,color:P.accent}}>{fGir}/9</td>
                     <td style={{...cell,color:P.green,fontWeight:700}}>{frontStats.heroes}</td>
@@ -5735,8 +5802,8 @@ function RoundStatsView({round,onHome,onShare,S}) {
                 <td style={{...cell,fontWeight:800,fontSize:9,color:P.muted}}>IN</td>
                 <td style={{...cell,fontWeight:700}}>{bp||"—"}</td>
                 <td style={{...cell,fontWeight:700}}>{bs||"—"}</td>
+                <td style={{...cell,fontWeight:700,color:bs&&bp?(bs-bp)<0?P.green:(bs-bp)>0?P.red:P.gold:P.muted}}>{bs&&bp?(bs-bp)===0?"E":((bs-bp)>0?"+":"")+(bs-bp):"—"}</td>
                 <td style={{...cell,fontWeight:700}}>{bPutts||"—"}</td>
-                <td style={cell}/>
                 <td style={{...cell,fontWeight:700,color:P.green}}>{bFir}/9</td>
                 <td style={{...cell,fontWeight:700,color:P.accent}}>{bGir}/9</td>
                 <td style={{...cell,color:P.green,fontWeight:700}}>{backStats.heroes}</td>
@@ -5747,8 +5814,8 @@ function RoundStatsView({round,onHome,onShare,S}) {
                 <td style={{...cell,fontWeight:800,fontSize:9,color:P.accent}}>TOT</td>
                 <td style={{...cell,fontWeight:800}}>{fp+bp||"—"}</td>
                 <td style={{...cell,fontWeight:800}}>{fs+bs||"—"}</td>
+                <td style={{...cell,fontWeight:800,color:(fs+bs)&&(fp+bp)?(fs+bs-(fp+bp))<0?P.green:(fs+bs-(fp+bp))>0?P.red:P.gold:P.muted}}>{(fs+bs)&&(fp+bp)?(fs+bs-(fp+bp))===0?"E":((fs+bs-(fp+bp))>0?"+":"")+(fs+bs-(fp+bp)):"—"}</td>
                 <td style={{...cell,fontWeight:800,color:P.white}}>{fPutts+bPutts||"—"}</td>
-                <td style={cell}/>
                 <td style={{...cell,fontWeight:800,color:P.green}}>{fFir+bFir}/18</td>
                 <td style={{...cell,fontWeight:800,color:P.accent}}>{fGir+bGir}/18</td>
                 <td style={{...cell,color:P.green,fontWeight:800}}>{round.heroes}</td>
@@ -6944,18 +7011,18 @@ function TransformView({onBack,S,P}) {
 // ONBOARDING FLOW (unchanged from original)
 // ═══════════════════════════════════════
 const OB_HEROES = [
-  {label:"Love",color:"#dc2626",desc:"Passion, gratitude & appreciation",example:"Standing on the first tee feeling genuine excitement. You smile — you get to play today. You easily connect to love, gratitude and appreciation in every moment.",quote:"Channeling Love allows you to experience golf with objectivity, joy, and passion that produces better decisions and shot-making."},
-  {label:"Acceptance",color:"#ca8a04",desc:"Releasing outcomes & embracing reality",example:"Your drive lands in a bunker. Instead of frustration: 'Hmmm, interesting — what's the best play from here?' You see outcomes as feedback, not failure.",quote:"Objectivity leads to discovery."},
+  {label:"Love",color:"#16a34a",desc:"Passion, gratitude & appreciation",example:"Standing on the first tee feeling genuine excitement. You smile — you get to play today. You easily connect to love, gratitude and appreciation in every moment.",quote:"Channeling Love allows you to experience golf with objectivity, joy, and passion that produces better decisions and shot-making."},
+  {label:"Acceptance",color:"#16a34a",desc:"Releasing outcomes & embracing reality",example:"Your drive lands in a bunker. Instead of frustration: 'Hmmm, interesting — what's the best play from here?' You see outcomes as feedback, not failure.",quote:"Objectivity leads to discovery."},
   {label:"Commitment",color:"#16a34a",desc:"Trusting your process completely",example:"You pick your target, trust your club, execute your routine. No second-guessing. Total commitment. You can't WIN the moment unless you are IN the moment.",quote:"Commitment to the process. Indifference to the result."},
-  {label:"Vulnerability",color:"#7c3aed",desc:"Showing up exactly as you are",example:"Everyone watches your birdie putt. Instead of tightening up, you welcome the moment — pressure is a test that makes you a better player.",quote:"You are not your score."},
-  {label:"Grit",color:"#2563eb",desc:"Staying in the shot, hole & game",example:"You're 5 over through 12. Your mind says give up — but you recommit. You stay in pursuit mode, each shot, each hole. You feed the Good Wolf.",quote:"The Wolf you feed wins the battle in your mind."},
+  {label:"Vulnerability",color:"#16a34a",desc:"Showing up exactly as you are",example:"Everyone watches your birdie putt. Instead of tightening up, you welcome the moment — pressure is a test that makes you a better player.",quote:"You are not your score."},
+  {label:"Grit",color:"#16a34a",desc:"Staying in the shot, hole & game",example:"You're 5 over through 12. Your mind says give up — but you recommit. You stay in pursuit mode, each shot, each hole. You feed the Good Wolf.",quote:"The Wolf you feed wins the battle in your mind."},
 ];
 const OB_BANDITS = [
   {label:"Fear",color:"#dc2626",desc:"Thought patterns that steal your potential",example:"Water right. You can't stop thinking about it. Body tightens. You steer the ball — right into the water. Fear yields tremendous power — the highest leverage thing you can do is eliminate it.",hero:"Love"},
-  {label:"Frustration",color:"#ea580c",desc:"Arguing with reality",example:"Three bad drives. Gripping harder, rushing, getting angry. You're arguing with what already happened. The real reason for frustration: reality did not line up with your story.",hero:"Acceptance"},
-  {label:"Doubt",color:"#ca8a04",desc:"Second-guessing everything",example:"Between clubs. Pick one, switch, switch back. Standing over the ball still unsure. Tentative swing. You are not IN the moment — you are stuck in your head.",hero:"Commitment"},
-  {label:"Shame",color:"#7c3aed",desc:"Hiding from the moment",example:"You shank a chip in front of others. Embarrassment takes over. Next few shots are timid and guarded. You stop showing up as yourself.",hero:"Vulnerability"},
-  {label:"Quit",color:"#64748b",desc:"Checking out mentally",example:"Rough round. Stop trying. Skip the routine. Just going through the motions until 18. You stop staying in the shot, the hole, the game.",hero:"Grit"},
+  {label:"Frustration",color:"#dc2626",desc:"Arguing with reality",example:"Three bad drives. Gripping harder, rushing, getting angry. You're arguing with what already happened. The real reason for frustration: reality did not line up with your story.",hero:"Acceptance"},
+  {label:"Doubt",color:"#dc2626",desc:"Second-guessing everything",example:"Between clubs. Pick one, switch, switch back. Standing over the ball still unsure. Tentative swing. You are not IN the moment — you are stuck in your head.",hero:"Commitment"},
+  {label:"Shame",color:"#dc2626",desc:"Hiding from the moment",example:"You shank a chip in front of others. Embarrassment takes over. Next few shots are timid and guarded. You stop showing up as yourself.",hero:"Vulnerability"},
+  {label:"Quit",color:"#dc2626",desc:"Checking out mentally",example:"Rough round. Stop trying. Skip the routine. Just going through the motions until 18. You stop staying in the shot, the hole, the game.",hero:"Grit"},
 ];
 
 function CaddieToggleMock(){
@@ -7442,7 +7509,7 @@ function OnboardingFlow({onFinish,onPrivacy,P,S,communityProfile}){
       <div style={qb}><div style={qt}>"Strengthen your inside game so that the game you play on the outside is more fun and fulfilling."</div><div style={{fontSize:11,fontWeight:600,color:P.muted,marginTop:6,opacity:0.8}}>— Paul Monahan, The Most Important Game</div></div>
       <div style={{marginTop:14}}>
         {[{text:"Five Heroes — mental strengths that unlock your best golf",IcN:"Shield",c:"#34d87a"},{text:"Five Bandits — mental traps that steal your game",IcN:"Skull",c:"#f87171"},{text:"Track both every hole. See the patterns. Play better.",IcN:"Chart",c:"#60a5fa"}].map((item,i)=>{const WIc=Icons[item.IcN];return(
-          <div key={i} style={itemCard}><div style={iconBox}><WIc color={item.c} size={15}/></div><div style={itemText}>{item.text}</div></div>
+          <div key={i} style={itemCard}><div style={{...iconBox,background:i===0?P.green+"20":i===1?P.red+"20":"#60a5fa20"}}><WIc color={item.c} size={15}/></div><div style={{...itemText,color:i===0?P.green:i===1?P.red:P.white}}>{item.text}</div></div>
         );})}
       </div>
       <div style={{marginTop:10,padding:"10px 14px",borderRadius:12,background:P.cardAlt,border:`1.5px solid ${P.border}`,fontSize:12,color:P.muted,fontWeight:600,textAlign:"center"}}>The only golf tracking app built around your mental game.</div>
@@ -7699,7 +7766,7 @@ function OnboardingFlow({onFinish,onPrivacy,P,S,communityProfile}){
           return (
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               <button
-                onClick={()=>{ window.__clerkOpenSignUp ? window.__clerkOpenSignUp() : window.__clerkOpenSignIn?.(); }}
+                onClick={()=>{ window.__clerkOpenSignUp ? window.__clerkOpenSignUp() : setShowLogin(true); }}
                 style={{width:"100%",padding:"13px",borderRadius:12,background:P.green,border:"none",color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer"}}
               >Create Free Account →</button>
               <button
