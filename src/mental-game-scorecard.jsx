@@ -1339,7 +1339,7 @@ function mkStyles(P) {
     shell: { height:"100svh", background:P.bg, color:P.white, fontFamily:"'Avenir Next','SF Pro Display',-apple-system,sans-serif", display:"flex", flexDirection:"column", maxWidth:480, width:"100%", margin:"0 auto", position:"relative", overflowX:"hidden", overflowY:"hidden" },
     iconBtn: { width:38, height:38, borderRadius:10, border:`1.5px solid ${P.border}`, background:P.card, color:P.white, fontSize:17, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 1px 3px rgba(0,0,0,0.06)", transition:"transform 0.1s ease" },
     input: { flex:1, padding:"10px 12px", borderRadius:10, border:`1.5px solid ${P.border}`, background:P.inputBg, color:P.white, fontSize:15, outline:"none", fontWeight:500 },
-    miniInput: { padding:"6px", borderRadius:8, border:`1.5px solid ${P.border}`, background:P.inputBg, color:P.white, fontSize:22, textAlign:"center", outline:"none", fontWeight:700, width:52 },
+    miniInput: { padding:"6px", borderRadius:8, border:`1.5px solid ${P.border}`, background:P.inputBg, color:P.white, fontSize:20, textAlign:"center", outline:"none", fontWeight:700, width:48 },
     cell: { padding:"12px 8px", textAlign:"center", borderBottom:`1px solid ${P.border}`, fontSize:16, whiteSpace:"nowrap" },
     pressBtn: { transition:"transform 0.1s ease, opacity 0.1s ease" },
   };
@@ -2580,7 +2580,7 @@ export default function App() {
             {notation&&notation.diff!==0&&<div style={{fontSize:9,fontWeight:700,color:notation.diff<0?P.green:P.red,letterSpacing:0.5,marginBottom:1}}>{notation.label}</div>}
             <div style={{display:"flex",alignItems:"baseline",gap:6,flexWrap:"nowrap"}}>
               {streak>=3&&<div style={{display:"flex",alignItems:"center",gap:2,padding:"2px 6px",borderRadius:20,background:P.green+"15",border:`1px solid ${P.green}33`}}><Icons.Fire color={P.green} size={11}/><span style={{fontSize:10,fontWeight:700,color:P.green}}>{streak}</span></div>}
-              <span style={{fontSize:26,fontWeight:900,lineHeight:1,color:P.white,whiteSpace:"nowrap"}}>Hole {currentHole+1}</span>
+              <span style={{fontSize:22,fontWeight:900,lineHeight:1,color:P.white,whiteSpace:"nowrap"}}>Hole {currentHole+1}</span>
               {runningDiff!==null&&<span style={{fontSize:14,fontWeight:700,color:runningDiff<0?P.green:runningDiff>0?P.red:P.gold,whiteSpace:"nowrap"}}>{runningDiff>0?"+":""}{runningDiff===0?"E":runningDiff}</span>}
             </div>
             {scores[currentHole].yardage&&<div style={{fontSize:13,fontWeight:600,color:P.muted,marginTop:2}}>{scores[currentHole].yardage} yds</div>}
