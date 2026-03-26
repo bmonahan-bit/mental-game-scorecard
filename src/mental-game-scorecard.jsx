@@ -2620,9 +2620,9 @@ export default function App() {
             <div style={{display:"flex",alignItems:"baseline",gap:6,flexWrap:"nowrap"}}>
               {streak>=3&&<div style={{display:"flex",alignItems:"center",gap:2,padding:"2px 6px",borderRadius:20,background:P.green+"15",border:`1px solid ${P.green}33`}}><Icons.Fire color={P.green} size={11}/><span style={{fontSize:10,fontWeight:700,color:P.green}}>{streak}</span></div>}
               <span style={{fontSize:26,fontWeight:900,lineHeight:1,color:P.white,whiteSpace:"nowrap"}}>Hole {currentHole+1}</span>
-              {scores[currentHole].yardage&&<div style={{textAlign:"center",marginLeft:16}}><div style={{fontSize:15,fontWeight:700,color:P.muted,lineHeight:1}}>{scores[currentHole].yardage}</div><div style={{fontSize:10,color:P.muted,fontWeight:600,letterSpacing:0.5,marginTop:2}}>yds</div></div>}
               {runningDiff!==null&&<span style={{fontSize:14,fontWeight:700,color:runningDiff<0?P.green:runningDiff>0?P.red:P.gold,whiteSpace:"nowrap"}}>{runningDiff>0?"+":""}{runningDiff===0?"E":runningDiff}</span>}
             </div>
+            {scores[currentHole].yardage&&<div style={{fontSize:13,fontWeight:600,color:P.muted,marginTop:2}}>{scores[currentHole].yardage} yds</div>}
           </div>
 
           {/* PAR */}
@@ -2699,7 +2699,7 @@ export default function App() {
         {carryForward&&currentHole===0&&(
           <div style={{margin:"0 12px 4px",padding:"8px 12px",borderRadius:9,background:"#ca8a0410",border:"1px solid #ca8a0430",display:"flex",alignItems:"flex-start",gap:8}}>
             <Icons.Note color="#ca8a04" size={14}/>
-            <div><div style={{fontSize:9,fontWeight:800,letterSpacing:1.5,color:"#ca8a04",marginBottom:2}}>YOUR INTENTION TODAY</div><div style={{fontSize:12,color:"#f8fafc",fontStyle:"italic",lineHeight:1.4}}>{carryForward}</div></div>
+            <div><div style={{fontSize:9,fontWeight:800,letterSpacing:1.5,color:"#ca8a04",marginBottom:2}}>YOUR INTENTION TODAY</div><div style={{fontSize:12,color:P.white,fontStyle:"italic",lineHeight:1.4}}>{carryForward}</div></div>
           </div>
         )}
 
@@ -3500,7 +3500,7 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
         <table style={{borderCollapse:"collapse",fontSize:16,minWidth:"100%"}}>
           <thead>
             <tr>
-              {["#","Par","H","B","Net","Scr","+/-","Pts","FIR","GIR"].map(h=>(
+              {["#","H","B","Net","Par","Scr","+/-","Pts","FIR","GIR"].map(h=>(
                 <th key={h} style={{padding:"6px 5px",textAlign:"center",color:P.muted,borderBottom:`1.5px solid ${P.border}`,fontSize:12,fontWeight:700,whiteSpace:"nowrap",position:"sticky",top:0,background:P.bg,zIndex:1}}>{h}</th>
               ))}
             </tr>
@@ -3517,10 +3517,10 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
               return [
                 <tr key={i} ref={!scores[i].strokeScore&&!scores.slice(0,i).some(h=>!h.strokeScore)?activeRowRef:null} onClick={()=>onSelectHole(i)} style={{cursor:"pointer",background:i%2===0?P.card:"transparent"}}>
                   <td style={{...S.cell,fontWeight:700,color:P.accent}}>{i+1}</td>
-                  <td style={S.cell}>{h.par||"—"}</td>
                   <td style={{...S.cell,color:P.green,fontWeight:600}}>{s.heroes||"—"}</td>
                   <td style={{...S.cell,color:P.red,fontWeight:600}}>{s.bandits||"—"}</td>
                   <td style={{...S.cell,fontWeight:700,color:s.net>0?P.green:s.net<0?P.red:s.heroes+s.bandits>0?P.gold:P.muted}}>{s.heroes+s.bandits>0?(s.net>0?"+":"")+s.net:"—"}</td>
+                  <td style={S.cell}>{h.par||"—"}</td>
                   <td style={{...S.cell,fontWeight:h.strokeScore?800:400}}>
                     {h.strokeScore?(()=>{
                       const diff = nt?.diff ?? 0;
@@ -3539,10 +3539,10 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
                 </tr>,
                 i===8&&<tr key="out" style={{background:P.cardAlt,borderTop:`1.5px solid ${P.border}`}}>
                   <td style={{...S.cell,fontWeight:800,fontSize:11,color:P.muted}}>OUT</td>
-                  <td style={{...S.cell,fontWeight:700}}>{fp||"—"}</td>
                   <td style={{...S.cell,color:P.green,fontWeight:700}}>{front.heroes}</td>
                   <td style={{...S.cell,color:P.red,fontWeight:700}}>{front.bandits}</td>
                   <td style={{...S.cell,fontWeight:800,color:front.net>0?P.green:front.net<0?P.red:P.gold}}>{front.net>0?"+":""}{front.net}</td>
+                  <td style={{...S.cell,fontWeight:700}}>{fp||"—"}</td>
                   <td style={{...S.cell,fontWeight:700}}>{fs||"—"}</td>
                   <td style={{...S.cell,fontWeight:700,color:fs&&fp?(fs-fp)<0?P.green:(fs-fp)>0?P.red:P.gold:P.muted}}>{fs&&fp?(fs-fp)===0?"E":((fs-fp)>0?"+":"")+(fs-fp):"—"}</td>
                   <td style={{...S.cell,fontWeight:700,color:P.white,padding:"12px 6px"}}>{fPutts||"—"}</td>
@@ -3553,10 +3553,10 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
             })}
             <tr style={{background:P.cardAlt,borderTop:`1.5px solid ${P.border}`}}>
               <td style={{...S.cell,fontWeight:800,fontSize:11,color:P.muted}}>IN</td>
-              <td style={{...S.cell,fontWeight:700}}>{bp||"—"}</td>
               <td style={{...S.cell,color:P.green,fontWeight:700}}>{back.heroes}</td>
               <td style={{...S.cell,color:P.red,fontWeight:700}}>{back.bandits}</td>
               <td style={{...S.cell,fontWeight:800,color:back.net>0?P.green:back.net<0?P.red:P.gold}}>{back.net>0?"+":""}{back.net}</td>
+              <td style={{...S.cell,fontWeight:700}}>{bp||"—"}</td>
               <td style={{...S.cell,fontWeight:700}}>{bs||"—"}</td>
               <td style={{...S.cell,fontWeight:700,color:bs&&bp?(bs-bp)<0?P.green:(bs-bp)>0?P.red:P.gold:P.muted}}>{bs&&bp?(bs-bp)===0?"E":((bs-bp)>0?"+":"")+(bs-bp):"—"}</td>
               <td style={{...S.cell,fontWeight:700,color:P.white,padding:"12px 6px"}}>{bPutts||"—"}</td>
@@ -3565,10 +3565,10 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
             </tr>
             <tr style={{background:P.accent+"10",borderTop:`2px solid ${P.accent}44`}}>
               <td style={{...S.cell,fontWeight:800,fontSize:11,color:P.accent}}>TOT</td>
-              <td style={{...S.cell,fontWeight:800}}>{fp+bp||"—"}</td>
               <td style={{...S.cell,color:P.green,fontWeight:800}}>{total.heroes}</td>
               <td style={{...S.cell,color:P.red,fontWeight:800}}>{total.bandits}</td>
               <td style={{...S.cell,fontWeight:900,fontSize:15,color:total.net>0?P.green:total.net<0?P.red:P.gold}}>{total.net>0?"+":""}{total.net}</td>
+              <td style={{...S.cell,fontWeight:800}}>{fp+bp||"—"}</td>
               <td style={{...S.cell,fontWeight:800}}>{fs+bs||"—"}</td>
               <td style={{...S.cell,fontWeight:800,color:(fs+bs)&&(fp+bp)?(fs+bs-(fp+bp))<0?P.green:(fs+bs-(fp+bp))>0?P.red:P.gold:P.muted}}>{(fs+bs)&&(fp+bp)?(fs+bs-(fp+bp))===0?"E":((fs+bs-(fp+bp))>0?"+":"")+(fs+bs-(fp+bp)):"—"}</td>
               <td style={{...S.cell,fontWeight:800,color:P.white,padding:"12px 6px"}}>{fPutts+bPutts||"—"}</td>
@@ -3752,7 +3752,7 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                     <table style={{borderCollapse:"collapse",fontSize:16,minWidth:"100%"}}>
                       <thead>
                         <tr style={{background:P.cardAlt}}>
-                          {["#","Par","H","B","Net","Score","+/-","Pts","FIR","GIR"].map(h=>(
+                          {["#","H","B","Net","Par","Score","+/-","Pts","FIR","GIR"].map(h=>(
                             <th key={h} style={{padding:"6px 4px",textAlign:"center",color:P.muted,borderBottom:`1px solid ${P.border}`,fontSize:11,fontWeight:700}}>{h}</th>
                           ))}
                         </tr>
@@ -3767,10 +3767,10 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                           return (
                             <tr key={i} style={{background:i%2===0?P.cardAlt+"60":"transparent",borderBottom:i===8?`2px solid ${P.border}`:undefined}}>
                               <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,color:P.accent,fontSize:14}}>{i+1}</td>
-                              <td style={{padding:"6px 4px",textAlign:"center",fontSize:14}}>{hole.par||"—"}</td>
                               <td style={{padding:"6px 4px",textAlign:"center",color:P.green,fontWeight:600,fontSize:14}}>{s.heroes||"—"}</td>
                               <td style={{padding:"6px 4px",textAlign:"center",color:P.red,fontWeight:600,fontSize:14}}>{s.bandits||"—"}</td>
                               <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,fontSize:14,color:s.net>0?P.green:s.net<0?P.red:s.heroes+s.bandits>0?P.gold:P.muted}}>{s.heroes+s.bandits>0?(s.net>0?"+":"")+s.net:"—"}</td>
+                              <td style={{padding:"6px 4px",textAlign:"center",fontSize:14}}>{hole.par||"—"}</td>
                               <td style={{padding:"6px 4px",textAlign:"center",fontWeight:hole.strokeScore?700:400,color:diff===null?P.white:diff<0?P.green:diff>0?P.red:P.white,fontSize:14}}>{hole.strokeScore||"—"}</td>
                               <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,fontSize:14,color:runDiff===null?P.muted:runDiff<0?P.green:runDiff>0?P.red:P.gold}}>{runDiff===null?"—":runDiff===0?"E":(runDiff>0?"+":"")+runDiff}</td>
                               <td style={{padding:"6px 5px",textAlign:"center",color:hole.putts>2?P.red:hole.putts===1?P.green:P.white,fontWeight:hole.putts?600:400,fontSize:14}}>{hole.putts||"—"}</td>
@@ -3781,10 +3781,10 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                         })}
                         <tr style={{background:P.cardAlt,borderTop:`1.5px solid ${P.border}`}}>
                           <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:11,color:P.muted}}>OUT</td>
-                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,fontSize:14}}>{hFp||"—"}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",color:P.green,fontWeight:700,fontSize:14}}>{hFront.heroes}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",color:P.red,fontWeight:700,fontSize:14}}>{hFront.bandits}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:14,color:hFront.net>0?P.green:hFront.net<0?P.red:P.gold}}>{hFront.net>0?"+":""}{hFront.net}</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,fontSize:14}}>{hFp||"—"}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,fontSize:14}}>{hFs||"—"}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,fontSize:14,color:hFs&&hFp?(hFs-hFp)<0?P.green:(hFs-hFp)>0?P.red:P.gold:P.muted}}>{hFs&&hFp?(hFs-hFp)===0?"E":((hFs-hFp)>0?"+":"")+(hFs-hFp):"—"}</td>
                           <td style={{padding:"6px 5px",textAlign:"center",fontSize:14}}/>
@@ -3793,10 +3793,10 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                         </tr>
                         <tr style={{background:P.cardAlt,borderTop:`1px solid ${P.border}`}}>
                           <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:11,color:P.muted}}>IN</td>
-                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,fontSize:14}}>{hBp||"—"}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",color:P.green,fontWeight:700,fontSize:14}}>{hBack.heroes}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",color:P.red,fontWeight:700,fontSize:14}}>{hBack.bandits}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:14,color:hBack.net>0?P.green:hBack.net<0?P.red:P.gold}}>{hBack.net>0?"+":""}{hBack.net}</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,fontSize:14}}>{hBp||"—"}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,fontSize:14}}>{hBs||"—"}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,fontSize:14,color:hBs&&hBp?(hBs-hBp)<0?P.green:(hBs-hBp)>0?P.red:P.gold:P.muted}}>{hBs&&hBp?(hBs-hBp)===0?"E":((hBs-hBp)>0?"+":"")+(hBs-hBp):"—"}</td>
                           <td style={{padding:"6px 5px",textAlign:"center",fontSize:14}}/>
@@ -3805,10 +3805,10 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                         </tr>
                         <tr style={{background:P.accent+"10",borderTop:`2px solid ${P.accent}44`}}>
                           <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:11,color:P.accent}}>TOT</td>
-                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:14}}>{hFp+hBp||"—"}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",color:P.green,fontWeight:800,fontSize:14}}>{hTotal.heroes}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",color:P.red,fontWeight:800,fontSize:14}}>{hTotal.bandits}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",fontWeight:900,fontSize:15,color:hTotal.net>0?P.green:hTotal.net<0?P.red:P.gold}}>{hTotal.net>0?"+":""}{hTotal.net}</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:14}}>{hFp+hBp||"—"}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:14}}>{hFs+hBs||"—"}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:14,color:(hFs+hBs)&&(hFp+hBp)?(hFs+hBs-(hFp+hBp))<0?P.green:(hFs+hBs-(hFp+hBp))>0?P.red:P.gold:P.muted}}>{(hFs+hBs)&&(hFp+hBp)?(hFs+hBs-(hFp+hBp))===0?"E":((hFs+hBs-(hFp+hBp))>0?"+":"")+(hFs+hBs-(hFp+hBp)):"—"}</td>
                           <td style={{padding:"6px 5px",textAlign:"center",fontSize:14}}/>
@@ -5742,7 +5742,7 @@ function RoundStatsView({round,onHome,onShare,S}) {
         <div style={{overflowX:"auto",marginBottom:14,background:P.card,borderRadius:12,border:`1.5px solid ${P.border}`}}>
           <table style={{borderCollapse:"collapse",fontSize:16,minWidth:"100%"}}>
             <thead>
-              <tr>{["#","Par","H","B","Net","Scr","+/-","Pts","FIR","GIR"].map(h=>(
+              <tr>{["#","H","B","Net","Par","Scr","+/-","Pts","FIR","GIR"].map(h=>(
                 <th key={h} style={{...cell,padding:"6px 4px",color:P.muted,borderBottom:`1.5px solid ${P.border}`,fontSize:11,fontWeight:700}}>{h}</th>
               ))}</tr>
             </thead>
@@ -5756,10 +5756,10 @@ function RoundStatsView({round,onHome,onShare,S}) {
                     return [
                   <tr key={i} style={{background:i%2===0?P.cardAlt:"transparent"}}>
                     <td style={{...cell,fontWeight:700,color:P.accent}}>{i+1}</td>
-                    <td style={cell}>{h.par||"—"}</td>
                     <td style={{...cell,color:P.green,fontWeight:700}}>{s.heroes||"—"}</td>
                     <td style={{...cell,color:P.red,fontWeight:700}}>{s.bandits||"—"}</td>
                     <td style={{...cell,fontWeight:700,color:s.net>0?P.green:s.net<0?P.red:s.heroes+s.bandits>0?P.gold:P.muted}}>{s.heroes+s.bandits>0?(s.net>0?"+":"")+s.net:"—"}</td>
+                    <td style={cell}>{h.par||"—"}</td>
                     <td style={{...cell,color:h.strokeScore&&h.par?(+h.strokeScore-+h.par>0?P.red:+h.strokeScore-+h.par<0?P.green:P.white):P.white,fontWeight:h.strokeScore?700:400}}>{h.strokeScore||"—"}</td>
                     <td style={{...cell,fontWeight:700,color:runDiR===null?P.muted:runDiR<0?P.green:runDiR>0?P.red:P.gold}}>{runDiR===null?"—":runDiR===0?"E":(runDiR>0?"+":"")+runDiR}</td>
                     <td style={{...cell,color:h.putts>2?P.red:h.putts===1?P.green:P.white,fontWeight:h.putts?700:400,padding:"12px 6px"}}>{h.putts||"—"}</td>
@@ -5768,10 +5768,10 @@ function RoundStatsView({round,onHome,onShare,S}) {
                   </tr>,
                   i===8&&<tr key="out" style={{background:P.accent+"10",borderTop:`1.5px solid ${P.border}`}}>
                     <td style={{...cell,fontWeight:800,fontSize:11,color:P.muted}}>OUT</td>
-                    <td style={{...cell,fontWeight:700}}>{fp||"—"}</td>
                     <td style={{...cell,color:P.green,fontWeight:700}}>{frontStats.heroes}</td>
                     <td style={{...cell,color:P.red,fontWeight:700}}>{frontStats.bandits}</td>
                     <td style={{...cell,fontWeight:800,color:frontStats.net>0?P.green:frontStats.net<0?P.red:P.gold}}>{frontStats.net>0?"+":""}{frontStats.net}</td>
+                    <td style={{...cell,fontWeight:700}}>{fp||"—"}</td>
                     <td style={{...cell,fontWeight:700}}>{fs||"—"}</td>
                     <td style={{...cell,fontWeight:700,color:fs&&fp?(fs-fp)<0?P.green:(fs-fp)>0?P.red:P.gold:P.muted}}>{fs&&fp?(fs-fp)===0?"E":((fs-fp)>0?"+":"")+(fs-fp):"—"}</td>
                     <td style={{...cell,fontWeight:700,padding:"12px 6px"}}>{fPutts||"—"}</td>
@@ -5782,10 +5782,10 @@ function RoundStatsView({round,onHome,onShare,S}) {
               })}
               <tr style={{background:P.cardAlt,borderTop:`1.5px solid ${P.border}`}}>
                 <td style={{...cell,fontWeight:800,fontSize:11,color:P.muted}}>IN</td>
-                <td style={{...cell,fontWeight:700}}>{bp||"—"}</td>
                 <td style={{...cell,color:P.green,fontWeight:700}}>{backStats.heroes}</td>
                 <td style={{...cell,color:P.red,fontWeight:700}}>{backStats.bandits}</td>
                 <td style={{...cell,fontWeight:800,color:backStats.net>0?P.green:backStats.net<0?P.red:P.gold}}>{backStats.net>0?"+":""}{backStats.net}</td>
+                <td style={{...cell,fontWeight:700}}>{bp||"—"}</td>
                 <td style={{...cell,fontWeight:700}}>{bs||"—"}</td>
                 <td style={{...cell,fontWeight:700,color:bs&&bp?(bs-bp)<0?P.green:(bs-bp)>0?P.red:P.gold:P.muted}}>{bs&&bp?(bs-bp)===0?"E":((bs-bp)>0?"+":"")+(bs-bp):"—"}</td>
                 <td style={{...cell,fontWeight:700,padding:"12px 6px"}}>{bPutts||"—"}</td>
@@ -5794,10 +5794,10 @@ function RoundStatsView({round,onHome,onShare,S}) {
               </tr>
               <tr style={{background:P.accent+"18",borderTop:`2px solid ${P.accent}44`}}>
                 <td style={{...cell,fontWeight:800,fontSize:11,color:P.accent}}>TOT</td>
-                <td style={{...cell,fontWeight:800}}>{fp+bp||"—"}</td>
                 <td style={{...cell,color:P.green,fontWeight:800}}>{round.heroes}</td>
                 <td style={{...cell,color:P.red,fontWeight:800}}>{round.bandits}</td>
                 <td style={{...cell,fontWeight:900,fontSize:15,color:round.net>0?P.green:round.net<0?P.red:P.gold}}>{round.net>0?"+":""}{round.net}</td>
+                <td style={{...cell,fontWeight:800}}>{fp+bp||"—"}</td>
                 <td style={{...cell,fontWeight:800}}>{fs+bs||"—"}</td>
                 <td style={{...cell,fontWeight:800,color:(fs+bs)&&(fp+bp)?(fs+bs-(fp+bp))<0?P.green:(fs+bs-(fp+bp))>0?P.red:P.gold:P.muted}}>{(fs+bs)&&(fp+bp)?(fs+bs-(fp+bp))===0?"E":((fs+bs-(fp+bp))>0?"+":"")+(fs+bs-(fp+bp)):"—"}</td>
                 <td style={{...cell,fontWeight:800,color:P.white,padding:"12px 6px"}}>{fPutts+bPutts||"—"}</td>

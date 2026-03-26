@@ -12,7 +12,7 @@ import App from './mental-game-scorecard.jsx';
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
-// ── Sentry ──────────────────────────────────────────────────
+// Sentry
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
 if (sentryDsn) {
   Sentry.init({
@@ -32,57 +32,56 @@ if (sentryDsn) {
   };
 }
 
-// ── Bridge — exposes Clerk hooks to the app file ────────────
+// Bridge
 function ClerkBridge() {
   const { openSignUp, openSignIn } = useClerk();
   const { user, isSignedIn, isLoaded } = useUser();
-
-  // Expose to window so mental-game-scorecard.jsx can access
   window.__clerkOpenSignUp = () => openSignUp({});
   window.__clerkOpenSignIn = () => openSignIn({});
   window.__useUser = () => ({ user, isSignedIn, isLoaded });
-
   return null;
 }
 
-// ── Clerk appearance based on theme ────────────────────────
+// Clerk appearance - responds to light/dark theme
 function getClerkAppearance(dark) {
-  const bg = dark ? "#09090b" : "#ffffff";
-  const card = dark ? "#18181b" : "#f4f4f5";
-  const border = dark ? "#27272a" : "#e4e4e7";
-  const text = dark ? "#f8fafc" : "#09090b";
-  const muted = dark ? "#71717a" : "#52525b";
-  const inputBg = dark ? "#09090b" : "#ffffff";
+  const bg       = dark ? "#09090b" : "#ffffff";
+  const card     = dark ? "#18181b" : "#ffffff";
+  const border   = dark ? "#3f3f46" : "#d4d4d8";
+  const text     = dark ? "#f8fafc" : "#09090b";
+  const muted    = dark ? "#71717a" : "#52525b";
+  const inputBg  = dark ? "#09090b" : "#f4f4f5";
+  const socialBg = dark ? "#27272a" : "#f4f4f5";
   return {
     variables: {
-      colorPrimary: "#16a34a",
-      colorBackground: bg,
+      colorPrimary:         "#16a34a",
+      colorBackground:      bg,
       colorInputBackground: inputBg,
-      colorInputText: text,
-      colorText: text,
-      colorTextSecondary: muted,
-      colorDanger: "#dc2626",
-      colorSuccess: "#16a34a",
-      borderRadius: "12px",
-      fontFamily: "inherit",
-      fontSize: "14px",
+      colorInputText:       text,
+      colorText:            text,
+      colorTextSecondary:   muted,
+      colorDanger:          "#dc2626",
+      borderRadius:         "12px",
+      fontFamily:           "inherit",
+      fontSize:             "15px",
     },
     elements: {
-      card: { backgroundColor: card, border: `1.5px solid ${border}`, boxShadow: "none" },
-      headerTitle: { color: text, fontWeight: 900 },
-      headerSubtitle: { color: muted },
-      formFieldInput: { backgroundColor: inputBg, border: `1.5px solid ${border}`, color: text, borderRadius: "10px" },
-      formFieldLabel: { color: muted, fontWeight: 700, letterSpacing: "0.05em", fontSize: "10px" },
-      formButtonPrimary: { backgroundColor: "#16a34a", borderRadius: "12px", fontWeight: 800, fontSize: "15px" },
-      footerActionLink: { color: "#16a34a", fontWeight: 700 },
-      identityPreviewText: { color: text },
-      identityPreviewEditButton: { color: "#16a34a" },
-      dividerLine: { backgroundColor: border },
-      dividerText: { color: muted },
-      socialButtonsBlockButton: { backgroundColor: card, border: `1.5px solid ${border}`, color: text },
-      socialButtonsBlockButtonText: { color: text },
-      otpCodeFieldInput: { backgroundColor: inputBg, border: `1.5px solid ${border}`, color: text },
-    }
+      card:                          { backgroundColor: card, border: `1.5px solid ${border}`, boxShadow: "none" },
+      headerTitle:                   { color: text, fontWeight: 900 },
+      headerSubtitle:                { color: muted },
+      formFieldInput:                { backgroundColor: inputBg, border: `1.5px solid ${border}`, color: text, borderRadius: "10px" },
+      formFieldLabel:                { color: muted, fontWeight: 700, fontSize: "11px", letterSpacing: "0.05em" },
+      formButtonPrimary:             { backgroundColor: "#16a34a", borderRadius: "12px", fontWeight: 800, fontSize: "15px" },
+      footerActionLink:              { color: "#16a34a", fontWeight: 700 },
+      footerActionText:              { color: muted },
+      footer:                        { backgroundColor: card },
+      dividerLine:                   { backgroundColor: border },
+      dividerText:                   { color: muted },
+      socialButtonsBlockButton:      { backgroundColor: socialBg, border: `1.5px solid ${border}`, borderRadius: "10px", color: text },
+      socialButtonsBlockButtonText:  { color: text, fontWeight: 600 },
+      identityPreviewText:           { color: text },
+      identityPreviewEditButton:     { color: "#16a34a" },
+      otpCodeFieldInput:             { backgroundColor: inputBg, border: `1.5px solid ${border}`, color: text },
+    },
   };
 }
 
@@ -90,26 +89,24 @@ function ClerkProviderWithTheme({ children }) {
   const [dark, setDark] = React.useState(() => {
     try { return localStorage.getItem("mental_game_theme") !== "light"; } catch { return true; }
   });
-
   React.useEffect(() => {
     const handler = () => {
-      try { setDark(localStorage.getItem("mgp_theme") !== "light"); } catch {}
+      try { setDark(localStorage.getItem("mental_game_theme") !== "light"); } catch {}
     };
     window.addEventListener("mgp_theme_change", handler);
     return () => window.removeEventListener("mgp_theme_change", handler);
   }, []);
-
   return (
     <ClerkProvider publishableKey={clerkPubKey} appearance={getClerkAppearance(dark)}>
       {children}
     </ClerkProvider>
   );
 }
+
 function hideSplash() {
   try { if (window.__hideSplash) window.__hideSplash(); } catch {}
 }
 
-// ── Root ────────────────────────────────────────────────────
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
