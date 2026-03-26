@@ -1339,8 +1339,8 @@ function mkStyles(P) {
     shell: { height:"100svh", background:P.bg, color:P.white, fontFamily:"'Avenir Next','SF Pro Display',-apple-system,sans-serif", display:"flex", flexDirection:"column", maxWidth:480, width:"100%", margin:"0 auto", position:"relative", overflowX:"hidden", overflowY:"hidden" },
     iconBtn: { width:38, height:38, borderRadius:10, border:`1.5px solid ${P.border}`, background:P.card, color:P.white, fontSize:17, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 1px 3px rgba(0,0,0,0.06)", transition:"transform 0.1s ease" },
     input: { flex:1, padding:"10px 12px", borderRadius:10, border:`1.5px solid ${P.border}`, background:P.inputBg, color:P.white, fontSize:15, outline:"none", fontWeight:500 },
-    miniInput: { padding:"5px", borderRadius:8, border:`1.5px solid ${P.border}`, background:P.inputBg, color:P.white, fontSize:17, textAlign:"center", outline:"none", fontWeight:700, width:44 },
-    cell: { padding:"8px 3px", textAlign:"center", borderBottom:`1px solid ${P.border}`, fontSize:13 },
+    miniInput: { padding:"6px", borderRadius:8, border:`1.5px solid ${P.border}`, background:P.inputBg, color:P.white, fontSize:22, textAlign:"center", outline:"none", fontWeight:700, width:52 },
+    cell: { padding:"12px 8px", textAlign:"center", borderBottom:`1px solid ${P.border}`, fontSize:16, whiteSpace:"nowrap" },
     pressBtn: { transition:"transform 0.1s ease, opacity 0.1s ease" },
   };
 }
@@ -2052,6 +2052,7 @@ export default function App() {
       const roundHasData = scores.some(h=>Object.values(h.heroes).some(x=>x!==0)||Object.values(h.bandits).some(x=>x!==0)||h.strokeScore||h.putts);
       if(roundHasData){ setShowOpenRoundModal(true); return; }
       try{const cf=localStorage.getItem("mgp_carry_forward");if(cf)setCarryForward(cf);}catch{}
+      if(settings.preroundChecklist===false){setView("play");return;}
       setView("preround"); return;
     }
     if(v==="preround"){
@@ -2557,14 +2558,18 @@ export default function App() {
           setSelectedTee={setSelectedTee}
           courseData={courseData}
           setCourseData={setCourseData}
-          inGameCaddie={inGameCaddie}
-          setInGameCaddie={setInGameCaddie}
         />
         </div>
-        <div style={{padding:"0 12px 4px",display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
-          <input type="date" value={roundDate} onChange={e=>setRoundDate(e.target.value)} style={{...S.input,flex:"0 0 auto",width:136,fontSize:12,padding:"6px 8px"}}/>
-          <div style={{flex:1}}/>
-          <LiveClock P={P}/>
+        <div style={{padding:"0 12px 6px",display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
+          <input type="date" value={roundDate} onChange={e=>setRoundDate(e.target.value)} style={{...S.input,flex:"0 0 auto",width:130,fontSize:12,padding:"6px 8px"}}/>
+          <div style={{flex:1,display:"flex",justifyContent:"center"}}>
+            <LiveClock P={P}/>
+          </div>
+          <button onClick={()=>setInGameCaddie(!inGameCaddie)} {...pp()} style={{display:"flex",alignItems:"center",gap:4,padding:"5px 8px",borderRadius:8,border:`1.5px solid ${inGameCaddie?"#006747":P.border}`,background:inGameCaddie?"#00674715":"transparent",cursor:"pointer",transition:"all 0.15s",flexShrink:0}}>
+            <Icons.Brain color={inGameCaddie?"#006747":P.muted} size={12}/>
+            <span style={{fontSize:10,fontWeight:700,color:inGameCaddie?"#006747":P.muted}}>Caddie</span>
+            <div style={{width:22,height:12,borderRadius:6,background:inGameCaddie?"#006747":P.border,position:"relative",transition:"background 0.2s",flexShrink:0}}><div style={{width:8,height:8,borderRadius:"50%",background:"#fff",position:"absolute",top:2,left:inGameCaddie?12:2,transition:"left 0.2s",boxShadow:"0 1px 2px rgba(0,0,0,0.2)"}}/></div>
+          </button>
         </div>
 
         {/* Hole Grid */}
@@ -2614,40 +2619,40 @@ export default function App() {
             {notation&&notation.diff!==0&&<div style={{fontSize:9,fontWeight:700,color:notation.diff<0?P.green:P.red,letterSpacing:0.5,marginBottom:1}}>{notation.label}</div>}
             <div style={{display:"flex",alignItems:"baseline",gap:6,flexWrap:"nowrap"}}>
               {streak>=3&&<div style={{display:"flex",alignItems:"center",gap:2,padding:"2px 6px",borderRadius:20,background:P.green+"15",border:`1px solid ${P.green}33`}}><Icons.Fire color={P.green} size={11}/><span style={{fontSize:10,fontWeight:700,color:P.green}}>{streak}</span></div>}
-              <span style={{fontSize:22,fontWeight:900,lineHeight:1,color:P.white,whiteSpace:"nowrap"}}>Hole {currentHole+1}</span>
-              {scores[currentHole].yardage&&<div style={{textAlign:"center",marginLeft:16}}><div style={{fontSize:13,fontWeight:700,color:P.muted,lineHeight:1}}>{scores[currentHole].yardage}</div><div style={{fontSize:9,color:P.muted,fontWeight:600,letterSpacing:0.5,marginTop:2}}>yds</div></div>}
-              {runningDiff!==null&&<span style={{fontSize:12,fontWeight:700,color:runningDiff<0?P.green:runningDiff>0?P.red:P.gold,whiteSpace:"nowrap"}}>{runningDiff>0?"+":""}{runningDiff===0?"E":runningDiff}</span>}
+              <span style={{fontSize:26,fontWeight:900,lineHeight:1,color:P.white,whiteSpace:"nowrap"}}>Hole {currentHole+1}</span>
+              {scores[currentHole].yardage&&<div style={{textAlign:"center",marginLeft:16}}><div style={{fontSize:15,fontWeight:700,color:P.muted,lineHeight:1}}>{scores[currentHole].yardage}</div><div style={{fontSize:10,color:P.muted,fontWeight:600,letterSpacing:0.5,marginTop:2}}>yds</div></div>}
+              {runningDiff!==null&&<span style={{fontSize:14,fontWeight:700,color:runningDiff<0?P.green:runningDiff>0?P.red:P.gold,whiteSpace:"nowrap"}}>{runningDiff>0?"+":""}{runningDiff===0?"E":runningDiff}</span>}
             </div>
           </div>
 
           {/* PAR */}
           <div style={{textAlign:"center",flexShrink:0}}>
-            <div style={{fontSize:9,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3}}>PAR</div>
+            <div style={{fontSize:11,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:4}}>PAR</div>
             <input value={scores[currentHole].par} onChange={e=>updateField("par",e.target.value.replace(/\D/g,"").slice(0,1))} style={{...S.miniInput,width:44,fontSize:20}} inputMode="numeric" aria-label="Par"/>
           </div>
 
           {/* SCORE */}
           <div style={{textAlign:"center",flexShrink:0}}>
-            <div style={{fontSize:9,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3}}>SCORE</div>
+            <div style={{fontSize:11,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:4}}>SCORE</div>
             <input value={scores[currentHole].strokeScore} onChange={e=>updateField("strokeScore",e.target.value.replace(/\D/g,"").slice(0,2))} aria-label="Score" style={{...S.miniInput,width:44,fontSize:20,borderRadius:notation?.circle?"50%":notation?.square?"4px":"8px",borderColor:notation?.diff&&notation.diff!==0?(notation.diff<0?P.green:P.red):undefined,borderWidth:notation?.diff&&Math.abs(notation.diff)>=2?"3px":"1.5px",borderStyle:notation?.diff&&Math.abs(notation.diff)>=2?"double":"solid"}} inputMode="numeric"/>
           </div>
 
           {/* FIR / GIR */}
           <div style={{textAlign:"center",flexShrink:0}}>
-            <div style={{fontSize:9,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3}}>FIR / GIR</div>
+            <div style={{fontSize:11,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:4}}>FIR / GIR</div>
             <div style={{display:"flex",gap:3,height:34,background:P.card,borderRadius:9,border:`1.5px solid ${P.border}`,padding:"0 5px",alignItems:"center"}}>
-              <button onClick={()=>updateField("fairway",scores[currentHole].fairway===true?null:true)} {...pp()} style={{height:22,padding:"0 6px",borderRadius:6,border:`1.5px solid ${scores[currentHole].fairway===true?P.green:P.border}`,background:scores[currentHole].fairway===true?P.green+"20":"transparent",color:scores[currentHole].fairway===true?P.green:P.muted,fontSize:11,fontWeight:700,cursor:"pointer"}}>{scores[currentHole].fairway===true?<Icons.Check color={P.green} size={11}/>:<span style={{display:"inline-block",width:16}}/>}</button>
-              <button onClick={()=>updateField("gir",scores[currentHole].gir===true?null:true)} {...pp()} style={{height:22,padding:"0 6px",borderRadius:6,border:`1.5px solid ${scores[currentHole].gir===true?P.accent:P.border}`,background:scores[currentHole].gir===true?P.accent+"20":"transparent",color:scores[currentHole].gir===true?P.accent:P.muted,fontSize:11,fontWeight:700,cursor:"pointer"}}>{scores[currentHole].gir===true?<Icons.Check color={P.accent} size={11}/>:<span style={{display:"inline-block",width:16}}/>}</button>
+              <button onClick={()=>updateField("fairway",scores[currentHole].fairway===true?null:true)} {...pp()} style={{height:28,padding:"0 8px",borderRadius:6,border:`1.5px solid ${scores[currentHole].fairway===true?P.green:P.border}`,background:scores[currentHole].fairway===true?P.green+"20":"transparent",color:scores[currentHole].fairway===true?P.green:P.muted,fontSize:13,fontWeight:700,cursor:"pointer"}}>{scores[currentHole].fairway===true?<Icons.Check color={P.green} size={11}/>:<span style={{display:"inline-block",width:16}}/>}</button>
+              <button onClick={()=>updateField("gir",scores[currentHole].gir===true?null:true)} {...pp()} style={{height:28,padding:"0 8px",borderRadius:6,border:`1.5px solid ${scores[currentHole].gir===true?P.accent:P.border}`,background:scores[currentHole].gir===true?P.accent+"20":"transparent",color:scores[currentHole].gir===true?P.accent:P.muted,fontSize:13,fontWeight:700,cursor:"pointer"}}>{scores[currentHole].gir===true?<Icons.Check color={P.accent} size={11}/>:<span style={{display:"inline-block",width:16}}/>}</button>
             </div>
           </div>
 
           {/* PUTTS */}
           <div style={{textAlign:"center",flexShrink:0}}>
-            <div style={{fontSize:9,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3}}>PUTTS</div>
+            <div style={{fontSize:11,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:4}}>PUTTS</div>
             <div style={{display:"flex",alignItems:"center",gap:3,height:38,background:P.card,borderRadius:9,border:`1.5px solid ${P.border}`,padding:"0 4px"}}>
-              <button onClick={()=>updateField("putts",Math.max(0,(parseInt(scores[currentHole].putts)||0)-1)||"")} style={{width:32,height:32,borderRadius:7,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:17,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}} {...pp()}>−</button>
-              <span style={{fontSize:20,fontWeight:800,color:scores[currentHole].putts?P.white:P.muted,minWidth:22,textAlign:"center"}}>{scores[currentHole].putts||"—"}</span>
-              <button onClick={()=>updateField("putts",(parseInt(scores[currentHole].putts)||0)+1)} style={{width:32,height:32,borderRadius:7,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:17,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}} {...pp()}>+</button>
+              <button onClick={()=>updateField("putts",Math.max(0,(parseInt(scores[currentHole].putts)||0)-1)||"")} style={{width:36,height:36,borderRadius:7,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:20,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}} {...pp()}>−</button>
+              <span style={{fontSize:24,fontWeight:800,color:scores[currentHole].putts?P.white:P.muted,minWidth:26,textAlign:"center"}}>{scores[currentHole].putts||"—"}</span>
+              <button onClick={()=>updateField("putts",(parseInt(scores[currentHole].putts)||0)+1)} style={{width:36,height:36,borderRadius:7,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:20,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}} {...pp()}>+</button>
             </div>
           </div>
 
@@ -2659,18 +2664,18 @@ export default function App() {
         <div style={{padding:"0 10px 2px",flexShrink:0}}>
 
           {/* Toggle header — matches grid column layout */}
-          <button onClick={()=>setMatchupOpen(o=>!o)} {...pp()} style={{width:"100%",display:"grid",gridTemplateColumns:"36px 1fr 48px 1fr 36px",alignItems:"center",gap:2,padding:"3px 2px",background:"transparent",border:"none",cursor:"pointer",transition:"transform 0.1s"}}>
-            <div style={{textAlign:"center",fontSize:9,fontWeight:800,letterSpacing:1.5,color:P.green}}>
-              {!matchupOpen&&hT>0?<span style={{fontSize:12,fontWeight:900,color:P.green}}>{hT}</span>:""}
+          <button onClick={()=>setMatchupOpen(o=>!o)} {...pp()} style={{width:"100%",display:"grid",gridTemplateColumns:"44px 1fr 56px 1fr 44px",alignItems:"center",gap:4,padding:"3px 2px",background:"transparent",border:"none",cursor:"pointer",transition:"transform 0.1s"}}>
+            <div style={{textAlign:"center",fontSize:11,fontWeight:800,letterSpacing:1.5,color:P.green}}>
+              {!matchupOpen&&hT>0?<span style={{fontSize:15,fontWeight:900,color:P.green}}>{hT}</span>:""}
             </div>
-            <div style={{textAlign:"center",fontSize:9,fontWeight:800,letterSpacing:1.5,color:P.green}}>HEROES</div>
+            <div style={{textAlign:"center",fontSize:11,fontWeight:800,letterSpacing:1.5,color:P.green}}>HEROES</div>
             <div style={{textAlign:"center",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
-              {!matchupOpen&&hT===0&&bT===0&&<span style={{fontSize:9,color:P.muted,fontWeight:500,fontStyle:"italic"}}>tap to log</span>}
+              {!matchupOpen&&hT===0&&bT===0&&<span style={{fontSize:11,color:P.muted,fontWeight:500,fontStyle:"italic"}}>tap to log</span>}
               <div style={{transform:matchupOpen?"rotate(-90deg)":"rotate(90deg)",transition:"transform 0.2s",lineHeight:0}}><Icons.Chev color={P.muted} size={13}/></div>
             </div>
-            <div style={{textAlign:"center",fontSize:9,fontWeight:800,letterSpacing:1.5,color:P.red}}>BANDITS</div>
-            <div style={{textAlign:"center",fontSize:9,fontWeight:800,letterSpacing:1.5,color:P.red}}>
-              {!matchupOpen&&bT>0?<span style={{fontSize:12,fontWeight:900,color:P.red}}>{bT}</span>:""}
+            <div style={{textAlign:"center",fontSize:11,fontWeight:800,letterSpacing:1.5,color:P.red}}>BANDITS</div>
+            <div style={{textAlign:"center",fontSize:11,fontWeight:800,letterSpacing:1.5,color:P.red}}>
+              {!matchupOpen&&bT>0?<span style={{fontSize:15,fontWeight:900,color:P.red}}>{bT}</span>:""}
             </div>
           </button>
         </div>
@@ -2680,12 +2685,12 @@ export default function App() {
             const heroColor = P.green;
             const hActive = hH[hero]===1, bActive = hB[bandit]===1;
             return (
-            <div key={idx} style={{display:"grid",gridTemplateColumns:"36px 1fr 48px 1fr 36px",alignItems:"center",gap:2,padding:"6px 2px",borderRadius:10,background:hActive?heroColor+"10":bActive?P.red+"08":idx%2===0?P.card:"transparent",border:`1px solid ${hActive?heroColor+"33":bActive?P.red+"22":"transparent"}`,transition:"all 0.18s ease"}}>
-              <button onClick={()=>setScore("heroes",hero,1)} aria-label={`${hero} hero`} aria-pressed={hActive} style={{...toggleBtn(P,"green",hActive),width:32,height:32,borderColor:hActive?heroColor:P.greenDim,background:hActive?heroColor:"transparent",boxShadow:hActive?`0 0 12px ${heroColor}44`:"none"}}>{hActive?<Icons.Check color="#fff" size={13}/>:""}</button>
-              <div style={{fontSize:13,color:hActive?heroColor:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{hero}</div>
-              <div style={{textAlign:"center",fontSize:12,color:P.muted,fontStyle:"italic",fontWeight:600}}>{verb}</div>
-              <div style={{fontSize:13,color:bActive?P.red:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{bandit}</div>
-              <button onClick={()=>setScore("bandits",bandit,1)} aria-label={`${bandit} bandit`} aria-pressed={bActive} style={{...toggleBtn(P,"red",bActive),width:32,height:32,borderRadius:10}}>{bActive?<Icons.Check color="#fff" size={13}/>:""}</button>
+            <div key={idx} style={{display:"grid",gridTemplateColumns:"44px 1fr 56px 1fr 44px",alignItems:"center",gap:4,padding:"10px 6px",borderRadius:10,background:hActive?heroColor+"10":bActive?P.red+"08":idx%2===0?P.card:"transparent",border:`1px solid ${hActive?heroColor+"33":bActive?P.red+"22":"transparent"}`,transition:"all 0.18s ease"}}>
+              <button onClick={()=>setScore("heroes",hero,1)} aria-label={`${hero} hero`} aria-pressed={hActive} style={{...toggleBtn(P,"green",hActive),width:40,height:40,borderColor:hActive?heroColor:P.greenDim,background:hActive?heroColor:"transparent",boxShadow:hActive?`0 0 12px ${heroColor}44`:"none"}}>{hActive?<Icons.Check color="#fff" size={16}/>:""}</button>
+              <div style={{fontSize:16,color:hActive?heroColor:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{hero}</div>
+              <div style={{textAlign:"center",fontSize:13,color:P.muted,fontStyle:"italic",fontWeight:600}}>{verb}</div>
+              <div style={{fontSize:16,color:bActive?P.red:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{bandit}</div>
+              <button onClick={()=>setScore("bandits",bandit,1)} aria-label={`${bandit} bandit`} aria-pressed={bActive} style={{...toggleBtn(P,"red",bActive),width:40,height:40,borderRadius:10}}>{bActive?<Icons.Check color="#fff" size={16}/>:""}</button>
             </div>
           );})}
         </div>}
@@ -2720,7 +2725,7 @@ export default function App() {
               </div>
             </div>
             <div style={{textAlign:"center",flexShrink:0}}>
-              <div style={{fontSize:8,color:P.muted,letterSpacing:1.5,fontWeight:700,marginBottom:1,display:"flex",alignItems:"center",gap:3,justifyContent:"center"}}>MENTAL NET <span onClick={()=>setShowMentalNetInfo(true)} style={{width:13,height:13,borderRadius:"50%",border:`1px solid ${P.border}`,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:7,color:P.muted,cursor:"pointer",flexShrink:0}}>?</span></div>
+              <div style={{fontSize:8,color:P.muted,letterSpacing:1.5,fontWeight:700,marginBottom:1,display:"flex",alignItems:"center",gap:3,justifyContent:"center"}}>MENTAL NET <button onClick={()=>setShowMentalNetInfo(true)} {...pp()} style={{width:15,height:15,borderRadius:"50%",border:`1px solid ${P.border}`,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:8,color:P.muted,cursor:"pointer",flexShrink:0,background:"transparent",padding:0,lineHeight:1}}>?</button></div>
               <div style={{fontSize:36,fontWeight:900,lineHeight:1,color:total.net>0?P.green:total.net<0?P.red:P.gold,textShadow:total.net!==0?`0 0 20px ${total.net>0?P.green:P.red}44`:"none",transition:"all 0.2s"}}>{total.net>0?"+":""}{total.net}</div>
               {rd!==null&&<div style={{fontSize:10,fontWeight:700,color:rd<0?P.green:rd>0?P.red:P.gold,marginTop:1}}>{rd>0?"+":""}{rd===0?"E par":rd+" vs par"}</div>}
             </div>
@@ -3492,11 +3497,11 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
       <div style={{padding:"16px 20px 8px",display:"flex",alignItems:"center",justifyContent:"space-between"}}><button onClick={onBack} style={S.iconBtn} {...pp()}><Icons.Back color={P.muted}/></button><div style={{fontSize:18,fontWeight:700,color:P.white}}>Full Scorecard</div><button onClick={onHome||onBack} style={S.iconBtn} {...pp()}><Icons.Home color={P.muted} size={17}/></button></div>
       {courseName&&<div style={{textAlign:"center",color:P.muted,fontSize:13,fontWeight:500}}>{courseName} — {roundDate}</div>}
       <div style={{flex:1,overflowX:"auto",padding:"6px 4px 0"}}>
-        <table style={{borderCollapse:"collapse",fontSize:11,minWidth:"100%"}}>
+        <table style={{borderCollapse:"collapse",fontSize:16,minWidth:"100%"}}>
           <thead>
             <tr>
-              {["#","Par","Scr","+/-","Putts","FIR","GIR","H","B","Net"].map(h=>(
-                <th key={h} style={{padding:"5px 4px",textAlign:"center",color:P.muted,borderBottom:`1.5px solid ${P.border}`,fontSize:9,fontWeight:700,whiteSpace:"nowrap",position:"sticky",top:0,background:P.bg,zIndex:1}}>{h}</th>
+              {["#","Par","H","B","Net","Scr","+/-","Pts","FIR","GIR"].map(h=>(
+                <th key={h} style={{padding:"6px 5px",textAlign:"center",color:P.muted,borderBottom:`1.5px solid ${P.border}`,fontSize:12,fontWeight:700,whiteSpace:"nowrap",position:"sticky",top:0,background:P.bg,zIndex:1}}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -3513,85 +3518,62 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
                 <tr key={i} ref={!scores[i].strokeScore&&!scores.slice(0,i).some(h=>!h.strokeScore)?activeRowRef:null} onClick={()=>onSelectHole(i)} style={{cursor:"pointer",background:i%2===0?P.card:"transparent"}}>
                   <td style={{...S.cell,fontWeight:700,color:P.accent}}>{i+1}</td>
                   <td style={S.cell}>{h.par||"—"}</td>
-                  <td style={{...S.cell,fontWeight:h.strokeScore?800:400}}>
-                    {h.strokeScore?(()=>{
-                      const diff = nt?.diff ?? 0;
-                      const baseStyle = {
-                        display:"inline-flex",alignItems:"center",justifyContent:"center",
-                        width:24,height:24,fontSize:12,fontWeight:800,position:"relative",
-                        color: diff<0 ? P.green : diff>0 ? P.red : P.white,
-                      };
-                      if (diff <= -2) return ( // Eagle: double circle
-                        <span style={{...baseStyle,position:"relative"}}>
-                          <span style={{position:"absolute",inset:-1,borderRadius:"50%",border:`1.5px solid ${P.gold}`}}/>
-                          <span style={{position:"absolute",inset:3,borderRadius:"50%",border:`1.5px solid ${P.gold}`}}/>
-                          <span style={{color:P.gold}}>{h.strokeScore}</span>
-                        </span>
-                      );
-                      if (diff === -1) return ( // Birdie: circle
-                        <span style={{...baseStyle,borderRadius:"50%",border:`1.5px solid ${P.green}`}}>{h.strokeScore}</span>
-                      );
-                      if (diff === 0) return ( // Par: plain
-                        <span style={{...baseStyle}}>{h.strokeScore}</span>
-                      );
-                      if (diff === 1) return ( // Bogey: square
-                        <span style={{...baseStyle,borderRadius:3,border:`1.5px solid ${P.red}`}}>{h.strokeScore}</span>
-                      );
-                      // Double+: double square
-                      return (
-                        <span style={{...baseStyle,position:"relative"}}>
-                          <span style={{position:"absolute",inset:-1,borderRadius:3,border:`1.5px solid ${P.red}`}}/>
-                          <span style={{position:"absolute",inset:3,borderRadius:2,border:`1.5px solid ${P.red}`}}/>
-                          <span style={{color:P.red}}>{h.strokeScore}</span>
-                        </span>
-                      );
-                    })():"—"}
-                  </td>
-                  <td style={{...S.cell,fontWeight:700,color:runDiff===null?P.muted:runDiff<0?P.green:runDiff>0?P.red:P.gold}}>{runDiff===null?"—":runDiff===0?"E":(runDiff>0?"+":"")+runDiff}</td>
-                  <td style={{...S.cell,color:h.putts>2?P.red:h.putts===1?P.green:P.white,fontWeight:h.putts?700:400}}>{h.putts||"—"}</td>
-                  <td style={{...S.cell,color:h.fairway===true?P.green:P.muted,fontWeight:700}}>{h.fairway===true?"✓":"—"}</td>
-                  <td style={{...S.cell,color:h.gir===true?P.accent:P.muted,fontWeight:700}}>{h.gir===true?"✓":"—"}</td>
                   <td style={{...S.cell,color:P.green,fontWeight:600}}>{s.heroes||"—"}</td>
                   <td style={{...S.cell,color:P.red,fontWeight:600}}>{s.bandits||"—"}</td>
                   <td style={{...S.cell,fontWeight:700,color:s.net>0?P.green:s.net<0?P.red:s.heroes+s.bandits>0?P.gold:P.muted}}>{s.heroes+s.bandits>0?(s.net>0?"+":"")+s.net:"—"}</td>
+                  <td style={{...S.cell,fontWeight:h.strokeScore?800:400}}>
+                    {h.strokeScore?(()=>{
+                      const diff = nt?.diff ?? 0;
+                      const baseStyle = {display:"inline-flex",alignItems:"center",justifyContent:"center",width:26,height:26,fontSize:14,fontWeight:800,position:"relative",color:diff<0?P.green:diff>0?P.red:P.white};
+                      if(diff<=-2)return(<span style={{...baseStyle,position:"relative"}}><span style={{position:"absolute",inset:-1,borderRadius:"50%",border:`1.5px solid ${P.gold}`}}/><span style={{position:"absolute",inset:3,borderRadius:"50%",border:`1.5px solid ${P.gold}`}}/><span style={{color:P.gold}}>{h.strokeScore}</span></span>);
+                      if(diff===-1)return(<span style={{...baseStyle,borderRadius:"50%",border:`1.5px solid ${P.green}`}}>{h.strokeScore}</span>);
+                      if(diff===0)return(<span style={baseStyle}>{h.strokeScore}</span>);
+                      if(diff===1)return(<span style={{...baseStyle,borderRadius:3,border:`1.5px solid ${P.red}`}}>{h.strokeScore}</span>);
+                      return(<span style={{...baseStyle,position:"relative"}}><span style={{position:"absolute",inset:-1,borderRadius:3,border:`1.5px solid ${P.red}`}}/><span style={{position:"absolute",inset:3,borderRadius:2,border:`1.5px solid ${P.red}`}}/><span style={{color:P.red}}>{h.strokeScore}</span></span>);
+                    })():"—"}
+                  </td>
+                  <td style={{...S.cell,fontWeight:700,color:runDiff===null?P.muted:runDiff<0?P.green:runDiff>0?P.red:P.gold}}>{runDiff===null?"—":runDiff===0?"E":(runDiff>0?"+":"")+runDiff}</td>
+                  <td style={{...S.cell,color:h.putts>2?P.red:h.putts===1?P.green:P.white,fontWeight:h.putts?700:400,padding:"12px 6px"}}>{h.putts||"—"}</td>
+                  <td style={{...S.cell,color:h.fairway===true?P.green:P.muted,fontWeight:700,padding:"12px 6px"}}>{(parseInt(h.par)===4||parseInt(h.par)===5)?(h.fairway===true?"✓":"—"):"—"}</td>
+                  <td style={{...S.cell,color:h.gir===true?P.accent:P.muted,fontWeight:700,padding:"12px 6px"}}>{h.gir===true?"✓":"—"}</td>
                 </tr>,
                 i===8&&<tr key="out" style={{background:P.cardAlt,borderTop:`1.5px solid ${P.border}`}}>
-                  <td style={{...S.cell,fontWeight:800,fontSize:9,color:P.muted}}>OUT</td>
+                  <td style={{...S.cell,fontWeight:800,fontSize:11,color:P.muted}}>OUT</td>
                   <td style={{...S.cell,fontWeight:700}}>{fp||"—"}</td>
-                  <td style={{...S.cell,fontWeight:700}}>{fs||"—"}</td>
-                  <td style={{...S.cell,fontWeight:700,color:fs&&fp?(fs-fp)<0?P.green:(fs-fp)>0?P.red:P.gold:P.muted}}>{fs&&fp?(fs-fp)===0?"E":((fs-fp)>0?"+":"")+(fs-fp):"—"}</td>
-                  <td style={{...S.cell,fontWeight:700,color:P.white}}>{fPutts||"—"}</td>
-                  <td style={{...S.cell,fontWeight:700,color:P.green}}>{fFir}/9</td>
-                  <td style={{...S.cell,fontWeight:700,color:P.accent}}>{fGir}/9</td>
                   <td style={{...S.cell,color:P.green,fontWeight:700}}>{front.heroes}</td>
                   <td style={{...S.cell,color:P.red,fontWeight:700}}>{front.bandits}</td>
                   <td style={{...S.cell,fontWeight:800,color:front.net>0?P.green:front.net<0?P.red:P.gold}}>{front.net>0?"+":""}{front.net}</td>
+                  <td style={{...S.cell,fontWeight:700}}>{fs||"—"}</td>
+                  <td style={{...S.cell,fontWeight:700,color:fs&&fp?(fs-fp)<0?P.green:(fs-fp)>0?P.red:P.gold:P.muted}}>{fs&&fp?(fs-fp)===0?"E":((fs-fp)>0?"+":"")+(fs-fp):"—"}</td>
+                  <td style={{...S.cell,fontWeight:700,color:P.white,padding:"12px 6px"}}>{fPutts||"—"}</td>
+                  <td style={{...S.cell,fontWeight:700,color:P.green,padding:"12px 6px"}}>{fFir}/9</td>
+                  <td style={{...S.cell,fontWeight:700,color:P.accent,padding:"12px 6px"}}>{fGir}/9</td>
                 </tr>,
               ];
             })}
             <tr style={{background:P.cardAlt,borderTop:`1.5px solid ${P.border}`}}>
-              <td style={{...S.cell,fontWeight:800,fontSize:9,color:P.muted}}>IN</td>
+              <td style={{...S.cell,fontWeight:800,fontSize:11,color:P.muted}}>IN</td>
               <td style={{...S.cell,fontWeight:700}}>{bp||"—"}</td>
-              <td style={{...S.cell,fontWeight:700}}>{bs||"—"}</td>
-              <td style={{...S.cell,fontWeight:700,color:bs&&bp?(bs-bp)<0?P.green:(bs-bp)>0?P.red:P.gold:P.muted}}>{bs&&bp?(bs-bp)===0?"E":((bs-bp)>0?"+":"")+(bs-bp):"—"}</td>
-              <td style={{...S.cell,fontWeight:700,color:P.white}}>{bPutts||"—"}</td>
-              <td style={{...S.cell,fontWeight:700,color:P.green}}>{bFir}/9</td>
-              <td style={{...S.cell,fontWeight:700,color:P.accent}}>{bGir}/9</td>
               <td style={{...S.cell,color:P.green,fontWeight:700}}>{back.heroes}</td>
               <td style={{...S.cell,color:P.red,fontWeight:700}}>{back.bandits}</td>
               <td style={{...S.cell,fontWeight:800,color:back.net>0?P.green:back.net<0?P.red:P.gold}}>{back.net>0?"+":""}{back.net}</td>
+              <td style={{...S.cell,fontWeight:700}}>{bs||"—"}</td>
+              <td style={{...S.cell,fontWeight:700,color:bs&&bp?(bs-bp)<0?P.green:(bs-bp)>0?P.red:P.gold:P.muted}}>{bs&&bp?(bs-bp)===0?"E":((bs-bp)>0?"+":"")+(bs-bp):"—"}</td>
+              <td style={{...S.cell,fontWeight:700,color:P.white,padding:"12px 6px"}}>{bPutts||"—"}</td>
+              <td style={{...S.cell,fontWeight:700,color:P.green,padding:"12px 6px"}}>{bFir}/9</td>
+              <td style={{...S.cell,fontWeight:700,color:P.accent,padding:"12px 6px"}}>{bGir}/9</td>
             </tr>
             <tr style={{background:P.accent+"10",borderTop:`2px solid ${P.accent}44`}}>
-              <td style={{...S.cell,fontWeight:800,fontSize:9,color:P.accent}}>TOT</td>
+              <td style={{...S.cell,fontWeight:800,fontSize:11,color:P.accent}}>TOT</td>
               <td style={{...S.cell,fontWeight:800}}>{fp+bp||"—"}</td>
-              <td style={{...S.cell,fontWeight:800}}>{fs+bs||"—"}</td>
-              <td style={{...S.cell,fontWeight:800,color:(fs+bs)&&(fp+bp)?(fs+bs-(fp+bp))<0?P.green:(fs+bs-(fp+bp))>0?P.red:P.gold:P.muted}}>{(fs+bs)&&(fp+bp)?(fs+bs-(fp+bp))===0?"E":((fs+bs-(fp+bp))>0?"+":"")+(fs+bs-(fp+bp)):"—"}</td>
-              <td style={{...S.cell,fontWeight:800,color:P.white}}>{fPutts+bPutts||"—"}</td>
-              <td style={{...S.cell,fontWeight:800,color:P.green}}>{fFir+bFir}/18</td>
-              <td style={{...S.cell,fontWeight:800,color:P.accent}}>{fGir+bGir}/18</td>
               <td style={{...S.cell,color:P.green,fontWeight:800}}>{total.heroes}</td>
               <td style={{...S.cell,color:P.red,fontWeight:800}}>{total.bandits}</td>
-              <td style={{...S.cell,fontWeight:900,fontSize:14,color:total.net>0?P.green:total.net<0?P.red:P.gold}}>{total.net>0?"+":""}{total.net}</td>
+              <td style={{...S.cell,fontWeight:900,fontSize:15,color:total.net>0?P.green:total.net<0?P.red:P.gold}}>{total.net>0?"+":""}{total.net}</td>
+              <td style={{...S.cell,fontWeight:800}}>{fs+bs||"—"}</td>
+              <td style={{...S.cell,fontWeight:800,color:(fs+bs)&&(fp+bp)?(fs+bs-(fp+bp))<0?P.green:(fs+bs-(fp+bp))>0?P.red:P.gold:P.muted}}>{(fs+bs)&&(fp+bp)?(fs+bs-(fp+bp))===0?"E":((fs+bs-(fp+bp))>0?"+":"")+(fs+bs-(fp+bp)):"—"}</td>
+              <td style={{...S.cell,fontWeight:800,color:P.white,padding:"12px 6px"}}>{fPutts+bPutts||"—"}</td>
+              <td style={{...S.cell,fontWeight:800,color:P.green,padding:"12px 6px"}}>{fFir+bFir}/18</td>
+              <td style={{...S.cell,fontWeight:800,color:P.accent,padding:"12px 6px"}}>{fGir+bGir}/18</td>
             </tr>
           </tbody>
         </table>
@@ -3767,11 +3749,11 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                 <div style={{background:P.card,borderRadius:12,border:`1.5px solid ${P.border}`,marginBottom:12,overflow:"hidden"}}>
                   <div style={{fontSize:9,color:PM_GOLD,fontWeight:800,letterSpacing:1.5,padding:"10px 14px 6px"}}>SCORECARD</div>
                   <div style={{overflowX:"auto"}}>
-                    <table style={{width:"100%",borderCollapse:"collapse",fontSize:10}}>
+                    <table style={{borderCollapse:"collapse",fontSize:16,minWidth:"100%"}}>
                       <thead>
                         <tr style={{background:P.cardAlt}}>
-                          {["#","Par","Score","+/-","Putts","FIR","GIR","H","B","Net"].map(h=>(
-                            <th key={h} style={{padding:"5px 3px",textAlign:"center",color:P.muted,borderBottom:`1px solid ${P.border}`,fontSize:9,fontWeight:700}}>{h}</th>
+                          {["#","Par","H","B","Net","Score","+/-","Pts","FIR","GIR"].map(h=>(
+                            <th key={h} style={{padding:"6px 4px",textAlign:"center",color:P.muted,borderBottom:`1px solid ${P.border}`,fontSize:11,fontWeight:700}}>{h}</th>
                           ))}
                         </tr>
                       </thead>
@@ -3784,54 +3766,54 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                           const runDiff=(hole.strokeScore&&hole.par)?runStroke-runPar:null;
                           return (
                             <tr key={i} style={{background:i%2===0?P.cardAlt+"60":"transparent",borderBottom:i===8?`2px solid ${P.border}`:undefined}}>
-                              <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,color:P.accent,fontSize:10}}>{i+1}</td>
-                              <td style={{padding:"4px 3px",textAlign:"center",fontSize:10}}>{hole.par||"—"}</td>
-                              <td style={{padding:"4px 3px",textAlign:"center",fontWeight:hole.strokeScore?700:400,color:diff===null?P.white:diff<0?P.green:diff>0?P.red:P.white,fontSize:10}}>{hole.strokeScore||"—"}</td>
-                              <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,fontSize:10,color:runDiff===null?P.muted:runDiff<0?P.green:runDiff>0?P.red:P.gold}}>{runDiff===null?"—":runDiff===0?"E":(runDiff>0?"+":"")+runDiff}</td>
-                              <td style={{padding:"4px 3px",textAlign:"center",color:hole.putts>2?P.red:hole.putts===1?P.green:P.white,fontWeight:hole.putts?600:400,fontSize:10}}>{hole.putts||"—"}</td>
-                              <td style={{padding:"4px 3px",textAlign:"center",color:hole.fairway===true?P.green:P.muted,fontWeight:700,fontSize:10}}>{parseInt(hole.par)===4||parseInt(hole.par)===5?(hole.fairway===true?"✓":"—"):"—"}</td>
-                              <td style={{padding:"4px 3px",textAlign:"center",color:hole.gir===true?P.accent:P.muted,fontWeight:700,fontSize:10}}>{hole.gir===true?"✓":"—"}</td>
-                              <td style={{padding:"4px 3px",textAlign:"center",color:P.green,fontWeight:600,fontSize:10}}>{s.heroes||"—"}</td>
-                              <td style={{padding:"4px 3px",textAlign:"center",color:P.red,fontWeight:600,fontSize:10}}>{s.bandits||"—"}</td>
-                              <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,fontSize:10,color:s.net>0?P.green:s.net<0?P.red:s.heroes+s.bandits>0?P.gold:P.muted}}>{s.heroes+s.bandits>0?(s.net>0?"+":"")+s.net:"—"}</td>
+                              <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,color:P.accent,fontSize:14}}>{i+1}</td>
+                              <td style={{padding:"6px 4px",textAlign:"center",fontSize:14}}>{hole.par||"—"}</td>
+                              <td style={{padding:"6px 4px",textAlign:"center",color:P.green,fontWeight:600,fontSize:14}}>{s.heroes||"—"}</td>
+                              <td style={{padding:"6px 4px",textAlign:"center",color:P.red,fontWeight:600,fontSize:14}}>{s.bandits||"—"}</td>
+                              <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,fontSize:14,color:s.net>0?P.green:s.net<0?P.red:s.heroes+s.bandits>0?P.gold:P.muted}}>{s.heroes+s.bandits>0?(s.net>0?"+":"")+s.net:"—"}</td>
+                              <td style={{padding:"6px 4px",textAlign:"center",fontWeight:hole.strokeScore?700:400,color:diff===null?P.white:diff<0?P.green:diff>0?P.red:P.white,fontSize:14}}>{hole.strokeScore||"—"}</td>
+                              <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,fontSize:14,color:runDiff===null?P.muted:runDiff<0?P.green:runDiff>0?P.red:P.gold}}>{runDiff===null?"—":runDiff===0?"E":(runDiff>0?"+":"")+runDiff}</td>
+                              <td style={{padding:"6px 5px",textAlign:"center",color:hole.putts>2?P.red:hole.putts===1?P.green:P.white,fontWeight:hole.putts?600:400,fontSize:14}}>{hole.putts||"—"}</td>
+                              <td style={{padding:"6px 5px",textAlign:"center",color:hole.fairway===true?P.green:P.muted,fontWeight:700,fontSize:14}}>{parseInt(hole.par)===4||parseInt(hole.par)===5?(hole.fairway===true?"✓":"—"):"—"}</td>
+                              <td style={{padding:"6px 5px",textAlign:"center",color:hole.gir===true?P.accent:P.muted,fontWeight:700,fontSize:14}}>{hole.gir===true?"✓":"—"}</td>
                             </tr>
                           );
                         })}
                         <tr style={{background:P.cardAlt,borderTop:`1.5px solid ${P.border}`}}>
-                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:800,fontSize:9,color:P.muted}}>OUT</td>
-                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,fontSize:10}}>{hFp||"—"}</td>
-                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,fontSize:10}}>{hFs||"—"}</td>
-                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,fontSize:10,color:hFs&&hFp?(hFs-hFp)<0?P.green:(hFs-hFp)>0?P.red:P.gold:P.muted}}>{hFs&&hFp?(hFs-hFp)===0?"E":((hFs-hFp)>0?"+":"")+(hFs-hFp):"—"}</td>
-                          <td style={{padding:"4px 3px",textAlign:"center",fontSize:10}}/>
-                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,color:P.green,fontSize:10}}>{hFfir}/9</td>
-                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,color:P.accent,fontSize:10}}>{hFgir}/9</td>
-                          <td style={{padding:"4px 3px",textAlign:"center",color:P.green,fontWeight:700,fontSize:10}}>{hFront.heroes}</td>
-                          <td style={{padding:"4px 3px",textAlign:"center",color:P.red,fontWeight:700,fontSize:10}}>{hFront.bandits}</td>
-                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:800,fontSize:10,color:hFront.net>0?P.green:hFront.net<0?P.red:P.gold}}>{hFront.net>0?"+":""}{hFront.net}</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:11,color:P.muted}}>OUT</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,fontSize:14}}>{hFp||"—"}</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",color:P.green,fontWeight:700,fontSize:14}}>{hFront.heroes}</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",color:P.red,fontWeight:700,fontSize:14}}>{hFront.bandits}</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:14,color:hFront.net>0?P.green:hFront.net<0?P.red:P.gold}}>{hFront.net>0?"+":""}{hFront.net}</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,fontSize:14}}>{hFs||"—"}</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,fontSize:14,color:hFs&&hFp?(hFs-hFp)<0?P.green:(hFs-hFp)>0?P.red:P.gold:P.muted}}>{hFs&&hFp?(hFs-hFp)===0?"E":((hFs-hFp)>0?"+":"")+(hFs-hFp):"—"}</td>
+                          <td style={{padding:"6px 5px",textAlign:"center",fontSize:14}}/>
+                          <td style={{padding:"6px 5px",textAlign:"center",fontWeight:700,color:P.green,fontSize:14}}>{hFfir}/9</td>
+                          <td style={{padding:"6px 5px",textAlign:"center",fontWeight:700,color:P.accent,fontSize:14}}>{hFgir}/9</td>
                         </tr>
                         <tr style={{background:P.cardAlt,borderTop:`1px solid ${P.border}`}}>
-                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:800,fontSize:9,color:P.muted}}>IN</td>
-                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,fontSize:10}}>{hBp||"—"}</td>
-                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,fontSize:10}}>{hBs||"—"}</td>
-                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,fontSize:10,color:hBs&&hBp?(hBs-hBp)<0?P.green:(hBs-hBp)>0?P.red:P.gold:P.muted}}>{hBs&&hBp?(hBs-hBp)===0?"E":((hBs-hBp)>0?"+":"")+(hBs-hBp):"—"}</td>
-                          <td style={{padding:"4px 3px",textAlign:"center",fontSize:10}}/>
-                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,color:P.green,fontSize:10}}>{hBfir}/9</td>
-                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:700,color:P.accent,fontSize:10}}>{hBgir}/9</td>
-                          <td style={{padding:"4px 3px",textAlign:"center",color:P.green,fontWeight:700,fontSize:10}}>{hBack.heroes}</td>
-                          <td style={{padding:"4px 3px",textAlign:"center",color:P.red,fontWeight:700,fontSize:10}}>{hBack.bandits}</td>
-                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:800,fontSize:10,color:hBack.net>0?P.green:hBack.net<0?P.red:P.gold}}>{hBack.net>0?"+":""}{hBack.net}</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:11,color:P.muted}}>IN</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,fontSize:14}}>{hBp||"—"}</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",color:P.green,fontWeight:700,fontSize:14}}>{hBack.heroes}</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",color:P.red,fontWeight:700,fontSize:14}}>{hBack.bandits}</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:14,color:hBack.net>0?P.green:hBack.net<0?P.red:P.gold}}>{hBack.net>0?"+":""}{hBack.net}</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,fontSize:14}}>{hBs||"—"}</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,fontSize:14,color:hBs&&hBp?(hBs-hBp)<0?P.green:(hBs-hBp)>0?P.red:P.gold:P.muted}}>{hBs&&hBp?(hBs-hBp)===0?"E":((hBs-hBp)>0?"+":"")+(hBs-hBp):"—"}</td>
+                          <td style={{padding:"6px 5px",textAlign:"center",fontSize:14}}/>
+                          <td style={{padding:"6px 5px",textAlign:"center",fontWeight:700,color:P.green,fontSize:14}}>{hBfir}/9</td>
+                          <td style={{padding:"6px 5px",textAlign:"center",fontWeight:700,color:P.accent,fontSize:14}}>{hBgir}/9</td>
                         </tr>
                         <tr style={{background:P.accent+"10",borderTop:`2px solid ${P.accent}44`}}>
-                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:800,fontSize:9,color:P.accent}}>TOT</td>
-                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:800,fontSize:10}}>{hFp+hBp||"—"}</td>
-                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:800,fontSize:10}}>{hFs+hBs||"—"}</td>
-                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:800,fontSize:10,color:(hFs+hBs)&&(hFp+hBp)?(hFs+hBs-(hFp+hBp))<0?P.green:(hFs+hBs-(hFp+hBp))>0?P.red:P.gold:P.muted}}>{(hFs+hBs)&&(hFp+hBp)?(hFs+hBs-(hFp+hBp))===0?"E":((hFs+hBs-(hFp+hBp))>0?"+":"")+(hFs+hBs-(hFp+hBp)):"—"}</td>
-                          <td style={{padding:"4px 3px",textAlign:"center",fontSize:10}}/>
-                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:800,color:P.green,fontSize:10}}>{hFfir+hBfir}/18</td>
-                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:800,color:P.accent,fontSize:10}}>{hFgir+hBgir}/18</td>
-                          <td style={{padding:"4px 3px",textAlign:"center",color:P.green,fontWeight:800,fontSize:10}}>{hTotal.heroes}</td>
-                          <td style={{padding:"4px 3px",textAlign:"center",color:P.red,fontWeight:800,fontSize:10}}>{hTotal.bandits}</td>
-                          <td style={{padding:"4px 3px",textAlign:"center",fontWeight:900,fontSize:12,color:hTotal.net>0?P.green:hTotal.net<0?P.red:P.gold}}>{hTotal.net>0?"+":""}{hTotal.net}</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:11,color:P.accent}}>TOT</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:14}}>{hFp+hBp||"—"}</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",color:P.green,fontWeight:800,fontSize:14}}>{hTotal.heroes}</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",color:P.red,fontWeight:800,fontSize:14}}>{hTotal.bandits}</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:900,fontSize:15,color:hTotal.net>0?P.green:hTotal.net<0?P.red:P.gold}}>{hTotal.net>0?"+":""}{hTotal.net}</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:14}}>{hFs+hBs||"—"}</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:14,color:(hFs+hBs)&&(hFp+hBp)?(hFs+hBs-(hFp+hBp))<0?P.green:(hFs+hBs-(hFp+hBp))>0?P.red:P.gold:P.muted}}>{(hFs+hBs)&&(hFp+hBp)?(hFs+hBs-(hFp+hBp))===0?"E":((hFs+hBs-(hFp+hBp))>0?"+":"")+(hFs+hBs-(hFp+hBp)):"—"}</td>
+                          <td style={{padding:"6px 5px",textAlign:"center",fontSize:14}}/>
+                          <td style={{padding:"6px 5px",textAlign:"center",fontWeight:800,color:P.green,fontSize:14}}>{hFfir+hBfir}/18</td>
+                          <td style={{padding:"6px 5px",textAlign:"center",fontWeight:800,color:P.accent,fontSize:14}}>{hFgir+hBgir}/18</td>
                         </tr>
                       </tbody>
                     </table>
@@ -5758,10 +5740,10 @@ function RoundStatsView({round,onHome,onShare,S}) {
         {/* ── FULL SCORECARD TABLE ── */}
         <div style={{fontSize:10,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:6,paddingLeft:8}}>FULL SCORECARD</div>
         <div style={{overflowX:"auto",marginBottom:14,background:P.card,borderRadius:12,border:`1.5px solid ${P.border}`}}>
-          <table style={{borderCollapse:"collapse",fontSize:10,minWidth:"100%"}}>
+          <table style={{borderCollapse:"collapse",fontSize:16,minWidth:"100%"}}>
             <thead>
-              <tr>{["#","Par","Scr","+/-","Putts","FIR","GIR","H","B","Net"].map(h=>(
-                <th key={h} style={{...cell,padding:"6px 3px",color:P.muted,borderBottom:`1.5px solid ${P.border}`,fontSize:9,fontWeight:700}}>{h}</th>
+              <tr>{["#","Par","H","B","Net","Scr","+/-","Pts","FIR","GIR"].map(h=>(
+                <th key={h} style={{...cell,padding:"6px 4px",color:P.muted,borderBottom:`1.5px solid ${P.border}`,fontSize:11,fontWeight:700}}>{h}</th>
               ))}</tr>
             </thead>
             <tbody>
@@ -5775,52 +5757,52 @@ function RoundStatsView({round,onHome,onShare,S}) {
                   <tr key={i} style={{background:i%2===0?P.cardAlt:"transparent"}}>
                     <td style={{...cell,fontWeight:700,color:P.accent}}>{i+1}</td>
                     <td style={cell}>{h.par||"—"}</td>
-                    <td style={{...cell,color:h.strokeScore&&h.par?(+h.strokeScore-+h.par>0?P.red:+h.strokeScore-+h.par<0?P.green:P.white):P.white,fontWeight:h.strokeScore?700:400}}>{h.strokeScore||"—"}</td>
-                    <td style={{...cell,fontWeight:700,color:runDiR===null?P.muted:runDiR<0?P.green:runDiR>0?P.red:P.gold}}>{runDiR===null?"—":runDiR===0?"E":(runDiR>0?"+":"")+runDiR}</td>
-                    <td style={{...cell,color:h.putts>2?P.red:h.putts===1?P.green:P.white,fontWeight:h.putts?700:400}}>{h.putts||"—"}</td>
-                    <td style={{...cell,color:h.fairway===true?P.green:P.muted,fontWeight:700}}>{h.fairway===true?"✓":"—"}</td>
-                    <td style={{...cell,color:h.gir===true?P.accent:P.muted,fontWeight:700}}>{h.gir===true?"✓":"—"}</td>
                     <td style={{...cell,color:P.green,fontWeight:700}}>{s.heroes||"—"}</td>
                     <td style={{...cell,color:P.red,fontWeight:700}}>{s.bandits||"—"}</td>
                     <td style={{...cell,fontWeight:700,color:s.net>0?P.green:s.net<0?P.red:s.heroes+s.bandits>0?P.gold:P.muted}}>{s.heroes+s.bandits>0?(s.net>0?"+":"")+s.net:"—"}</td>
+                    <td style={{...cell,color:h.strokeScore&&h.par?(+h.strokeScore-+h.par>0?P.red:+h.strokeScore-+h.par<0?P.green:P.white):P.white,fontWeight:h.strokeScore?700:400}}>{h.strokeScore||"—"}</td>
+                    <td style={{...cell,fontWeight:700,color:runDiR===null?P.muted:runDiR<0?P.green:runDiR>0?P.red:P.gold}}>{runDiR===null?"—":runDiR===0?"E":(runDiR>0?"+":"")+runDiR}</td>
+                    <td style={{...cell,color:h.putts>2?P.red:h.putts===1?P.green:P.white,fontWeight:h.putts?700:400,padding:"12px 6px"}}>{h.putts||"—"}</td>
+                    <td style={{...cell,color:h.fairway===true?P.green:P.muted,fontWeight:700,padding:"12px 6px"}}>{(parseInt(h.par)===4||parseInt(h.par)===5)?(h.fairway===true?"✓":"—"):"—"}</td>
+                    <td style={{...cell,color:h.gir===true?P.accent:P.muted,fontWeight:700,padding:"12px 6px"}}>{h.gir===true?"✓":"—"}</td>
                   </tr>,
                   i===8&&<tr key="out" style={{background:P.accent+"10",borderTop:`1.5px solid ${P.border}`}}>
-                    <td style={{...cell,fontWeight:800,fontSize:9,color:P.muted}}>OUT</td>
+                    <td style={{...cell,fontWeight:800,fontSize:11,color:P.muted}}>OUT</td>
                     <td style={{...cell,fontWeight:700}}>{fp||"—"}</td>
-                    <td style={{...cell,fontWeight:700}}>{fs||"—"}</td>
-                    <td style={{...cell,fontWeight:700,color:fs&&fp?(fs-fp)<0?P.green:(fs-fp)>0?P.red:P.gold:P.muted}}>{fs&&fp?(fs-fp)===0?"E":((fs-fp)>0?"+":"")+(fs-fp):"—"}</td>
-                    <td style={{...cell,fontWeight:700}}>{fPutts||"—"}</td>
-                    <td style={{...cell,fontWeight:700,color:P.green}}>{fFir}/9</td>
-                    <td style={{...cell,fontWeight:700,color:P.accent}}>{fGir}/9</td>
                     <td style={{...cell,color:P.green,fontWeight:700}}>{frontStats.heroes}</td>
                     <td style={{...cell,color:P.red,fontWeight:700}}>{frontStats.bandits}</td>
                     <td style={{...cell,fontWeight:800,color:frontStats.net>0?P.green:frontStats.net<0?P.red:P.gold}}>{frontStats.net>0?"+":""}{frontStats.net}</td>
+                    <td style={{...cell,fontWeight:700}}>{fs||"—"}</td>
+                    <td style={{...cell,fontWeight:700,color:fs&&fp?(fs-fp)<0?P.green:(fs-fp)>0?P.red:P.gold:P.muted}}>{fs&&fp?(fs-fp)===0?"E":((fs-fp)>0?"+":"")+(fs-fp):"—"}</td>
+                    <td style={{...cell,fontWeight:700,padding:"12px 6px"}}>{fPutts||"—"}</td>
+                    <td style={{...cell,fontWeight:700,color:P.green,padding:"12px 6px"}}>{fFir}/9</td>
+                    <td style={{...cell,fontWeight:700,color:P.accent,padding:"12px 6px"}}>{fGir}/9</td>
                   </tr>,
                 ];
               })}
               <tr style={{background:P.cardAlt,borderTop:`1.5px solid ${P.border}`}}>
-                <td style={{...cell,fontWeight:800,fontSize:9,color:P.muted}}>IN</td>
+                <td style={{...cell,fontWeight:800,fontSize:11,color:P.muted}}>IN</td>
                 <td style={{...cell,fontWeight:700}}>{bp||"—"}</td>
-                <td style={{...cell,fontWeight:700}}>{bs||"—"}</td>
-                <td style={{...cell,fontWeight:700,color:bs&&bp?(bs-bp)<0?P.green:(bs-bp)>0?P.red:P.gold:P.muted}}>{bs&&bp?(bs-bp)===0?"E":((bs-bp)>0?"+":"")+(bs-bp):"—"}</td>
-                <td style={{...cell,fontWeight:700}}>{bPutts||"—"}</td>
-                <td style={{...cell,fontWeight:700,color:P.green}}>{bFir}/9</td>
-                <td style={{...cell,fontWeight:700,color:P.accent}}>{bGir}/9</td>
                 <td style={{...cell,color:P.green,fontWeight:700}}>{backStats.heroes}</td>
                 <td style={{...cell,color:P.red,fontWeight:700}}>{backStats.bandits}</td>
                 <td style={{...cell,fontWeight:800,color:backStats.net>0?P.green:backStats.net<0?P.red:P.gold}}>{backStats.net>0?"+":""}{backStats.net}</td>
+                <td style={{...cell,fontWeight:700}}>{bs||"—"}</td>
+                <td style={{...cell,fontWeight:700,color:bs&&bp?(bs-bp)<0?P.green:(bs-bp)>0?P.red:P.gold:P.muted}}>{bs&&bp?(bs-bp)===0?"E":((bs-bp)>0?"+":"")+(bs-bp):"—"}</td>
+                <td style={{...cell,fontWeight:700,padding:"12px 6px"}}>{bPutts||"—"}</td>
+                <td style={{...cell,fontWeight:700,color:P.green,padding:"12px 6px"}}>{bFir}/9</td>
+                <td style={{...cell,fontWeight:700,color:P.accent,padding:"12px 6px"}}>{bGir}/9</td>
               </tr>
               <tr style={{background:P.accent+"18",borderTop:`2px solid ${P.accent}44`}}>
-                <td style={{...cell,fontWeight:800,fontSize:9,color:P.accent}}>TOT</td>
+                <td style={{...cell,fontWeight:800,fontSize:11,color:P.accent}}>TOT</td>
                 <td style={{...cell,fontWeight:800}}>{fp+bp||"—"}</td>
-                <td style={{...cell,fontWeight:800}}>{fs+bs||"—"}</td>
-                <td style={{...cell,fontWeight:800,color:(fs+bs)&&(fp+bp)?(fs+bs-(fp+bp))<0?P.green:(fs+bs-(fp+bp))>0?P.red:P.gold:P.muted}}>{(fs+bs)&&(fp+bp)?(fs+bs-(fp+bp))===0?"E":((fs+bs-(fp+bp))>0?"+":"")+(fs+bs-(fp+bp)):"—"}</td>
-                <td style={{...cell,fontWeight:800,color:P.white}}>{fPutts+bPutts||"—"}</td>
-                <td style={{...cell,fontWeight:800,color:P.green}}>{fFir+bFir}/18</td>
-                <td style={{...cell,fontWeight:800,color:P.accent}}>{fGir+bGir}/18</td>
                 <td style={{...cell,color:P.green,fontWeight:800}}>{round.heroes}</td>
                 <td style={{...cell,color:P.red,fontWeight:800}}>{round.bandits}</td>
-                <td style={{...cell,fontWeight:900,fontSize:13,color:round.net>0?P.green:round.net<0?P.red:P.gold}}>{round.net>0?"+":""}{round.net}</td>
+                <td style={{...cell,fontWeight:900,fontSize:15,color:round.net>0?P.green:round.net<0?P.red:P.gold}}>{round.net>0?"+":""}{round.net}</td>
+                <td style={{...cell,fontWeight:800}}>{fs+bs||"—"}</td>
+                <td style={{...cell,fontWeight:800,color:(fs+bs)&&(fp+bp)?(fs+bs-(fp+bp))<0?P.green:(fs+bs-(fp+bp))>0?P.red:P.gold:P.muted}}>{(fs+bs)&&(fp+bp)?(fs+bs-(fp+bp))===0?"E":((fs+bs-(fp+bp))>0?"+":"")+(fs+bs-(fp+bp)):"—"}</td>
+                <td style={{...cell,fontWeight:800,color:P.white,padding:"12px 6px"}}>{fPutts+bPutts||"—"}</td>
+                <td style={{...cell,fontWeight:800,color:P.green,padding:"12px 6px"}}>{fFir+bFir}/18</td>
+                <td style={{...cell,fontWeight:800,color:P.accent,padding:"12px 6px"}}>{fGir+bGir}/18</td>
               </tr>
             </tbody>
           </table>
