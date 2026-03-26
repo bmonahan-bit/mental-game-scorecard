@@ -1712,19 +1712,7 @@ export default function App() {
     const updated = {...communityProfile, topHero, topBandit, rounds: savedRounds.length, avgNet, lastUpdated: new Date().toISOString()};
     try { localStorage.setItem("mgp_community_profile", JSON.stringify(updated)); } catch {}
     setCommunityProfile(updated);
-    // Sync to Supabase if available
-    try {
-      if(typeof supabase !== "undefined" && supabase) {
-        supabase.from("community_profiles").upsert({
-          uid: updated.uid, email: updated.email, name: updated.name,
-          top_hero: topHero, top_bandit: topBandit,
-          rounds_count: savedRounds.length,
-          avg_net: parseFloat(avgNet),
-          handicap: settings?.handicap ? parseFloat(settings.handicap) : null,
-          last_updated: new Date().toISOString(),
-        }, { onConflict: "uid" }).catch(()=>{});
-      }
-    } catch {}
+    // Cloud sync not configured
   }, [savedRounds.length]);
 
   // Auto-load favCourse on mount so par/yardage pre-fill
@@ -2052,12 +2040,13 @@ export default function App() {
       const roundHasData = scores.some(h=>Object.values(h.heroes).some(x=>x!==0)||Object.values(h.bandits).some(x=>x!==0)||h.strokeScore||h.putts);
       if(roundHasData){ setShowOpenRoundModal(true); return; }
       try{const cf=localStorage.getItem("mgp_carry_forward");if(cf)setCarryForward(cf);}catch{}
-      if(settings.preroundChecklist===false){setView("play");return;}
+      // "checklist" = explicit tap, always show it
+      // "preround" = auto-start, respect the setting
+      if(v==="preround" && settings.preroundChecklist===false){setView("play");return;}
       setView("preround"); return;
     }
     if(v==="preround"){
       try{const cf=localStorage.getItem("mgp_carry_forward");if(cf)setCarryForward(cf);}catch{}
-      // If a round is already in progress today (data entered or checklist done), go straight to play
       const today = new Date().toISOString().split("T")[0];
       const roundHasData = scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts);
       const checklistDoneToday = roundDate === today && (roundHasData || localStorage.getItem("mgp_checklist_date") === today);
@@ -2166,19 +2155,15 @@ export default function App() {
       const profile = { email:email.trim().toLowerCase(), name:name.trim()||null, joinedAt:new Date().toISOString(), uid, source:"round_gate", cloudSync:true };
       try { localStorage.setItem("mgp_community_profile",JSON.stringify(profile)); localStorage.setItem("mgp_community_joined","true"); } catch {}
       setCommunityProfile(profile);
-      try {
-        if(typeof supabase!=="undefined"&&supabase) {
-          await supabase.from("community_profiles").upsert({ uid:profile.uid, email:profile.email, name:profile.name, source:"round_gate", joined_at:profile.joinedAt, opted_in:true }, {onConflict:"uid"});
-        }
-      } catch {}
+      // Profile saved to localStorage only
       setLoading(false);
       setDone(true);
-      setTimeout(()=>{ setShowProfileGate(false); startNewRound(); }, 1500);
+      setTimeout(()=>{ setShowProfileGate(false); if(view!=="settings") startNewRound(); }, 1500);
     }
 
     return (
-      <div style={{position:"fixed",inset:0,zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.75)",backdropFilter:"blur(10px)",padding:"0 20px"}}>
-        <div style={{background:P.card,borderRadius:20,padding:"28px 22px",width:"100%",maxWidth:400,border:`1.5px solid ${PM_GOLD}44`,boxShadow:"0 24px 60px rgba(0,0,0,0.5)"}}>
+      <div onClick={()=>setShowProfileGate(false)} style={{position:"fixed",inset:0,zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.75)",backdropFilter:"blur(10px)",padding:"0 20px"}}>
+        <div onClick={e=>e.stopPropagation()} style={{background:P.card,borderRadius:20,padding:"28px 22px",width:"100%",maxWidth:400,border:`1.5px solid ${PM_GOLD}44`,boxShadow:"0 24px 60px rgba(0,0,0,0.5)"}}>
           {done ? (
             <div style={{textAlign:"center",padding:"16px 0"}}>
               <div style={{width:48,height:48,borderRadius:14,background:P.green+"18",border:`1.5px solid ${P.green}44`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}><Icons.Check color={P.green} size={22}/></div>
@@ -2256,31 +2241,7 @@ export default function App() {
       // Save locally
       try { localStorage.setItem("mgp_community_profile", JSON.stringify(profile)); localStorage.setItem("mgp_community_joined","true"); } catch {}
       setCommunityProfile(profile);
-      // Sync to Supabase if available
-      try {
-        if(typeof supabase !== "undefined" && supabase) {
-          await supabase.from("community_profiles").upsert({
-            uid: profile.uid,
-            email: profile.email,
-            name: profile.name,
-            top_hero: profile.topHero,
-            top_bandit: profile.topBandit,
-            rounds_count: profile.rounds,
-            avg_net: profile.avgNet ? parseFloat(profile.avgNet) : null,
-            handicap: profile.handicap ? parseFloat(profile.handicap) : null,
-            joined_at: profile.joinedAt,
-            last_updated: new Date().toISOString(),
-            source: profile.source,
-          }, { onConflict: "uid" });
-        }
-      } catch(e) { console.warn("Supabase sync failed:", e); }
-      setLoading(false);
-      setDone(true);
-      setTimeout(()=>setShowCommunityPrompt(false), 2500);
-    }
-
-    function dismiss() {
-      try { localStorage.setItem("mgp_community_dismissed","true"); } catch {}
+      // Cloud sync not configured
       setShowCommunityPrompt(false);
     }
 
@@ -2365,7 +2326,7 @@ export default function App() {
   if (view==="rounddetail") return <ThemeCtx.Provider value={P}><ToastLayer/><RoundDetailView round={selectedRound} onBack={nav("dashboard")} onShare={(r)=>shareRound(r,darkMode)} S={S} /></ThemeCtx.Provider>;
   if (showPrivacyPolicy) return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><PrivacyPolicyView onBack={()=>setShowPrivacyPolicy(false)} S={S}/></ThemeCtx.Provider>;
   if (showHelp) return <ThemeCtx.Provider value={P}><ToastLayer/><HelpView onBack={()=>setShowHelp(false)} S={S}/></ThemeCtx.Provider>;
-  if (view==="settings") return <ThemeCtx.Provider value={P}><ToastLayer/><SettingsView settings={settings} updateSetting={updateSetting} darkMode={darkMode} toggleTheme={toggleTheme} onBack={nav("home")} S={S} savedRounds={savedRounds} inGameCaddie={inGameCaddie} setInGameCaddie={setInGameCaddie} onResetTour={()=>{try{localStorage.removeItem("mgp_tip_step");}catch{}setTipStep(0);setView("play");}} isPro={isPro} onManageSubscription={()=>setShowPaywall(true)} onCancelPro={()=>setShowCancelPro(true)} onPrivacyPolicy={()=>setShowPrivacyPolicy(true)} communityProfile={communityProfile} onHelp={()=>{setShowHelp(true);}} /></ThemeCtx.Provider>;
+  if (view==="settings") return <ThemeCtx.Provider value={P}><ToastLayer/><ProfileGateModal/><SettingsView settings={settings} updateSetting={updateSetting} darkMode={darkMode} toggleTheme={toggleTheme} onBack={nav("home")} S={S} savedRounds={savedRounds} inGameCaddie={inGameCaddie} setInGameCaddie={setInGameCaddie} onResetTour={()=>{try{localStorage.removeItem("mgp_tip_step");}catch{}setTipStep(0);setView("play");}} isPro={isPro} onManageSubscription={()=>setShowPaywall(true)} onCancelPro={()=>setShowCancelPro(true)} onPrivacyPolicy={()=>setShowPrivacyPolicy(true)} communityProfile={communityProfile} onHelp={()=>setShowHelp(true)} onCreateProfile={()=>setShowProfileGate(true)} onGuide={()=>setView("guide")} /></ThemeCtx.Provider>;
   if (view==="scorecard") return <ThemeCtx.Provider value={P}><ToastLayer/><ScorecardView scores={scores} front={front} back={back} total={total} courseName={courseName} roundDate={roundDate} onBack={()=>setView(prevView||"play")} onHome={()=>setView("home")} onSelectHole={h=>{setCurrentHole(h);setView("play");}} S={S} handicap={settings.handicap} /></ThemeCtx.Provider>;
   if (view==="editround") return <ThemeCtx.Provider value={P}><ToastLayer/><RoundEditView round={editingRound} onSave={updatedRound=>{const updated=savedRounds.map(r=>r.id===updatedRound.id?updatedRound:r);persistRounds(updated);setEditingRound(null);setView("history");}} onBack={()=>{setEditingRound(null);setView("history");}} S={S} /></ThemeCtx.Provider>;
   if (view==="badges") return <ThemeCtx.Provider value={P}><ToastLayer/><BadgesView rounds={savedRounds} onBack={nav("home")} S={S} /></ThemeCtx.Provider>;
@@ -2640,9 +2601,9 @@ export default function App() {
           {/* FIR / GIR */}
           <div style={{textAlign:"center",flexShrink:0}}>
             <div style={{fontSize:11,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:4}}>FIR / GIR</div>
-            <div style={{display:"flex",gap:3,height:34,background:P.card,borderRadius:9,border:`1.5px solid ${P.border}`,padding:"0 5px",alignItems:"center"}}>
-              <button onClick={()=>updateField("fairway",scores[currentHole].fairway===true?null:true)} {...pp()} style={{height:28,padding:"0 8px",borderRadius:6,border:`1.5px solid ${scores[currentHole].fairway===true?P.green:P.border}`,background:scores[currentHole].fairway===true?P.green+"20":"transparent",color:scores[currentHole].fairway===true?P.green:P.muted,fontSize:13,fontWeight:700,cursor:"pointer"}}>{scores[currentHole].fairway===true?<Icons.Check color={P.green} size={11}/>:<span style={{display:"inline-block",width:16}}/>}</button>
-              <button onClick={()=>updateField("gir",scores[currentHole].gir===true?null:true)} {...pp()} style={{height:28,padding:"0 8px",borderRadius:6,border:`1.5px solid ${scores[currentHole].gir===true?P.accent:P.border}`,background:scores[currentHole].gir===true?P.accent+"20":"transparent",color:scores[currentHole].gir===true?P.accent:P.muted,fontSize:13,fontWeight:700,cursor:"pointer"}}>{scores[currentHole].gir===true?<Icons.Check color={P.accent} size={11}/>:<span style={{display:"inline-block",width:16}}/>}</button>
+            <div style={{display:"flex",gap:4,alignItems:"center"}}>
+              <button onClick={()=>updateField("fairway",scores[currentHole].fairway===true?null:true)} {...pp()} style={{width:52,height:40,borderRadius:8,border:`1.5px solid ${scores[currentHole].fairway===true?P.green:P.border}`,background:scores[currentHole].fairway===true?P.green+"20":"transparent",color:scores[currentHole].fairway===true?P.green:P.muted,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{scores[currentHole].fairway===true?<Icons.Check color={P.green} size={14}/>:null}</button>
+              <button onClick={()=>updateField("gir",scores[currentHole].gir===true?null:true)} {...pp()} style={{width:52,height:40,borderRadius:8,border:`1.5px solid ${scores[currentHole].gir===true?P.accent:P.border}`,background:scores[currentHole].gir===true?P.accent+"20":"transparent",color:scores[currentHole].gir===true?P.accent:P.muted,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{scores[currentHole].gir===true?<Icons.Check color={P.accent} size={14}/>:null}</button>
             </div>
           </div>
 
@@ -2812,19 +2773,7 @@ function LoginModal({P,onClose,onLogin}) {
     if(mode==="signup"&&pass.length<6){setError("Password must be at least 6 characters.");return;}
     setLoading(true); setError("");
     try {
-      if(typeof supabase!=="undefined"&&supabase) {
-        let result;
-        if(mode==="signup") {
-          result = await supabase.auth.signUp({email:email.trim(),password:pass,options:{data:{display_name:name||email.split("@")[0]}}});
-        } else {
-          result = await supabase.auth.signInWithPassword({email:email.trim(),password:pass});
-        }
-        if(result.error) { setError(result.error.message); setLoading(false); return; }
-        const u = result.data.user;
-        onLogin({email:u.email,name:u.user_metadata?.display_name||u.email.split("@")[0],id:u.id});
-      } else {
-        onLogin({email:email.trim(),name:name||email.split("@")[0]});
-      }
+      onLogin({email:email.trim(),name:name||email.split("@")[0]});
     } catch(e) {
       onLogin({email:email.trim(),name:name||email.split("@")[0]});
     }
@@ -2888,6 +2837,33 @@ function LoginModal({P,onClose,onLogin}) {
 // ═══════════════════════════════════════
 // HOME
 // ═══════════════════════════════════════
+function UserDropdown({clerkUser, overlay1, overlay2, textHigh, textMid, P}) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div style={{position:"relative"}}>
+      <button onClick={()=>setOpen(o=>!o)} style={{display:"flex",alignItems:"center",gap:8,background:overlay1,border:`1px solid ${overlay2}`,borderRadius:10,padding:"6px 12px",cursor:"pointer"}} {...pp()}>
+        <div style={{width:24,height:24,borderRadius:"50%",background:overlay2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:textHigh}}>{(clerkUser.user?.firstName||"?")[0].toUpperCase()}</div>
+        <span style={{fontSize:12,color:textMid,fontWeight:500}}>{clerkUser.user?.firstName||"Account"}</span>
+        <Icons.Chev color={textMid} size={12}/>
+      </button>
+      {open&&(
+        <>
+          <div onClick={()=>setOpen(false)} style={{position:"fixed",inset:0,zIndex:998}}/>
+          <div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:999,background:P.card,border:`1.5px solid ${P.border}`,borderRadius:12,overflow:"hidden",minWidth:160,boxShadow:"0 8px 24px rgba(0,0,0,0.2)"}}>
+            <button onClick={()=>{setOpen(false);window.__clerkOpenUserProfile?.();}} style={{width:"100%",padding:"12px 16px",background:"transparent",border:"none",color:P.white,fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:10}} {...pp()}>
+              <Icons.User color={P.muted} size={14}/> My Profile
+            </button>
+            <div style={{height:1,background:P.border}}/>
+            <button onClick={()=>{setOpen(false);window.__clerkSignOut?.();}} style={{width:"100%",padding:"12px 16px",background:"transparent",border:"none",color:P.red,fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:10}} {...pp()}>
+              <Icons.Back color={P.red} size={14}/> Sign Out
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggle,S,user,setUser,showLogin,setShowLogin,savedRounds,settings,isPro,roundsRemaining,hasProfile}) {
   const P=useTheme();
   const darkMode = P.bg === "#09090b";
@@ -2954,10 +2930,7 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
         {(()=>{
           const clerkUser = window.__useUser ? window.__useUser() : null;
           if (clerkUser?.isSignedIn) return (
-            <button onClick={()=>window.__clerkOpenSignIn?.()} style={{display:"flex",alignItems:"center",gap:8,background:overlay1,border:`1px solid ${overlay2}`,borderRadius:10,padding:"6px 12px",cursor:"pointer"}} {...pp()}>
-              <div style={{width:24,height:24,borderRadius:"50%",background:overlay2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:textHigh}}>{(clerkUser.user?.firstName||"?")[0].toUpperCase()}</div>
-              <span style={{fontSize:12,color:textMid,fontWeight:500}}>{clerkUser.user?.firstName||"Account"}</span>
-            </button>
+            <UserDropdown clerkUser={clerkUser} overlay1={overlay1} overlay2={overlay2} textHigh={textHigh} textMid={textMid} P={P}/>
           );
           return (
             <button onClick={()=>window.__clerkOpenSignIn ? window.__clerkOpenSignIn() : setShowLogin(true)} style={{display:"flex",alignItems:"center",gap:6,background:overlay1,border:`1px solid ${overlay2}`,borderRadius:10,padding:"7px 12px",fontSize:12,fontWeight:600,color:textMid,cursor:"pointer"}} {...pp()}>
@@ -4032,7 +4005,7 @@ function FavCourseSearch({settings, updateSetting, P}) {
   );
 }
 
-function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,savedRounds,inGameCaddie,setInGameCaddie,onResetTour,isPro,onManageSubscription,onCancelPro,onPrivacyPolicy,communityProfile,onHelp}) {
+function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,savedRounds,inGameCaddie,setInGameCaddie,onResetTour,isPro,onManageSubscription,onCancelPro,onPrivacyPolicy,communityProfile,onHelp,onCreateProfile,onGuide}) {
   const P = useTheme();
   const pp = pressProps;
   const [confirmClear, setConfirmClear] = React.useState(false);
@@ -4121,7 +4094,7 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
             </>
           ) : (
             <Row label="Create Profile" sub="Back up rounds and get Paul's insights" last>
-              <button onClick={()=>{try{localStorage.removeItem("mgp_onboarded");}catch{}onBack();}} {...pp()} style={{padding:"6px 12px",borderRadius:8,border:`1.5px solid ${PM_GOLD}44`,background:PM_GOLD+"10",color:PM_GOLD,fontSize:12,fontWeight:700,cursor:"pointer"}}>Set Up</button>
+              <button onClick={()=>onCreateProfile&&onCreateProfile()} {...pp()} style={{padding:"6px 12px",borderRadius:8,border:`1.5px solid ${PM_GOLD}44`,background:PM_GOLD+"10",color:PM_GOLD,fontSize:12,fontWeight:700,cursor:"pointer"}}>Set Up</button>
             </Row>
           )}
         </Section>
@@ -4192,10 +4165,10 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
         </Section>
         <Section title="About">
           <Row label="Help & FAQ" sub="Common questions answered">
-            <button onClick={()=>{onBack();setTimeout(()=>onHelp&&onHelp(),50);}} {...pp()} style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,cursor:"pointer"}}>View</button>
+            <button onClick={()=>onHelp&&onHelp()} {...pp()} style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,cursor:"pointer"}}>View</button>
           </Row>
           <Row label="App Guide" sub="Replay the intro walkthrough">
-            <button onClick={()=>{try{localStorage.removeItem("mgp_onboarded");}catch{}onBack();}} {...pp()} style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,cursor:"pointer"}}>Replay</button>
+            <button onClick={()=>onGuide&&onGuide()} {...pp()} style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,cursor:"pointer"}}>Replay</button>
           </Row>
           <Row label="Version" sub="Mental Game Scorecard">
             <span style={{fontSize:13,color:P.muted,fontWeight:500}}>{typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "1.0.0"}</span>
@@ -6170,17 +6143,11 @@ function CoachDashboardView({onBack, S}) {
 
       // Merge with community profiles from Supabase (has email + hero/bandit)
       let profiles = [];
-      try {
-        if(typeof supabase !== "undefined" && supabase) {
-          const { data } = await supabase.from("community_profiles").select("*").order("last_updated", {ascending:false});
-          if(data) profiles = data;
-        }
-      } catch {}
-
+      // Cloud sync not configured
       // Merge: match by uid, add email to user record
       const merged = baseUsers.map(u => {
         const profile = profiles.find(p => p.uid === u.userId);
-        return profile ? {...u, email: profile.email, profileName: profile.name, supabaseData: profile} : u;
+        return profile ? {...u, email: profile.email, profileName: profile.name} : u;
       });
       // Add profiles that aren't in shared storage yet
       const storedUids = new Set(baseUsers.map(u=>u.userId));
@@ -6188,7 +6155,7 @@ function CoachDashboardView({onBack, S}) {
         userId: p.uid, displayName: p.name||p.email?.split("@")[0],
         email: p.email, rounds: p.rounds_count||0,
         avgNet: p.avg_net?.toFixed(1), topHero: p.top_hero, topBandit: p.top_bandit,
-        lastSeen: p.last_updated, supabaseData: p,
+        lastSeen: p.last_updated, 
       }));
 
       setData([...merged, ...profilesOnly]);
@@ -7634,17 +7601,7 @@ function OnboardingFlow({onFinish,onPrivacy,P,S,communityProfile}){
       cloudSync: !skipCloud,
     };
     try { localStorage.setItem("mgp_community_profile", JSON.stringify(profile)); if(!skipCloud) localStorage.setItem("mgp_community_joined","true"); } catch {}
-    // Sync to Supabase
-    if(!skipCloud && profile.email) {
-      try {
-        if(typeof supabase !== "undefined" && supabase) {
-          await supabase.from("community_profiles").upsert({
-            uid: profile.uid, email: profile.email, name: profile.name,
-            source: "onboarding", joined_at: profile.joinedAt, opted_in: true,
-          }, { onConflict: "uid" });
-        }
-      } catch(e) { console.warn("Supabase sync:", e); logError(e, { context: "supabase_profile_sync" }); }
-    }
+    // Cloud sync not configured
     setProfileDone(true);
     setProfileSubmitting(false);
     return true;

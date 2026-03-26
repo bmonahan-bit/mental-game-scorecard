@@ -34,10 +34,12 @@ if (sentryDsn) {
 
 // Bridge
 function ClerkBridge() {
-  const { openSignUp, openSignIn } = useClerk();
+  const { openSignUp, openSignIn, openUserProfile, signOut } = useClerk();
   const { user, isSignedIn, isLoaded } = useUser();
   window.__clerkOpenSignUp = () => openSignUp({});
   window.__clerkOpenSignIn = () => openSignIn({});
+  window.__clerkOpenUserProfile = () => openUserProfile({});
+  window.__clerkSignOut = () => signOut();
   window.__useUser = () => ({ user, isSignedIn, isLoaded });
   return null;
 }
