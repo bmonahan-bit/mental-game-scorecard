@@ -1598,10 +1598,9 @@ export default function App() {
   const [postRoundNotes, setPostRoundNotes] = useState("");
   const [carryForward, setCarryForward] = useState(()=>{try{return localStorage.getItem("mgp_carry_forward")||"";}catch{return "";}});
   const [preRoundMeta, setPreRoundMeta] = useState({ sleep:3, energy:3, partners:"friends" });
-  const [holeNoteOpen, setHoleNoteOpen] = useState(()=>{try{const s=JSON.parse(localStorage.getItem("mgp_settings")||"{}");return s.holeNoteDefault!==false;}catch{return true;}});
+  const [holeNoteOpen, setHoleNoteOpen] = useState(()=>settings?.holeNoteDefault!==false);
   const [matchupOpen, setMatchupOpen] = useState(true);
   const [tipStep, setTipStep] = useState(()=>{try{const s=localStorage.getItem("mgp_tip_step");return s?parseInt(s):0;}catch{return 0;}});
-  const [dropdownOpen, setDropdownOpen] = useState(false);
   const TOTAL_TIPS = 6;
   const tipDone = tipStep >= TOTAL_TIPS;
   const [tipRect, setTipRect] = useState(null);
@@ -2020,7 +2019,7 @@ export default function App() {
     // Share prompt
     if(round.net>=3){ setTimeout(()=>showToast(`Mental Net ${round.net>0?"+":""}${round.net} — great round!`, "success", 4000), 800); }
     try { localStorage.removeItem("mgp_checklist_date"); } catch {}
-    setScores(initScores()); setCurrentHole(0); setCourseName(""); setRoundDate(new Date().toISOString().split("T")[0]); setPostRoundNotes(""); setHoleNoteOpen(settings?.holeNoteDefault!==false); setUsedMessages({}); setPreRoundMeta({sleep:3,energy:3,partners:"friends"});
+    setScores(initScores()); setCurrentHole(0); setCourseName(""); setRoundDate(new Date().toISOString().split("T")[0]); setPostRoundNotes(""); setHoleNoteOpen(false); setUsedMessages({}); setPreRoundMeta({sleep:3,energy:3,partners:"friends"});
     // Fireworks on round save!
     setShowFireworks(true);
     setView("roundstats");
@@ -2030,7 +2029,7 @@ export default function App() {
   function startNewRound() {
     // Gate: require profile after FREE_ROUNDS_LIMIT completed rounds
     if(trialExpired) { setShowProfileGate(true); return; }
-    const roundHasData=scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts); if(roundHasData){setShowOpenRoundModal(true);return;} setScores(initScores());setCurrentHole(0);setCourseName(settings?.favCourse||"");setRoundDate(new Date().toISOString().split("T")[0]);setPostRoundNotes("");setHoleNoteOpen(settings?.holeNoteDefault!==false);setCourseData(null);setSelectedTee(settings?.favTee||null);try{const cf=localStorage.getItem("mgp_carry_forward");if(cf)setCarryForward(cf);}catch{}setView(settings.preroundChecklist!==false?"preround":"play"); }
+    const roundHasData=scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts); if(roundHasData){setShowOpenRoundModal(true);return;} setScores(initScores());setCurrentHole(0);setCourseName(settings?.favCourse||"");setRoundDate(new Date().toISOString().split("T")[0]);setPostRoundNotes("");setHoleNoteOpen(false);setCourseData(null);setSelectedTee(settings?.favTee||null);try{const cf=localStorage.getItem("mgp_carry_forward");if(cf)setCarryForward(cf);}catch{}setView(settings.preroundChecklist!==false?"preround":"play"); }
 
   const nav=(v)=>()=>setView(v);
   function ToastLayer() {
@@ -2325,7 +2324,7 @@ export default function App() {
   // ─── ROUTING ───
   if (showOnboarding) return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><OpenRoundModal/><OnboardingFlow onFinish={finishOnboarding} onPrivacy={()=>setShowPrivacyPolicy(true)} P={P} S={S} communityProfile={communityProfile}/></ThemeCtx.Provider>;
   // paywall disabled
-  if (view==="home") return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><CommunityPromptModal/><ProfileGateModal/><CoursePromptModal/><OpenRoundModal/><HomeScreen onNav={(v)=>{if(v==="upgrade")return;navTo(v);}} onContinueRound={()=>{const firstEmpty=scores.findIndex(h=>!h.strokeScore&&!Object.values(h.heroes).some(v=>v>0)&&!Object.values(h.bandits).some(v=>v>0));setCurrentHole(Math.max(0,firstEmpty));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} user={user} setUser={setUser} showLogin={showLogin} setShowLogin={setShowLogin} savedRounds={savedRounds} settings={settings} isPro={isPro} roundsRemaining={roundsRemaining} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ if(window.__clerkSignOut) window.__clerkSignOut(); else window.location.href="/"; }} /></ThemeCtx.Provider>;
+  if (view==="home") return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><CommunityPromptModal/><ProfileGateModal/><CoursePromptModal/><OpenRoundModal/><HomeScreen onNav={(v)=>{if(v==="upgrade")return;navTo(v);}} onContinueRound={()=>{const firstEmpty=scores.findIndex(h=>!h.strokeScore&&!Object.values(h.heroes).some(v=>v>0)&&!Object.values(h.bandits).some(v=>v>0));setCurrentHole(Math.max(0,firstEmpty));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} user={user} setUser={setUser} showLogin={showLogin} setShowLogin={setShowLogin} savedRounds={savedRounds} settings={settings} isPro={isPro} roundsRemaining={roundsRemaining} hasProfile={hasProfile} /></ThemeCtx.Provider>;
   if (view==="checklist") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist onBack={nav("home")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",new Date().toISOString().split("T")[0]);const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setView("play");}} S={S} lastIntention={carryForward} preRoundMeta={preRoundMeta} setPreRoundMeta={setPreRoundMeta} settings={settings} /></ThemeCtx.Provider>;
   if (view==="preround") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist onBack={nav("home")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",new Date().toISOString().split("T")[0]);const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setView("play");}} S={S} lastIntention={carryForward} preRoundMeta={preRoundMeta} setPreRoundMeta={setPreRoundMeta} settings={settings} /></ThemeCtx.Provider>;
   if (view==="caddie") return <ThemeCtx.Provider value={P}><ToastLayer/><InnerCaddieView onBack={nav(prevView)} S={S} /></ThemeCtx.Provider>;
@@ -2386,7 +2385,7 @@ export default function App() {
         )}
 
         {/* Multi-step tooltip tour */}
-        {!tipDone&&!dropdownOpen&&(()=>{
+        {!tipDone&&(()=>{
           const tips=[
             {step:1,title:"Add Your Course",body:"Search for your course to auto-fill hole data and yardages. The In-Game Caddie toggle also lives here.",icon:"Flag",cardPos:"below"},
             {step:2,title:"Hole Grid",body:"Tap any hole to jump to it. Colored dots show mental activity — green for heroes, red for bandits.",icon:"Grid",cardPos:"below"},
@@ -2852,35 +2851,25 @@ function LoginModal({P,onClose,onLogin}) {
 // ═══════════════════════════════════════
 // HOME
 // ═══════════════════════════════════════
-function UserDropdown({firstName, overlay1, overlay2, textHigh, textMid, P, onSettings, onSignOut}) {
+function UserDropdown({clerkUser, overlay1, overlay2, textHigh, textMid, P}) {
   const [open, setOpen] = React.useState(false);
-  const [pos, setPos] = React.useState({top:0,left:0});
-  const btnRef = React.useRef(null);
-
-  function toggle() {
-    if (!open && btnRef.current) {
-      const r = btnRef.current.getBoundingClientRect();
-      setPos({top: r.bottom + 6, left: r.left});
-    }
-    setOpen(o=>!o);
-  }
-
   return (
-    <div>
-      <button ref={btnRef} onClick={toggle} style={{display:"flex",alignItems:"center",gap:8,background:overlay1,border:`1px solid ${overlay2}`,borderRadius:10,padding:"6px 12px",cursor:"pointer"}}>
-        <div style={{width:24,height:24,borderRadius:"50%",background:overlay2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:textHigh}}>{(firstName||"?")[0].toUpperCase()}</div>
-        <span style={{fontSize:12,color:textMid,fontWeight:500}}>{firstName||"Account"}</span>
+    <div style={{position:"relative"}}>
+      <button onClick={()=>setOpen(o=>!o)} style={{display:"flex",alignItems:"center",gap:8,background:overlay1,border:`1px solid ${overlay2}`,borderRadius:10,padding:"6px 12px",cursor:"pointer"}} {...pp()}>
+        <div style={{width:24,height:24,borderRadius:"50%",background:overlay2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:textHigh}}>{(clerkUser.user?.firstName||"?")[0].toUpperCase()}</div>
+        <span style={{fontSize:12,color:textMid,fontWeight:500}}>{clerkUser.user?.firstName||"Account"}</span>
         <Icons.Chev color={textMid} size={12}/>
       </button>
       {open&&(
         <>
-          <div onClick={()=>setOpen(false)} style={{position:"fixed",inset:0,zIndex:9998}}/>
-          <div style={{position:"fixed",top:pos.top,left:pos.left,zIndex:9999,background:P.card,border:`1.5px solid ${P.border}`,borderRadius:12,minWidth:160,boxShadow:"0 8px 24px rgba(0,0,0,0.4)",padding:"4px"}}>
-            <button onClick={()=>{setOpen(false);onSettings&&onSettings();}} style={{display:"block",width:"100%",padding:"12px 14px",background:"transparent",border:"none",color:P.white,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>
-              My Profile
+          <div onClick={()=>setOpen(false)} style={{position:"fixed",inset:0,zIndex:998}}/>
+          <div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:999,background:P.card,border:`1.5px solid ${P.border}`,borderRadius:12,overflow:"hidden",minWidth:160,boxShadow:"0 8px 24px rgba(0,0,0,0.2)"}}>
+            <button onClick={()=>{setOpen(false);window.__navToSettings?.();}} style={{width:"100%",padding:"12px 16px",background:"transparent",border:"none",color:P.white,fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:10}} {...pp()}>
+              <Icons.User color={P.muted} size={14}/> My Profile
             </button>
-            <button onClick={()=>{setOpen(false);onSignOut&&onSignOut();}} style={{display:"block",width:"100%",padding:"12px 14px",background:"transparent",border:"none",color:P.red,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>
-              Sign Out
+            <div style={{height:1,background:P.border}}/>
+            <button onClick={()=>{setOpen(false);window.__clerkSignOut?.();}} style={{width:"100%",padding:"12px 16px",background:"transparent",border:"none",color:P.red,fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:10}} {...pp()}>
+              <Icons.Back color={P.red} size={14}/> Sign Out
             </button>
           </div>
         </>
@@ -2889,7 +2878,7 @@ function UserDropdown({firstName, overlay1, overlay2, textHigh, textMid, P, onSe
   );
 }
 
-function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggle,S,user,setUser,showLogin,setShowLogin,savedRounds,settings,isPro,roundsRemaining,hasProfile,onSettings,onSignOut}) {
+function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggle,S,user,setUser,showLogin,setShowLogin,savedRounds,settings,isPro,roundsRemaining,hasProfile}) {
   const P=useTheme();
   const darkMode = P.bg === "#09090b";
   const [loaded,setLoaded]=useState(false);
@@ -2949,8 +2938,8 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
       <div style={{position:"absolute",inset:0,background:`radial-gradient(ellipse 80% 50% at 50% -10%, ${darkMode?"rgba(22,163,74,0.18)":"rgba(22,163,74,0.10)"} 0%, transparent 60%)`,zIndex:0,pointerEvents:"none"}}/>
       <div style={{position:"absolute",inset:0,background:`radial-gradient(ellipse 80% 50% at 50% 110%, ${darkMode?"rgba(220,38,38,0.12)":"rgba(220,38,38,0.07)"} 0%, transparent 60%)`,zIndex:0,pointerEvents:"none"}}/>
       {/* Shield watermark */}
-      <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:"110%",maxWidth:520,zIndex:0,pointerEvents:"none"}}>
-        <img src={SHIELD_LOGO} alt="" style={{width:"100%",height:"auto",objectFit:"contain",opacity:darkMode?0.08:0.12,mixBlendMode:darkMode?"screen":"multiply",filter:darkMode?"invert(1)":"none"}}/>
+      <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:"88%",maxWidth:380,zIndex:0,pointerEvents:"none",opacity:darkMode?0.04:0.06}}>
+        <img src={SHIELD_LOGO} alt="" style={{width:"100%",height:"auto",objectFit:"contain"}}/>
       </div>
       <div style={{position:"absolute",top:"28%",left:"50%",transform:"translateX(-50%)",width:320,height:320,borderRadius:"50%",border:`1px solid ${ringColor}`,zIndex:1,pointerEvents:"none"}}/>
       <div style={{position:"absolute",top:"22%",left:"50%",transform:"translateX(-50%)",width:480,height:480,borderRadius:"50%",border:`1px solid ${ringColor}`,zIndex:1,pointerEvents:"none"}}/>
@@ -2959,7 +2948,7 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
         {(()=>{
           const clerkUser = window.__useUser ? window.__useUser() : null;
           if (clerkUser?.isSignedIn) return (
-            <UserDropdown firstName={clerkUser.user?.firstName} overlay1={overlay1} overlay2={overlay2} textHigh={textHigh} textMid={textMid} P={P} onSettings={onSettings} onSignOut={onSignOut}/>
+            <UserDropdown clerkUser={clerkUser} overlay1={overlay1} overlay2={overlay2} textHigh={textHigh} textMid={textMid} P={P}/>
           );
           return (
             <button onClick={()=>window.__clerkOpenSignIn ? window.__clerkOpenSignIn() : setShowLogin(true)} style={{display:"flex",alignItems:"center",gap:6,background:overlay1,border:`1px solid ${overlay2}`,borderRadius:10,padding:"7px 12px",fontSize:12,fontWeight:600,color:textMid,cursor:"pointer"}} {...pp()}>
@@ -3496,10 +3485,7 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
     return parseInt(strokeScore) - parseInt(par) - shots;
   }
   return (
-    <div style={{...S.shell,position:"relative"}}>
-      <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:"110%",maxWidth:520,zIndex:0,pointerEvents:"none"}}>
-        <img src={SHIELD_LOGO} alt="" style={{width:"100%",height:"auto",objectFit:"contain",opacity:0.06,mixBlendMode:"screen",filter:"invert(1)"}}/>
-      </div>
+    <div style={S.shell}>
       <div style={{padding:"16px 20px 8px",display:"flex",alignItems:"center",justifyContent:"space-between"}}><button onClick={onBack} style={S.iconBtn} {...pp()}><Icons.Back color={P.muted}/></button><div style={{fontSize:18,fontWeight:700,color:P.white}}>Full Scorecard</div><button onClick={onHome||onBack} style={S.iconBtn} {...pp()}><Icons.Home color={P.muted} size={17}/></button></div>
       {courseName&&<div style={{textAlign:"center",color:P.muted,fontSize:13,fontWeight:500}}>{courseName} — {roundDate}</div>}
       <div style={{flex:1,overflowX:"auto",padding:"6px 4px 0"}}>
@@ -3601,10 +3587,7 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
   useEffect(()=>{const t=setTimeout(()=>setLoaded(true),60);return()=>clearTimeout(t);},[]);
 
   return (
-    <div style={{...S.shell,background:P.bg,display:"flex",flexDirection:"column",position:"relative"}}>
-      <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:"110%",maxWidth:520,zIndex:0,pointerEvents:"none"}}>
-        <img src={SHIELD_LOGO} alt="" style={{width:"100%",height:"auto",objectFit:"contain",opacity:0.06,mixBlendMode:"screen",filter:"invert(1)"}}/>
-      </div>
+    <div style={{...S.shell,background:P.bg,display:"flex",flexDirection:"column"}}>
       {/* Header */}
       <div style={{padding:"14px 16px 10px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,borderBottom:`1px solid ${P.border}`}}>
         <button onClick={onBack} style={S.iconBtn} {...pp()}><Icons.Back color={P.muted}/></button>

@@ -36,11 +36,15 @@ if (sentryDsn) {
 function ClerkBridge() {
   const { openSignUp, openSignIn, openUserProfile, signOut } = useClerk();
   const { user, isSignedIn, isLoaded } = useUser();
-  window.__clerkOpenSignUp = () => openSignUp({});
-  window.__clerkOpenSignIn = () => openSignIn({});
-  window.__clerkOpenUserProfile = () => openUserProfile({});
-  window.__clerkSignOut = () => signOut();
-  window.__useUser = () => ({ user, isSignedIn, isLoaded });
+
+  React.useEffect(() => {
+    window.__clerkOpenSignUp = () => openSignUp({});
+    window.__clerkOpenSignIn = () => openSignIn({});
+    window.__clerkOpenUserProfile = () => openUserProfile({});
+    window.__clerkSignOut = () => signOut(() => { window.location.reload(); });
+    window.__useUser = () => ({ user, isSignedIn, isLoaded });
+  });
+
   return null;
 }
 
