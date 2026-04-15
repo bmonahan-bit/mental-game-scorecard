@@ -2573,13 +2573,13 @@ export default function App() {
           {/* PAR */}
           <div style={{textAlign:"center",flexShrink:0}}>
             <div style={{fontSize:11,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:4}}>PAR</div>
-            <input value={scores[currentHole].par} onChange={e=>updateField("par",e.target.value.replace(/\D/g,"").slice(0,1))} style={{...S.miniInput,width:42,fontSize:18}} inputMode="numeric" aria-label="Par"/>
+            <input value={scores[currentHole].par} onChange={e=>{const p=e.target.value.replace(/\D/g,"").slice(0,1);updateField("par",p);if(p&&!scores[currentHole].strokeScore)updateField("strokeScore",p);}} style={{...S.miniInput,width:42,fontSize:18}} inputMode="numeric" aria-label="Par"/>
           </div>
 
           {/* SCORE */}
           <div style={{textAlign:"center",flexShrink:0}}>
             <div style={{fontSize:11,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:4}}>SCORE</div>
-            <Stepper value={scores[currentHole].strokeScore} min={1} max={15} onChange={v=>updateField("strokeScore",v)} notation={notation} P={P} defaultVal={scores[currentHole].par}/>
+            <Stepper value={scores[currentHole].strokeScore} min={1} max={15} onChange={v=>updateField("strokeScore",v)} notation={notation} P={P}/>
           </div>
 
           {/* PUTTS */}
