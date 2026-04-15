@@ -2657,7 +2657,7 @@ export default function App() {
             <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
               <img src={darkMode?HEROES_LOGO_WHITE:HEROES_LOGO_DARK} alt="Heroes" style={{width:"clamp(32px,8vw,44px)",height:"clamp(32px,8vw,44px)",objectFit:"contain",flexShrink:0}}/>
               <div>
-                <div style={{fontSize:9,color:P.green,letterSpacing:1,fontWeight:700,marginBottom:1}}>HEROES</div>
+                <div style={{fontSize:12,color:P.green,letterSpacing:1,fontWeight:700,marginBottom:1}}>HEROES</div>
                 <div style={{display:"flex",alignItems:"baseline",gap:4}}>
                   <span style={{fontSize:"clamp(22px,6vw,30px)",fontWeight:900,color:P.green,lineHeight:1}}>{hT}</span>
                   {holeHeroes>0&&<span style={{fontSize:10,fontWeight:700,color:P.green,background:P.green+"20",padding:"1px 5px",borderRadius:8}}>+{holeHeroes}</span>}
@@ -2665,13 +2665,13 @@ export default function App() {
               </div>
             </div>
             <div style={{textAlign:"center",flexShrink:0}}>
-              <div style={{fontSize:8,color:P.muted,letterSpacing:1.5,fontWeight:700,marginBottom:1,display:"flex",alignItems:"center",gap:3,justifyContent:"center"}}>MENTAL NET <button onClick={()=>setShowMentalNetInfo(true)} {...pp()} style={{width:15,height:15,borderRadius:"50%",border:`1px solid ${P.border}`,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:8,color:P.muted,cursor:"pointer",flexShrink:0,background:"transparent",padding:0,lineHeight:1}}>?</button></div>
+              <div style={{fontSize:11,color:P.muted,letterSpacing:1.5,fontWeight:700,marginBottom:1,display:"flex",alignItems:"center",gap:3,justifyContent:"center"}}>MENTAL NET <button onClick={()=>setShowMentalNetInfo(true)} {...pp()} style={{width:15,height:15,borderRadius:"50%",border:`1px solid ${P.border}`,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:8,color:P.muted,cursor:"pointer",flexShrink:0,background:"transparent",padding:0,lineHeight:1}}>?</button></div>
               <div style={{fontSize:"clamp(26px,8vw,36px)",fontWeight:900,lineHeight:1,color:total.net>0?P.green:total.net<0?P.red:P.gold,textShadow:total.net!==0?`0 0 20px ${total.net>0?P.green:P.red}44`:"none",transition:"all 0.2s"}}>{total.net>0?"+":""}{total.net}</div>
               {rd!==null&&<div style={{fontSize:10,fontWeight:700,color:rd<0?P.green:rd>0?P.red:P.gold,marginTop:1}}>{rd>0?"+":""}{rd===0?"E par":rd+" vs par"}</div>}
             </div>
             <div style={{display:"flex",alignItems:"center",gap:8,flex:1,justifyContent:"flex-end"}}>
               <div style={{textAlign:"right"}}>
-                <div style={{fontSize:9,color:P.red,letterSpacing:1,fontWeight:700,marginBottom:1}}>BANDITS</div>
+                <div style={{fontSize:12,color:P.red,letterSpacing:1,fontWeight:700,marginBottom:1}}>BANDITS</div>
                 <div style={{display:"flex",alignItems:"baseline",gap:4,justifyContent:"flex-end"}}>
                   {holeBandits>0&&<span style={{fontSize:10,fontWeight:700,color:P.red,background:P.red+"20",padding:"1px 5px",borderRadius:8}}>+{holeBandits}</span>}
                   <span style={{fontSize:"clamp(22px,6vw,30px)",fontWeight:900,color:P.red,lineHeight:1}}>{bT}</span>
