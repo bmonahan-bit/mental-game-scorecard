@@ -1660,14 +1660,16 @@ const pp = pressProps;
 // MAIN APP
 // ═══════════════════════════════════════
 function openWithClerk(mode="signUp") {
+  console.log("openWithClerk called:", mode, "signUp fn:", typeof window.__clerkOpenSignUp, "signIn fn:", typeof window.__clerkOpenSignIn);
   const fn = mode==="signIn" ? window.__clerkOpenSignIn : window.__clerkOpenSignUp;
   if (fn) { fn(); return; }
   // Clerk not ready yet — poll for up to 3 seconds
   let attempts = 0;
   const interval = setInterval(() => {
     const f = mode==="signIn" ? window.__clerkOpenSignIn : window.__clerkOpenSignUp;
+    console.log("polling for Clerk, attempt:", attempts, "found:", typeof f);
     if (f) { clearInterval(interval); f(); return; }
-    if (++attempts > 30) clearInterval(interval);
+    if (++attempts > 30) { console.log("Clerk never loaded"); clearInterval(interval); }
   }, 100);
 }
 
