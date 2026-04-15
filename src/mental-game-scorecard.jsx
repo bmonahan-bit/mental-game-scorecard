@@ -1115,11 +1115,11 @@ function Stepper({ value, min=1, max=15, onChange, notation, P, emptyable=false,
       {notation?.diff&&Math.abs(notation.diff)>=2&&(
         <div style={{position:"absolute",inset:3,borderRadius:notation.diff<=-2?"50%":"3px",border:`1px solid ${notation.diff<0?P.green:P.red}`,pointerEvents:"none",zIndex:1}}/>
       )}
-      <button onClick={dec} style={{width:30,height:40,background:"transparent",border:"none",color:P.muted,fontSize:20,fontWeight:300,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent"}}>−</button>
+      <button onClick={dec} style={{width:30,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,fontWeight:400,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>-</button>
       <div style={{width:30,textAlign:"center",fontSize:18,fontWeight:700,color:hasValue?P.white:P.muted,lineHeight:1,userSelect:"none",flexShrink:0}}>
         {display!==null?display:"—"}
       </div>
-      <button onClick={inc} style={{width:30,height:40,background:"transparent",border:"none",color:P.muted,fontSize:20,fontWeight:300,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent"}}>+</button>
+      <button onClick={inc} style={{width:30,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,fontWeight:400,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>+</button>
     </div>
   );
 }
@@ -2579,7 +2579,7 @@ export default function App() {
           {/* SCORE */}
           <div style={{textAlign:"center",flexShrink:0}}>
             <div style={{fontSize:11,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:4}}>SCORE</div>
-            <Stepper value={scores[currentHole].strokeScore} min={1} max={15} onChange={v=>updateField("strokeScore",v)} notation={notation} P={P}/>
+            <Stepper value={scores[currentHole].strokeScore} min={1} max={15} onChange={v=>updateField("strokeScore",v)} notation={notation} P={P} defaultVal={scores[currentHole].par}/>
           </div>
 
           {/* PUTTS */}
