@@ -1659,6 +1659,18 @@ const pp = pressProps;
 // ═══════════════════════════════════════
 // MAIN APP
 // ═══════════════════════════════════════
+function openWithClerk(mode="signUp") {
+  const fn = mode==="signIn" ? window.__clerkOpenSignIn : window.__clerkOpenSignUp;
+  if (fn) { fn(); return; }
+  // Clerk not ready yet — poll for up to 3 seconds
+  let attempts = 0;
+  const interval = setInterval(() => {
+    const f = mode==="signIn" ? window.__clerkOpenSignIn : window.__clerkOpenSignUp;
+    if (f) { clearInterval(interval); f(); return; }
+    if (++attempts > 30) clearInterval(interval);
+  }, 100);
+}
+
 export default function App() {
   const [darkMode, setDarkMode] = useState(false);
   const [view, setView] = useState("home");
@@ -1714,8 +1726,6 @@ export default function App() {
   function nextTip(){const next=tipStep+1;setTipStep(next);try{localStorage.setItem("mgp_tip_step",next);}catch{}}
   function skipTips(){setTipStep(TOTAL_TIPS);try{localStorage.setItem("mgp_tip_step",TOTAL_TIPS);}catch{}}
   const [mentalBarOpen, setMentalBarOpen] = useState(true);
-  const [user, setUser] = useState(null);
-  const [showLogin, setShowLogin] = useState(false);
   const [inGameCaddie, setInGameCaddie] = useState(true);
   const [caddieCard, setCaddieCard] = useState(null);
   const [caddieQueue, setCaddieQueue] = useState([]);
@@ -2217,7 +2227,7 @@ export default function App() {
               </div>
             ))}
           </div>
-          <button onClick={()=>{setShowProfileGate(false);window.__clerkOpenSignUp?window.__clerkOpenSignUp():setShowLogin(true);}} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:P.green,color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",marginBottom:8}}>
+          <button onClick={()=>{setShowProfileGate(false);openWithClerk("signUp");}} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:P.green,color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",marginBottom:8}}>
             Create Free Account
           </button>
           <button onClick={()=>setShowProfileGate(false)} style={{width:"100%",padding:"10px",borderRadius:12,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:13,fontWeight:600,cursor:"pointer"}}>
@@ -2251,7 +2261,7 @@ export default function App() {
               Get <span style={{fontWeight:700,color:PM_GOLD}}>personalized coaching insights</span> based on your actual Heroes & Bandits data — delivered by Paul directly to your inbox.
             </div>
           </div>
-          <button onClick={()=>{dismiss();window.__clerkOpenSignUp?window.__clerkOpenSignUp():setShowLogin(true);}} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:`linear-gradient(135deg,${PM_NAVY},#2563eb)`,color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",marginBottom:10}}>
+          <button onClick={()=>{dismiss();openWithClerk("signUp");}} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:`linear-gradient(135deg,${PM_NAVY},#2563eb)`,color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",marginBottom:10}}>
             Create Free Account →
           </button>
           <div style={{fontSize:10,color:P.muted,textAlign:"center",lineHeight:1.5}}>
@@ -2287,7 +2297,7 @@ export default function App() {
   // ─── ROUTING ───
   if (showOnboarding) return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><OpenRoundModal/><OnboardingFlow onFinish={finishOnboarding} onPrivacy={()=>setShowPrivacyPolicy(true)} P={P} S={S}/></ThemeCtx.Provider>;
   // paywall disabled
-  if (view==="home") return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><CommunityPromptModal/><ProfileGateModal/><CoursePromptModal/><OpenRoundModal/><HomeScreen onNav={(v)=>{if(v==="upgrade")return;navTo(v);}} onContinueRound={()=>{const firstEmpty=scores.findIndex(h=>!h.strokeScore&&!Object.values(h.heroes).some(v=>v>0)&&!Object.values(h.bandits).some(v=>v>0));setCurrentHole(Math.max(0,firstEmpty));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} user={user} setUser={setUser} showLogin={showLogin} setShowLogin={setShowLogin} savedRounds={savedRounds} settings={settings} isPro={isPro} roundsRemaining={roundsRemaining} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ if(window.__clerkSignOut) window.__clerkSignOut(); else window.location.href="/"; }} /></ThemeCtx.Provider>;
+  if (view==="home") return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><CommunityPromptModal/><ProfileGateModal/><CoursePromptModal/><OpenRoundModal/><HomeScreen onNav={(v)=>{if(v==="upgrade")return;navTo(v);}} onContinueRound={()=>{const firstEmpty=scores.findIndex(h=>!h.strokeScore&&!Object.values(h.heroes).some(v=>v>0)&&!Object.values(h.bandits).some(v=>v>0));setCurrentHole(Math.max(0,firstEmpty));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} isPro={isPro} roundsRemaining={roundsRemaining} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ if(window.__clerkSignOut) window.__clerkSignOut(); else window.location.href="/"; }} /></ThemeCtx.Provider>;
   if (view==="checklist") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist key={preroundKey} onBack={nav("home")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",new Date().toISOString().split("T")[0]);const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setPreRoundMeta(p=>({...p,checklistDone:true}));setView("play");}} onSkip={()=>{setPreRoundMeta(p=>({...p,checklistDone:false}));setView("play");}} S={S} lastIntention={carryForward} preRoundMeta={preRoundMeta} setPreRoundMeta={setPreRoundMeta} settings={settings} updateSetting={updateSetting} /></ThemeCtx.Provider>;
   if (view==="preround") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist key={preroundKey} onBack={nav("home")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",new Date().toISOString().split("T")[0]);const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setPreRoundMeta(p=>({...p,checklistDone:true}));setView("play");}} onSkip={()=>{setPreRoundMeta(p=>({...p,checklistDone:false}));setView("play");}} S={S} lastIntention={carryForward} preRoundMeta={preRoundMeta} setPreRoundMeta={setPreRoundMeta} settings={settings} updateSetting={updateSetting} /></ThemeCtx.Provider>;
   if (view==="tiger5") return <ThemeCtx.Provider value={P}><ToastLayer/><Tiger5View onBack={()=>setView(prevView||"home")} S={S}/></ThemeCtx.Provider>;
@@ -2731,81 +2741,6 @@ export default function App() {
 // ═══════════════════════════════════════
 // LOGIN MODAL
 // ═══════════════════════════════════════
-function LoginModal({P,onClose,onLogin}) {
-  const [email,setEmail]=useState("");
-  const [pass,setPass]=useState("");
-  const [name,setName]=useState("");
-  const [mode,setMode]=useState("login");
-  const [error,setError]=useState("");
-  const [loading,setLoading]=useState(false);
-  const pp=pressProps;
-
-  async function handleSubmit() {
-    if(!email.trim()||!pass.trim()){setError("Please fill in all fields.");return;}
-    if(mode==="signup"&&pass.length<6){setError("Password must be at least 6 characters.");return;}
-    setLoading(true); setError("");
-    try {
-      onLogin({email:email.trim(),name:name||email.split("@")[0]});
-    } catch(e) {
-      onLogin({email:email.trim(),name:name||email.split("@")[0]});
-    }
-    setLoading(false);
-  }
-
-  const inputStyle = {
-    width:"100%", padding:"12px 14px", borderRadius:10,
-    border:`1.5px solid ${P.border}`, background:P.inputBg||P.cardAlt,
-    color:P.white, fontSize:14, outline:"none", boxSizing:"border-box",
-    fontFamily:"inherit",
-  };
-  const labelStyle = {fontSize:10,color:P.muted,fontWeight:700,letterSpacing:1.2,marginBottom:5,display:"block"};
-
-  return (
-    <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",animation:"fadeIn 0.2s ease-out",padding:"0 20px"}}>
-      <div onClick={e=>e.stopPropagation()} style={{background:P.card,borderRadius:20,padding:"28px 24px",width:"100%",maxWidth:360,border:`1.5px solid ${P.border}`}}>
-
-        {/* Header */}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24}}>
-          <div>
-            <div style={{fontSize:20,fontWeight:900,color:P.white,marginBottom:2}}>{mode==="login"?"Welcome back":"Create account"}</div>
-            <div style={{fontSize:12,color:P.muted}}>{mode==="login"?"Sign in to sync your rounds":"Start tracking your mental game"}</div>
-          </div>
-          <button onClick={onClose} {...pp()} style={{width:30,height:30,borderRadius:8,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>✕</button>
-        </div>
-
-        {/* Fields */}
-        {mode==="signup"&&(
-          <div style={{marginBottom:14}}>
-            <label style={labelStyle}>NAME</label>
-            <input value={name} onChange={e=>{setName(sanitiseName(e.target.value));setError("");}} placeholder="Full name" style={inputStyle}/>
-          </div>
-        )}
-        <div style={{marginBottom:14}}>
-          <label style={labelStyle}>EMAIL</label>
-          <input value={email} onChange={e=>{setEmail(sanitiseEmail(e.target.value));setError("");}} placeholder="you@email.com" inputMode="email" autoCapitalize="none" autoComplete="email" style={inputStyle}/>
-        </div>
-        <div style={{marginBottom:error?12:20}}>
-          <label style={labelStyle}>PASSWORD</label>
-          <input value={pass} onChange={e=>{setPass(e.target.value);setError("");}} type="password" autoComplete="current-password" placeholder="••••••••" style={inputStyle}/>
-        </div>
-
-        {error&&<div style={{fontSize:12,color:P.red,marginBottom:14,padding:"8px 12px",borderRadius:8,background:P.red+"12",border:`1px solid ${P.red}33`}}>{error}</div>}
-
-        <button onClick={handleSubmit} {...pp()} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:P.green,color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",marginBottom:14,opacity:loading?0.7:1}}>
-          {loading?"...":(mode==="login"?"Sign In":"Create Account")}
-        </button>
-
-        <div style={{textAlign:"center",fontSize:12,color:P.muted}}>
-          {mode==="login"?"No account yet? ":"Already have an account? "}
-          <button onClick={()=>{setMode(mode==="login"?"signup":"login");setError("");}} style={{background:"none",border:"none",color:P.green,cursor:"pointer",fontSize:12,fontWeight:700,padding:0}}>
-            {mode==="login"?"Sign Up":"Sign In"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ═══════════════════════════════════════
 // HOME
 // ═══════════════════════════════════════
@@ -2846,7 +2781,7 @@ function UserDropdown({firstName, overlay1, overlay2, textHigh, textMid, P, onSe
   );
 }
 
-function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggle,S,user,setUser,showLogin,setShowLogin,savedRounds,settings,isPro,roundsRemaining,hasProfile,onSettings,onSignOut}) {
+function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggle,S,savedRounds,settings,isPro,roundsRemaining,hasProfile,onSettings,onSignOut}) {
   const P=useTheme();
   const darkMode = P.bg === "#09090b";
   const [loaded,setLoaded]=useState(false);
@@ -2908,7 +2843,6 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
 
   return (
     <div style={{...S.shell,position:"relative",overflow:"hidden",background:P.bg}}>
-      {showLogin&&<LoginModal P={P} onClose={()=>setShowLogin(false)} onLogin={u=>{setUser(u);setShowLogin(false);}}/>}
 
       {/* Full-bleed background glows */}
       <div style={{position:"absolute",inset:0,background:`radial-gradient(ellipse 80% 50% at 50% -10%, ${darkMode?"rgba(22,163,74,0.18)":"rgba(22,163,74,0.10)"} 0%, transparent 60%)`,zIndex:0,pointerEvents:"none"}}/>
@@ -2927,7 +2861,7 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
             <UserDropdown firstName={clerkUser.user?.firstName} overlay1={overlay1} overlay2={overlay2} textHigh={textHigh} textMid={textMid} P={P} onSettings={onSettings} onSignOut={onSignOut}/>
           );
           return (
-            <button onClick={()=>window.__clerkOpenSignIn ? window.__clerkOpenSignIn() : setShowLogin(true)} style={{display:"flex",alignItems:"center",gap:6,background:overlay1,border:`1px solid ${overlay2}`,borderRadius:10,padding:"7px 12px",fontSize:12,fontWeight:600,color:textMid,cursor:"pointer"}} {...pp()}>
+            <button onClick={()=>openWithClerk("signIn")} style={{display:"flex",alignItems:"center",gap:6,background:overlay1,border:`1px solid ${overlay2}`,borderRadius:10,padding:"7px 12px",fontSize:12,fontWeight:600,color:textMid,cursor:"pointer"}} {...pp()}>
               <Icons.User color={textMid} size={14}/> Sign In
             </button>
           );
@@ -4231,7 +4165,7 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
             }
             return (
               <Row label="Create Account" sub="Back up rounds and get Paul's insights" last>
-                <button onClick={()=>window.__clerkOpenSignUp?window.__clerkOpenSignUp():onCreateProfile&&onCreateProfile()} {...pp()} style={{padding:"6px 12px",borderRadius:8,border:`1.5px solid ${PM_GOLD}44`,background:PM_GOLD+"10",color:PM_GOLD,fontSize:12,fontWeight:700,cursor:"pointer"}}>Sign Up</button>
+                <button onClick={()=>openWithClerk("signUp")} {...pp()} style={{padding:"6px 12px",borderRadius:8,border:`1.5px solid ${PM_GOLD}44`,background:PM_GOLD+"10",color:PM_GOLD,fontSize:12,fontWeight:700,cursor:"pointer"}}>Sign Up</button>
               </Row>
             );
           })()}
@@ -7866,7 +7800,7 @@ function OnboardingFlow({onFinish,onPrivacy,P,S}){
           <button onClick={onFinish} {...pp()} style={{width:"100%",padding:"13px",borderRadius:12,background:P.green,border:"none",color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",boxShadow:`0 4px 16px ${P.green}44`}}>Let's Play</button>
         ) : (
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            <button onClick={()=>{ window.__clerkOpenSignUp ? window.__clerkOpenSignUp() : setShowLogin(true); }} style={{width:"100%",padding:"13px",borderRadius:12,background:P.green,border:"none",color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer"}}>Create Free Account →</button>
+            <button onClick={()=>{ openWithClerk("signUp"); }} style={{width:"100%",padding:"13px",borderRadius:12,background:P.green,border:"none",color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer"}}>Create Free Account →</button>
             <button onClick={onFinish} style={{width:"100%",padding:"12px",borderRadius:12,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:13,fontWeight:600,cursor:"pointer"}}>Continue without account</button>
           </div>
         )
