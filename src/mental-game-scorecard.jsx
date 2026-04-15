@@ -1078,63 +1078,30 @@ function checkNewMilestones(rounds) {
 // Score notation: returns { label, style } for a stroke score vs par
 // GIR: auto-calculated — strokes before putting must be <= par - 2
 // ─── SCROLL WHEEL PICKER ───
-function ScrollWheel({ value, min=1, max=15, onChange, notation, P, border }) {
-  const itemH = 38;
-  const val = parseInt(value) || null;
-  const startY = React.useRef(null);
-  const startVal = React.useRef(null);
-  const containerRef = React.useRef(null);
+function Stepper({ value, min=0, max=15, onChange, notation, P, allowEmpty=false }) {
+  const val = value===""||value===null||value===undefined ? null : parseInt(value);
+  const borderRadius = notation?.diff <= -1 ? "50%" : notation?.diff >= 1 ? "6px" : "8px";
+  const borderColor = notation?.diff && notation.diff !== 0 ? (notation.diff < 0 ? P.green : P.red) : P.border;
+  const borderWidth = notation?.diff && Math.abs(notation.diff) >= 2 ? "2.5px" : "1.5px";
 
-  function clamp(v) { return Math.min(max, Math.max(min, v)); }
-
-  function onTouchStart(e) {
-    startY.current = e.touches[0].clientY;
-    startVal.current = val || min;
+  function dec() {
+    if (val === null) { onChange(String(min)); return; }
+    if (allowEmpty && val === min) { onChange(""); return; }
+    if (val > min) onChange(String(val - 1));
   }
-  function onTouchMove(e) {
-    e.preventDefault();
-    const dy = startY.current - e.touches[0].clientY;
-    const delta = Math.round(dy / (itemH / 2));
-    const next = clamp((startVal.current || min) + delta);
-    if (next !== val) onChange(String(next));
+  function inc() {
+    if (val === null) { onChange(String(min)); return; }
+    if (val < max) onChange(String(val + 1));
   }
-  function onWheel(e) {
-    e.preventDefault();
-    const next = clamp((val || min) + (e.deltaY > 0 ? 1 : -1));
-    onChange(String(next));
-  }
-
-  React.useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
-  });
-
-  const borderRadius = notation?.diff <= -1 ? "50%" : notation?.diff >= 1 ? "4px" : "8px";
-  const borderColor = notation?.diff && notation.diff !== 0 ? (notation.diff < 0 ? P.green : P.red) : border || P.border;
-  const borderWidth = notation?.diff && Math.abs(notation.diff) >= 2 ? "3px" : "1.5px";
-  const borderStyle = notation?.diff && Math.abs(notation.diff) >= 2 ? "double" : "solid";
 
   return (
-    <div ref={containerRef}
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      style={{position:"relative",width:38,height:itemH,borderRadius,border:`${borderWidth} ${borderStyle} ${borderColor}`,background:P.inputBg,overflow:"hidden",cursor:"ns-resize",userSelect:"none",touchAction:"none"}}
-    >
-      {/* Ghost rows above and below for context */}
-      <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",pointerEvents:"none"}}>
-        <div style={{fontSize:10,color:P.muted,opacity:0.4,lineHeight:1,marginBottom:1}}>{val&&val>min?val-1:""}</div>
-        <div style={{fontSize:18,fontWeight:700,color:val?P.white:P.muted,lineHeight:1}}>{val||"—"}</div>
-        <div style={{fontSize:10,color:P.muted,opacity:0.4,lineHeight:1,marginTop:1}}>{val&&val<max?val+1:""}</div>
-      </div>
-      {/* Selection line indicators */}
-      <div style={{position:"absolute",left:4,right:4,top:"50%",marginTop:-13,height:1,background:P.border,opacity:0.4,pointerEvents:"none"}}/>
-      <div style={{position:"absolute",left:4,right:4,top:"50%",marginTop:12,height:1,background:P.border,opacity:0.4,pointerEvents:"none"}}/>
-      {/* Double notation inner ring */}
+    <div style={{display:"flex",alignItems:"center",border:`${borderWidth} solid ${borderColor}`,borderRadius,overflow:"hidden",background:P.inputBg,position:"relative"}}>
       {notation?.diff && Math.abs(notation.diff) >= 2 && (
-        <div style={{position:"absolute",inset:4,borderRadius:notation.diff<=-2?"50%":"3px",border:`1px solid ${notation.diff<0?P.green:P.red}`,pointerEvents:"none"}}/>
+        <div style={{position:"absolute",inset:3,borderRadius:notation.diff<=-2?"50%":"3px",border:`1px solid ${notation.diff<0?P.green:P.red}`,pointerEvents:"none",zIndex:1}}/>
       )}
+      <button onPointerDown={dec} style={{width:28,height:38,background:"transparent",border:"none",color:P.muted,fontSize:18,fontWeight:300,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>−</button>
+      <div style={{width:28,textAlign:"center",fontSize:18,fontWeight:700,color:val!==null?P.white:P.muted,lineHeight:1,userSelect:"none"}}>{val!==null?val:"—"}</div>
+      <button onPointerDown={inc} style={{width:28,height:38,background:"transparent",border:"none",color:P.muted,fontSize:18,fontWeight:300,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>+</button>
     </div>
   );
 }
@@ -2594,13 +2561,13 @@ export default function App() {
           {/* SCORE */}
           <div style={{textAlign:"center",flexShrink:0}}>
             <div style={{fontSize:11,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:4}}>SCORE</div>
-            <ScrollWheel value={scores[currentHole].strokeScore} min={1} max={15} onChange={v=>updateField("strokeScore",v)} notation={notation} P={P}/>
+            <Stepper value={scores[currentHole].strokeScore||scores[currentHole].par} min={1} max={15} onChange={v=>updateField("strokeScore",v)} notation={notation} P={P}/>
           </div>
 
           {/* PUTTS */}
           <div style={{textAlign:"center",flexShrink:0}}>
             <div style={{fontSize:11,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:4}}>PUTTS</div>
-            <ScrollWheel value={scores[currentHole].putts} min={0} max={9} onChange={v=>updateField("putts",v==="0"?"":v)} P={P}/>
+            <Stepper value={scores[currentHole].putts} min={0} max={9} onChange={v=>updateField("putts",v==="0"?"":v)} P={P} allowEmpty={true}/>
           </div>
 
         </div>
