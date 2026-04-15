@@ -2330,10 +2330,10 @@ export default function App() {
   return (
     <ThemeCtx.Provider value={P}>
       <div style={{...S.shell,overflow:"hidden",display:"flex",flexDirection:"column"}}>
-        <ConfettiCanvas active={!caddieCard&&showConfetti} onDone={()=>setShowConfetti(false)}/>
-        <BalloonCanvas active={!caddieCard&&showBalloons} onDone={()=>setShowBalloons(false)}/>
-        <FlameCanvas active={!caddieCard&&showFlame} onDone={()=>setShowFlame(false)}/>
-        <StarburstCanvas active={!caddieCard&&showStarburst} onDone={()=>setShowStarburst(false)}/>
+        {!caddieCard&&showConfetti&&<ConfettiCanvas active={true} onDone={()=>setShowConfetti(false)}/>}
+        {!caddieCard&&showBalloons&&<BalloonCanvas active={true} onDone={()=>setShowBalloons(false)}/>}
+        {!caddieCard&&showFlame&&<FlameCanvas active={true} onDone={()=>setShowFlame(false)}/>}
+        {!caddieCard&&showStarburst&&<StarburstCanvas active={true} onDone={()=>setShowStarburst(false)}/>}
 
         {/* Mental Net Info Modal */}
         {showMentalNetInfo&&(
@@ -2784,10 +2784,13 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
   const [heroBounce,setHeroBounce]=useState(false);
   const [banditBounce,setBanditBounce]=useState(false);
   const [clerkTick, setClerkTick] = useState(0);
-  // Poll Clerk state so UI updates after sign-in/out without full page reload
+  // Update when Clerk fires its own state change events, not on a timer
   useEffect(()=>{
-    const id = setInterval(()=>setClerkTick(t=>t+1), 1000);
-    return ()=>clearInterval(id);
+    const handler = () => setClerkTick(t=>t+1);
+    window.addEventListener("clerk:statechange", handler);
+    // Fallback: check once after 2s for initial load
+    const t = setTimeout(()=>setClerkTick(t=>t+1), 2000);
+    return ()=>{ window.removeEventListener("clerk:statechange", handler); clearTimeout(t); };
   },[]);
   const clerkUser = window.__useUser ? window.__useUser() : null;
   function tapLogo(which) {

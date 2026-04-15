@@ -44,6 +44,11 @@ function ClerkBridge() {
   window.__clerkSignOut = () => signOut(() => { window.location.reload(); });
   window.__useUser = () => ({ user, isSignedIn, isLoaded });
 
+  // Fire event when auth state changes so app can react without polling
+  React.useEffect(() => {
+    window.dispatchEvent(new Event("clerk:statechange"));
+  }, [isSignedIn, isLoaded]);
+
   return null;
 }
 
