@@ -1078,20 +1078,25 @@ function checkNewMilestones(rounds) {
 // Score notation: returns { label, style } for a stroke score vs par
 // GIR: auto-calculated — strokes before putting must be <= par - 2
 // ─── SCROLL WHEEL PICKER ───
-function Stepper({ value, min=0, max=15, onChange, notation, P, allowEmpty=false }) {
-  const val = value===""||value===null||value===undefined ? null : parseInt(value);
+function Stepper({ value, min=0, max=15, onChange, notation, P, allowEmpty=false, defaultVal=null }) {
+  const raw = value===""||value===null||value===undefined ? null : parseInt(value);
+  const val = raw !== null ? raw : (defaultVal !== null ? parseInt(defaultVal)||null : null);
+
   const borderRadius = notation?.diff <= -1 ? "50%" : notation?.diff >= 1 ? "6px" : "8px";
   const borderColor = notation?.diff && notation.diff !== 0 ? (notation.diff < 0 ? P.green : P.red) : P.border;
   const borderWidth = notation?.diff && Math.abs(notation.diff) >= 2 ? "2.5px" : "1.5px";
 
   function dec() {
-    if (val === null) { onChange(String(min)); return; }
-    if (allowEmpty && val === min) { onChange(""); return; }
-    if (val > min) onChange(String(val - 1));
+    const cur = val !== null ? val : (defaultVal ? parseInt(defaultVal)||min : min);
+    // allowEmpty: tapping − below min clears to empty
+    if (allowEmpty && val === null) return; // already empty
+    if (allowEmpty && cur <= min) { onChange(""); return; }
+    if (cur > min) onChange(String(cur - 1));
   }
   function inc() {
-    if (val === null) { onChange(String(min)); return; }
-    if (val < max) onChange(String(val + 1));
+    const cur = val !== null ? val : (defaultVal ? parseInt(defaultVal)||min : min);
+    if (cur < max) onChange(String(cur + 1));
+    else if (val === null) onChange(String(min));
   }
 
   return (
@@ -1099,9 +1104,9 @@ function Stepper({ value, min=0, max=15, onChange, notation, P, allowEmpty=false
       {notation?.diff && Math.abs(notation.diff) >= 2 && (
         <div style={{position:"absolute",inset:3,borderRadius:notation.diff<=-2?"50%":"3px",border:`1px solid ${notation.diff<0?P.green:P.red}`,pointerEvents:"none",zIndex:1}}/>
       )}
-      <button onPointerDown={dec} style={{width:28,height:38,background:"transparent",border:"none",color:P.muted,fontSize:18,fontWeight:300,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>−</button>
+      <button onClick={dec} style={{width:28,height:38,background:"transparent",border:"none",color:P.muted,fontSize:18,fontWeight:300,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>−</button>
       <div style={{width:28,textAlign:"center",fontSize:18,fontWeight:700,color:val!==null?P.white:P.muted,lineHeight:1,userSelect:"none"}}>{val!==null?val:"—"}</div>
-      <button onPointerDown={inc} style={{width:28,height:38,background:"transparent",border:"none",color:P.muted,fontSize:18,fontWeight:300,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>+</button>
+      <button onClick={inc} style={{width:28,height:38,background:"transparent",border:"none",color:P.muted,fontSize:18,fontWeight:300,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>+</button>
     </div>
   );
 }
@@ -2561,7 +2566,7 @@ export default function App() {
           {/* SCORE */}
           <div style={{textAlign:"center",flexShrink:0}}>
             <div style={{fontSize:11,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:4}}>SCORE</div>
-            <Stepper value={scores[currentHole].strokeScore||scores[currentHole].par} min={1} max={15} onChange={v=>updateField("strokeScore",v)} notation={notation} P={P}/>
+            <Stepper value={scores[currentHole].strokeScore} min={1} max={15} onChange={v=>updateField("strokeScore",v)} notation={notation} P={P} defaultVal={scores[currentHole].par}/>
           </div>
 
           {/* PUTTS */}
@@ -2604,9 +2609,9 @@ export default function App() {
 
         {/* Carry-forward intention reminder */}
         {carryForward&&currentHole===0&&(
-          <div style={{margin:"0 12px 4px",padding:"8px 12px",borderRadius:9,background:"#ca8a0410",border:"1px solid #ca8a0430",display:"flex",alignItems:"flex-start",gap:8}}>
-            <Icons.Note color="#ca8a04" size={14}/>
-            <div><div style={{fontSize:9,fontWeight:800,letterSpacing:1.5,color:"#ca8a04",marginBottom:2}}>YOUR INTENTION TODAY</div><div style={{fontSize:12,color:P.white,fontStyle:"italic",lineHeight:1.4}}>{carryForward}</div></div>
+          <div style={{margin:"0 12px 4px",padding:"5px 10px",borderRadius:9,background:"#ca8a0410",border:"1px solid #ca8a0430",display:"flex",alignItems:"center",gap:8}}>
+            <Icons.Note color="#ca8a04" size={12}/>
+            <div style={{minWidth:0}}><div style={{fontSize:8,fontWeight:800,letterSpacing:1.5,color:"#ca8a04"}}>YOUR INTENTION TODAY</div><div style={{fontSize:11,color:P.white,fontStyle:"italic",lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{carryForward}</div></div>
           </div>
         )}
 
@@ -2620,34 +2625,34 @@ export default function App() {
           const holeHeroes=hH?Object.values(hH).filter(v=>v>0).length:0;
           const holeBandits=hB?Object.values(hB).filter(v=>v>0).length:0;
           return (
-          <div style={{margin:"0 12px 4px",padding:"clamp(4px,1vh,8px) 10px",borderRadius:12,background:total.net>0?P.green+"12":total.net<0?P.red+"12":P.card,border:`1.5px solid ${total.net>0?P.green+"44":total.net<0?P.red+"44":P.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",gap:6,transition:"all 0.3s ease"}}>
+          <div style={{margin:"0 12px 4px",padding:"6px 10px",borderRadius:12,background:total.net>0?P.green+"12":total.net<0?P.red+"12":P.card,border:`1.5px solid ${total.net>0?P.green+"44":total.net<0?P.red+"44":P.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",gap:6,transition:"all 0.3s ease"}}>
             {/* Heroes side */}
-            <div style={{display:"flex",alignItems:"center",gap:6,flex:1}}>
-              <img src={darkMode?HEROES_LOGO_WHITE:HEROES_LOGO_DARK} alt="Heroes" style={{width:44,height:44,objectFit:"contain",flexShrink:0}}/>
+            <div style={{display:"flex",alignItems:"center",gap:5,flex:1}}>
+              <img src={darkMode?HEROES_LOGO_WHITE:HEROES_LOGO_DARK} alt="Heroes" style={{width:32,height:32,objectFit:"contain",flexShrink:0}}/>
               <div>
-                <div style={{fontSize:11,color:P.green,letterSpacing:1,fontWeight:700,marginBottom:1}}>HEROES</div>
+                <div style={{fontSize:10,color:P.green,letterSpacing:1,fontWeight:700}}>HEROES</div>
                 <div style={{display:"flex",alignItems:"baseline",gap:3}}>
-                  <span style={{fontSize:"clamp(20px,5.5vw,28px)",fontWeight:900,color:P.green,lineHeight:1}}>{hT}</span>
+                  <span style={{fontSize:22,fontWeight:900,color:P.green,lineHeight:1}}>{hT}</span>
                   {holeHeroes>0&&<span style={{fontSize:9,fontWeight:700,color:P.green,background:P.green+"20",padding:"1px 4px",borderRadius:6}}>+{holeHeroes}</span>}
                 </div>
               </div>
             </div>
             {/* Mental Net center */}
             <div style={{textAlign:"center",flexShrink:0}}>
-              <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:1,display:"flex",alignItems:"center",gap:2,justifyContent:"center"}}>NET <button onClick={()=>setShowMentalNetInfo(true)} {...pp()} style={{width:13,height:13,borderRadius:"50%",border:`1px solid ${P.border}`,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:7,color:P.muted,cursor:"pointer",flexShrink:0,background:"transparent",padding:0,lineHeight:1}}>?</button></div>
-              <div style={{fontSize:"clamp(24px,7vw,34px)",fontWeight:900,lineHeight:1,color:total.net>0?P.green:total.net<0?P.red:P.gold,transition:"all 0.2s"}}>{total.net>0?"+":""}{total.net}</div>
-              {rd!==null&&<div style={{fontSize:9,fontWeight:700,color:rd<0?P.green:rd>0?P.red:P.gold,marginTop:1}}>{rd>0?"+":""}{rd===0?"E":rd}</div>}
+              <div style={{fontSize:9,color:P.muted,letterSpacing:1,fontWeight:700,display:"flex",alignItems:"center",gap:2,justifyContent:"center"}}>NET <button onClick={()=>setShowMentalNetInfo(true)} {...pp()} style={{width:12,height:12,borderRadius:"50%",border:`1px solid ${P.border}`,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:7,color:P.muted,cursor:"pointer",flexShrink:0,background:"transparent",padding:0,lineHeight:1}}>?</button></div>
+              <div style={{fontSize:26,fontWeight:900,lineHeight:1,color:total.net>0?P.green:total.net<0?P.red:P.gold,transition:"all 0.2s"}}>{total.net>0?"+":""}{total.net}</div>
+              {rd!==null&&<div style={{fontSize:9,fontWeight:700,color:rd<0?P.green:rd>0?P.red:P.gold}}>{rd>0?"+":""}{rd===0?"E":rd}</div>}
             </div>
             {/* Bandits side */}
-            <div style={{display:"flex",alignItems:"center",gap:6,flex:1,justifyContent:"flex-end"}}>
+            <div style={{display:"flex",alignItems:"center",gap:5,flex:1,justifyContent:"flex-end"}}>
               <div style={{textAlign:"right"}}>
-                <div style={{fontSize:11,color:P.red,letterSpacing:1,fontWeight:700,marginBottom:1}}>BANDITS</div>
+                <div style={{fontSize:10,color:P.red,letterSpacing:1,fontWeight:700}}>BANDITS</div>
                 <div style={{display:"flex",alignItems:"baseline",gap:3,justifyContent:"flex-end"}}>
                   {holeBandits>0&&<span style={{fontSize:9,fontWeight:700,color:P.red,background:P.red+"20",padding:"1px 4px",borderRadius:6}}>+{holeBandits}</span>}
-                  <span style={{fontSize:"clamp(20px,5.5vw,28px)",fontWeight:900,color:P.red,lineHeight:1}}>{bT}</span>
+                  <span style={{fontSize:22,fontWeight:900,color:P.red,lineHeight:1}}>{bT}</span>
                 </div>
               </div>
-              <img src={darkMode?BANDIT_LOGO_WHITE:BANDIT_LOGO_DARK} alt="Bandits" style={{width:44,height:44,objectFit:"contain",flexShrink:0}}/>
+              <img src={darkMode?BANDIT_LOGO_WHITE:BANDIT_LOGO_DARK} alt="Bandits" style={{width:32,height:32,objectFit:"contain",flexShrink:0}}/>
             </div>
           </div>
           );
