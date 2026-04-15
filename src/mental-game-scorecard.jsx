@@ -2619,7 +2619,7 @@ export default function App() {
           </button>
         </div>
 
-        {matchupOpen&&<div style={{flex:1,overflowY:"auto",overflowX:"hidden",padding:"0 10px 4px",animation:"fadeIn 0.15s ease-out",display:"flex",flexDirection:"column",justifyContent:"space-evenly"}}>
+        {matchupOpen&&<div style={{flex:1,overflowY:"auto",overflowX:"hidden",padding:"0 10px 4px",animation:"fadeIn 0.15s ease-out",display:"flex",flexDirection:"column",gap:2}}>
           {MATCHUPS.map(({hero,verb,bandit},idx)=>{
             const heroColor = P.green;
             const hVal = hH[hero]||0, bVal = hB[bandit]||0;
