@@ -1907,7 +1907,7 @@ export default function App() {
   }
 
   function updateField(field, value) { setScores(prev=>{const n=JSON.parse(JSON.stringify(prev));n[currentHole][field]=value;return n;}); }
-  function goToHole(h) { setCurrentHole(h); setAnimKey(k=>k+1); setHoleNoteOpen(settings?.holeNoteDefault!==false); }
+  function goToHole(h) { setCurrentHole(h); setAnimKey(k=>k+1); setHoleNoteOpen(false); }
 
   function advanceHole() {
     const nextHole = Math.min(17, currentHole + 1);
@@ -2597,12 +2597,12 @@ export default function App() {
             const hVal = hH[hero]||0, bVal = hB[bandit]||0;
             const hActive = hVal>0, bActive = bVal>0;
             return (
-            <div key={idx} style={{display:"grid",gridTemplateColumns:"44px 1fr 56px 1fr 44px",alignItems:"center",gap:"clamp(2px,1vw,4px)",padding:"clamp(4px,1.2vh,10px) 6px",borderRadius:10,background:hActive?heroColor+"10":bActive?P.red+"08":idx%2===0?P.card:"transparent",border:`1px solid ${hActive?heroColor+"33":bActive?P.red+"22":"transparent"}`,transition:"all 0.18s ease"}}>
-              <button onClick={()=>setScore("heroes",hero,1)} aria-label={`${hero} hero`} aria-pressed={hActive} style={{...toggleBtn(P,"green",hActive),width:"clamp(34px,9vw,40px)",height:"clamp(34px,9vw,40px)",borderColor:hActive?heroColor:P.greenDim,background:hActive?heroColor:"transparent",boxShadow:hActive?`0 0 12px ${heroColor}44`:"none",fontSize:"clamp(13px,3.5vw,16px)",fontWeight:900,color:hActive?"#fff":"transparent"}}>{hVal>0?hVal:""}</button>
-              <div style={{fontSize:"clamp(13px,3.8vw,16px)",color:hActive?heroColor:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{hero}</div>
-              <div style={{textAlign:"center",fontSize:"clamp(11px,3vw,13px)",color:P.muted,fontStyle:"italic",fontWeight:600}}>{verb}</div>
-              <div style={{fontSize:"clamp(13px,3.8vw,16px)",color:bActive?P.red:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{bandit}</div>
-              <button onClick={()=>setScore("bandits",bandit,1)} aria-label={`${bandit} bandit`} aria-pressed={bActive} style={{...toggleBtn(P,"red",bActive),width:"clamp(34px,9vw,40px)",height:"clamp(34px,9vw,40px)",borderRadius:10,fontSize:"clamp(13px,3.5vw,16px)",fontWeight:900,color:bActive?"#fff":"transparent"}}>{bVal>0?bVal:""}</button>
+            <div key={idx} style={{display:"grid",gridTemplateColumns:"38px 1fr 50px 1fr 38px",alignItems:"center",gap:"clamp(2px,1vw,4px)",padding:"clamp(3px,0.8vh,7px) 6px",borderRadius:10,background:hActive?heroColor+"10":bActive?P.red+"08":idx%2===0?P.card:"transparent",border:`1px solid ${hActive?heroColor+"33":bActive?P.red+"22":"transparent"}`,transition:"all 0.18s ease"}}>
+              <button onClick={()=>setScore("heroes",hero,1)} aria-label={`${hero} hero`} aria-pressed={hActive} style={{...toggleBtn(P,"green",hActive),width:"clamp(30px,8vw,36px)",height:"clamp(30px,8vw,36px)",borderColor:hActive?heroColor:P.greenDim,background:hActive?heroColor:"transparent",boxShadow:hActive?`0 0 12px ${heroColor}44`:"none",fontSize:"clamp(12px,3vw,14px)",fontWeight:900,color:hActive?"#fff":"transparent"}}>{hVal>0?hVal:""}</button>
+              <div style={{fontSize:"clamp(12px,3.5vw,14px)",color:hActive?heroColor:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{hero}</div>
+              <div style={{textAlign:"center",fontSize:"clamp(10px,2.5vw,12px)",color:P.muted,fontStyle:"italic",fontWeight:600}}>{verb}</div>
+              <div style={{fontSize:"clamp(12px,3.5vw,14px)",color:bActive?P.red:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{bandit}</div>
+              <button onClick={()=>setScore("bandits",bandit,1)} aria-label={`${bandit} bandit`} aria-pressed={bActive} style={{...toggleBtn(P,"red",bActive),width:"clamp(30px,8vw,36px)",height:"clamp(30px,8vw,36px)",borderRadius:10,fontSize:"clamp(12px,3vw,14px)",fontWeight:900,color:bActive?"#fff":"transparent"}}>{bVal>0?bVal:""}</button>
             </div>
           );})}
         </div>}
