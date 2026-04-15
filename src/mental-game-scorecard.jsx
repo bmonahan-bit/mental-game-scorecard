@@ -2748,35 +2748,25 @@ export default function App() {
 // ═══════════════════════════════════════
 function UserDropdown({firstName, overlay1, overlay2, textHigh, textMid, P, onSettings, onSignOut}) {
   const [open, setOpen] = React.useState(false);
-  const [pos, setPos] = React.useState({top:0,left:0});
-  const btnRef = React.useRef(null);
-
-  function toggle() {
-    if (!open && btnRef.current) {
-      const r = btnRef.current.getBoundingClientRect();
-      setPos({top: r.bottom + 6, left: r.left});
-    }
-    setOpen(o=>!o);
-  }
 
   return (
-    <div>
-      <button ref={btnRef} onClick={toggle} style={{display:"flex",alignItems:"center",gap:8,background:overlay1,border:`1px solid ${overlay2}`,borderRadius:10,padding:"6px 12px",cursor:"pointer"}}>
+    <div style={{position:"relative"}}>
+      <button onClick={()=>setOpen(o=>!o)} style={{display:"flex",alignItems:"center",gap:8,background:overlay1,border:`1px solid ${overlay2}`,borderRadius:10,padding:"6px 12px",cursor:"pointer"}}>
         <div style={{width:24,height:24,borderRadius:"50%",background:overlay2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:textHigh}}>{(firstName||"?")[0].toUpperCase()}</div>
         <span style={{fontSize:12,color:textMid,fontWeight:500}}>{firstName||"Account"}</span>
         <Icons.Chev color={textMid} size={12}/>
       </button>
       {open&&(
         <>
-          <div onClick={()=>setOpen(false)} style={{position:"fixed",inset:0,zIndex:9998}}/>
-          <div style={{position:"fixed",top:pos.top,left:pos.left,zIndex:9999,background:P.card,border:`1.5px solid ${P.border}`,borderRadius:12,minWidth:160,boxShadow:"0 8px 24px rgba(0,0,0,0.4)",padding:"4px"}}>
-            <button onClick={()=>{setOpen(false); window.__clerkOpenUserProfile ? window.__clerkOpenUserProfile() : onSettings&&onSettings();}} style={{display:"block",width:"100%",padding:"12px 14px",background:"transparent",border:"none",color:P.white,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>
+          <div onClick={()=>setOpen(false)} style={{position:"fixed",inset:0,zIndex:49999}}/>
+          <div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:50000,background:P.card,border:`1.5px solid ${P.border}`,borderRadius:12,minWidth:160,boxShadow:"0 8px 24px rgba(0,0,0,0.4)",padding:"4px"}}>
+            <button onClick={()=>{setOpen(false); if(window.__clerkOpenUserProfile) window.__clerkOpenUserProfile();}} style={{display:"block",width:"100%",padding:"12px 14px",background:"transparent",border:"none",color:P.white,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>
               My Profile
             </button>
-            <button onClick={()=>{setOpen(false);onSettings&&onSettings();}} style={{display:"block",width:"100%",padding:"12px 14px",background:"transparent",border:"none",color:P.white,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>
+            <button onClick={()=>{setOpen(false); onSettings&&onSettings();}} style={{display:"block",width:"100%",padding:"12px 14px",background:"transparent",border:"none",color:P.white,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>
               Settings
             </button>
-            <button onClick={()=>{setOpen(false); window.__clerkSignOut ? window.__clerkSignOut() : onSignOut&&onSignOut();}} style={{display:"block",width:"100%",padding:"12px 14px",background:"transparent",border:"none",color:P.red,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>
+            <button onClick={()=>{setOpen(false); if(window.__clerkSignOut) window.__clerkSignOut();}} style={{display:"block",width:"100%",padding:"12px 14px",background:"transparent",border:"none",color:P.red,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>
               Sign Out
             </button>
           </div>
