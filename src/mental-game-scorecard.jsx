@@ -1411,7 +1411,7 @@ function fallbackShare(r) {
 // ─── STYLE HELPERS ───
 function mkStyles(P) {
   return {
-    shell: { height:"100svh", background:P.bg, color:P.white, fontFamily:"'Avenir Next','SF Pro Display',-apple-system,sans-serif", display:"flex", flexDirection:"column", maxWidth:480, width:"100%", margin:"0 auto", position:"relative", overflowX:"hidden", overflowY:"hidden" },
+    shell: { height:"100svh", background:P.bg, color:P.white, fontFamily:"'Avenir Next','SF Pro Display',-apple-system,sans-serif", display:"flex", flexDirection:"column", maxWidth:480, width:"100%", margin:"0 auto", position:"relative", overflowX:"hidden", overflowY:"hidden", paddingTop:"env(safe-area-inset-top)", paddingBottom:"env(safe-area-inset-bottom)", paddingLeft:"env(safe-area-inset-left)", paddingRight:"env(safe-area-inset-right)" },
     iconBtn: { width:38, height:38, borderRadius:10, border:`1.5px solid ${P.border}`, background:P.card, color:P.white, fontSize:17, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 1px 3px rgba(0,0,0,0.06)", transition:"transform 0.1s ease" },
     input: { flex:1, padding:"10px 12px", borderRadius:10, border:`1.5px solid ${P.border}`, background:P.inputBg, color:P.white, fontSize:15, outline:"none", fontWeight:500 },
     miniInput: { padding:"6px", borderRadius:8, border:`1.5px solid ${P.border}`, background:P.inputBg, color:P.white, fontSize:20, textAlign:"center", outline:"none", fontWeight:700, width:48 },
