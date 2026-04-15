@@ -2770,10 +2770,13 @@ function UserDropdown({firstName, overlay1, overlay2, textHigh, textMid, P, onSe
         <>
           <div onClick={()=>setOpen(false)} style={{position:"fixed",inset:0,zIndex:9998}}/>
           <div style={{position:"fixed",top:pos.top,left:pos.left,zIndex:9999,background:P.card,border:`1.5px solid ${P.border}`,borderRadius:12,minWidth:160,boxShadow:"0 8px 24px rgba(0,0,0,0.4)",padding:"4px"}}>
-            <button onClick={()=>{setOpen(false);onSettings&&onSettings();}} style={{display:"block",width:"100%",padding:"12px 14px",background:"transparent",border:"none",color:P.white,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>
+            <button onClick={()=>{setOpen(false); window.__clerkOpenUserProfile ? window.__clerkOpenUserProfile() : onSettings&&onSettings();}} style={{display:"block",width:"100%",padding:"12px 14px",background:"transparent",border:"none",color:P.white,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>
               My Profile
             </button>
-            <button onClick={()=>{setOpen(false);onSignOut&&onSignOut();}} style={{display:"block",width:"100%",padding:"12px 14px",background:"transparent",border:"none",color:P.red,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>
+            <button onClick={()=>{setOpen(false);onSettings&&onSettings();}} style={{display:"block",width:"100%",padding:"12px 14px",background:"transparent",border:"none",color:P.white,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>
+              Settings
+            </button>
+            <button onClick={()=>{setOpen(false); window.__clerkSignOut ? window.__clerkSignOut() : onSignOut&&onSignOut();}} style={{display:"block",width:"100%",padding:"12px 14px",background:"transparent",border:"none",color:P.red,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>
               Sign Out
             </button>
           </div>
