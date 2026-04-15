@@ -2329,7 +2329,7 @@ export default function App() {
 
   return (
     <ThemeCtx.Provider value={P}>
-      <div style={{...S.shell,overflow:"hidden"}}>
+      <div style={{...S.shell,overflow:"hidden",display:"flex",flexDirection:"column"}}>
         <ConfettiCanvas active={!caddieCard&&showConfetti} onDone={()=>setShowConfetti(false)}/>
         <BalloonCanvas active={!caddieCard&&showBalloons} onDone={()=>setShowBalloons(false)}/>
         <FlameCanvas active={!caddieCard&&showFlame} onDone={()=>setShowFlame(false)}/>
@@ -2485,7 +2485,7 @@ export default function App() {
             OFFLINE — all data saves locally, syncs when back online
           </div>
         )}
-        <div style={{padding:"4px 12px 2px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{padding:"clamp(2px,0.8vh,4px) 12px clamp(1px,0.4vh,2px)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <button onClick={nav("home")} style={S.iconBtn} {...pp()}><Icons.Home color={P.muted} size={17}/></button>
           <div style={{textAlign:"center"}}><div style={{fontSize:17,fontWeight:800,color:P.white}}>Scorecard</div></div>
           <div style={{display:"flex",gap:4}}>
@@ -2509,7 +2509,7 @@ export default function App() {
           setCourseData={setCourseData}
         />
         </div>
-        <div style={{padding:"0 12px 6px",display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
+        <div style={{padding:"0 12px clamp(2px,0.8vh,6px)",display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
           <input type="date" value={roundDate} onChange={e=>setRoundDate(e.target.value)} style={{...S.input,flex:"0 0 auto",width:130,fontSize:12,padding:"6px 8px"}}/>
           <div style={{flex:1,display:"flex",justifyContent:"center"}}>
             <LiveClock P={P}/>
@@ -2567,7 +2567,7 @@ export default function App() {
           const runningPar = completedPar + curPar;
           const runningDiff = (completedHoles.length > 0 || (hasCurrentScore && hasCurrentPar)) ? runningStroke - runningPar : null;
           return (
-        <div ref={tipRefs.scoreRow} key={animKey} style={{padding:"2px 8px 4px",display:"flex",alignItems:"center",gap:8,animation:"fadeSlide 0.25s ease-out",flexShrink:0}}>
+        <div ref={tipRefs.scoreRow} key={animKey} style={{padding:"clamp(1px,0.5vh,2px) 8px clamp(2px,0.8vh,4px)",display:"flex",alignItems:"center",gap:8,animation:"fadeSlide 0.25s ease-out",flexShrink:0}}>
 
           {/* Back arrow — left of hole info */}
           <button onClick={()=>goToHole(Math.max(0,currentHole-1))} disabled={currentHole===0} style={{...navBtnS(P,currentHole===0),padding:"8px 10px",flexShrink:0,alignSelf:"center",marginTop:10}} aria-label="Previous hole">←</button>
@@ -2625,12 +2625,12 @@ export default function App() {
             const hVal = hH[hero]||0, bVal = hB[bandit]||0;
             const hActive = hVal>0, bActive = bVal>0;
             return (
-            <div key={idx} style={{display:"grid",gridTemplateColumns:"44px 1fr 56px 1fr 44px",alignItems:"center",gap:4,padding:"10px 6px",borderRadius:10,background:hActive?heroColor+"10":bActive?P.red+"08":idx%2===0?P.card:"transparent",border:`1px solid ${hActive?heroColor+"33":bActive?P.red+"22":"transparent"}`,transition:"all 0.18s ease"}}>
-              <button onClick={()=>setScore("heroes",hero,1)} aria-label={`${hero} hero`} aria-pressed={hActive} style={{...toggleBtn(P,"green",hActive),width:40,height:40,borderColor:hActive?heroColor:P.greenDim,background:hActive?heroColor:"transparent",boxShadow:hActive?`0 0 12px ${heroColor}44`:"none",fontSize:16,fontWeight:900,color:hActive?"#fff":"transparent"}}>{hVal>0?hVal:""}</button>
-              <div style={{fontSize:16,color:hActive?heroColor:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{hero}</div>
-              <div style={{textAlign:"center",fontSize:13,color:P.muted,fontStyle:"italic",fontWeight:600}}>{verb}</div>
-              <div style={{fontSize:16,color:bActive?P.red:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{bandit}</div>
-              <button onClick={()=>setScore("bandits",bandit,1)} aria-label={`${bandit} bandit`} aria-pressed={bActive} style={{...toggleBtn(P,"red",bActive),width:40,height:40,borderRadius:10,fontSize:16,fontWeight:900,color:bActive?"#fff":"transparent"}}>{bVal>0?bVal:""}</button>
+            <div key={idx} style={{display:"grid",gridTemplateColumns:"44px 1fr 56px 1fr 44px",alignItems:"center",gap:"clamp(2px,1vw,4px)",padding:"clamp(4px,1.2vh,10px) 6px",borderRadius:10,background:hActive?heroColor+"10":bActive?P.red+"08":idx%2===0?P.card:"transparent",border:`1px solid ${hActive?heroColor+"33":bActive?P.red+"22":"transparent"}`,transition:"all 0.18s ease"}}>
+              <button onClick={()=>setScore("heroes",hero,1)} aria-label={`${hero} hero`} aria-pressed={hActive} style={{...toggleBtn(P,"green",hActive),width:"clamp(34px,9vw,40px)",height:"clamp(34px,9vw,40px)",borderColor:hActive?heroColor:P.greenDim,background:hActive?heroColor:"transparent",boxShadow:hActive?`0 0 12px ${heroColor}44`:"none",fontSize:"clamp(13px,3.5vw,16px)",fontWeight:900,color:hActive?"#fff":"transparent"}}>{hVal>0?hVal:""}</button>
+              <div style={{fontSize:"clamp(13px,3.8vw,16px)",color:hActive?heroColor:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{hero}</div>
+              <div style={{textAlign:"center",fontSize:"clamp(11px,3vw,13px)",color:P.muted,fontStyle:"italic",fontWeight:600}}>{verb}</div>
+              <div style={{fontSize:"clamp(13px,3.8vw,16px)",color:bActive?P.red:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{bandit}</div>
+              <button onClick={()=>setScore("bandits",bandit,1)} aria-label={`${bandit} bandit`} aria-pressed={bActive} style={{...toggleBtn(P,"red",bActive),width:"clamp(34px,9vw,40px)",height:"clamp(34px,9vw,40px)",borderRadius:10,fontSize:"clamp(13px,3.5vw,16px)",fontWeight:900,color:bActive?"#fff":"transparent"}}>{bVal>0?bVal:""}</button>
             </div>
           );})}
         </div>}
@@ -2653,20 +2653,20 @@ export default function App() {
           const holeHeroes=hH?Object.values(hH).filter(v=>v>0).length:0;
           const holeBandits=hB?Object.values(hB).filter(v=>v>0).length:0;
           return (
-          <div style={{margin:"0 12px 4px",padding:"8px 12px",borderRadius:12,background:total.net>0?P.green+"12":total.net<0?P.red+"12":P.card,border:`1.5px solid ${total.net>0?P.green+"44":total.net<0?P.red+"44":P.border}`,display:"flex",alignItems:"center",gap:6,transition:"all 0.3s ease"}}>
+          <div style={{margin:"0 12px 4px",padding:"clamp(4px,1vh,8px) 12px",borderRadius:12,background:total.net>0?P.green+"12":total.net<0?P.red+"12":P.card,border:`1.5px solid ${total.net>0?P.green+"44":total.net<0?P.red+"44":P.border}`,display:"flex",alignItems:"center",gap:6,transition:"all 0.3s ease"}}>
             <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
-              <img src={darkMode?HEROES_LOGO_WHITE:HEROES_LOGO_DARK} alt="Heroes" style={{width:44,height:44,objectFit:"contain",flexShrink:0}}/>
+              <img src={darkMode?HEROES_LOGO_WHITE:HEROES_LOGO_DARK} alt="Heroes" style={{width:"clamp(32px,8vw,44px)",height:"clamp(32px,8vw,44px)",objectFit:"contain",flexShrink:0}}/>
               <div>
                 <div style={{fontSize:9,color:P.green,letterSpacing:1,fontWeight:700,marginBottom:1}}>HEROES</div>
                 <div style={{display:"flex",alignItems:"baseline",gap:4}}>
-                  <span style={{fontSize:30,fontWeight:900,color:P.green,lineHeight:1}}>{hT}</span>
+                  <span style={{fontSize:"clamp(22px,6vw,30px)",fontWeight:900,color:P.green,lineHeight:1}}>{hT}</span>
                   {holeHeroes>0&&<span style={{fontSize:10,fontWeight:700,color:P.green,background:P.green+"20",padding:"1px 5px",borderRadius:8}}>+{holeHeroes}</span>}
                 </div>
               </div>
             </div>
             <div style={{textAlign:"center",flexShrink:0}}>
               <div style={{fontSize:8,color:P.muted,letterSpacing:1.5,fontWeight:700,marginBottom:1,display:"flex",alignItems:"center",gap:3,justifyContent:"center"}}>MENTAL NET <button onClick={()=>setShowMentalNetInfo(true)} {...pp()} style={{width:15,height:15,borderRadius:"50%",border:`1px solid ${P.border}`,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:8,color:P.muted,cursor:"pointer",flexShrink:0,background:"transparent",padding:0,lineHeight:1}}>?</button></div>
-              <div style={{fontSize:36,fontWeight:900,lineHeight:1,color:total.net>0?P.green:total.net<0?P.red:P.gold,textShadow:total.net!==0?`0 0 20px ${total.net>0?P.green:P.red}44`:"none",transition:"all 0.2s"}}>{total.net>0?"+":""}{total.net}</div>
+              <div style={{fontSize:"clamp(26px,8vw,36px)",fontWeight:900,lineHeight:1,color:total.net>0?P.green:total.net<0?P.red:P.gold,textShadow:total.net!==0?`0 0 20px ${total.net>0?P.green:P.red}44`:"none",transition:"all 0.2s"}}>{total.net>0?"+":""}{total.net}</div>
               {rd!==null&&<div style={{fontSize:10,fontWeight:700,color:rd<0?P.green:rd>0?P.red:P.gold,marginTop:1}}>{rd>0?"+":""}{rd===0?"E par":rd+" vs par"}</div>}
             </div>
             <div style={{display:"flex",alignItems:"center",gap:8,flex:1,justifyContent:"flex-end"}}>
@@ -2674,10 +2674,10 @@ export default function App() {
                 <div style={{fontSize:9,color:P.red,letterSpacing:1,fontWeight:700,marginBottom:1}}>BANDITS</div>
                 <div style={{display:"flex",alignItems:"baseline",gap:4,justifyContent:"flex-end"}}>
                   {holeBandits>0&&<span style={{fontSize:10,fontWeight:700,color:P.red,background:P.red+"20",padding:"1px 5px",borderRadius:8}}>+{holeBandits}</span>}
-                  <span style={{fontSize:30,fontWeight:900,color:P.red,lineHeight:1}}>{bT}</span>
+                  <span style={{fontSize:"clamp(22px,6vw,30px)",fontWeight:900,color:P.red,lineHeight:1}}>{bT}</span>
                 </div>
               </div>
-              <img src={darkMode?BANDIT_LOGO_WHITE:BANDIT_LOGO_DARK} alt="Bandits" style={{width:44,height:44,objectFit:"contain",flexShrink:0}}/>
+              <img src={darkMode?BANDIT_LOGO_WHITE:BANDIT_LOGO_DARK} alt="Bandits" style={{width:"clamp(32px,8vw,44px)",height:"clamp(32px,8vw,44px)",objectFit:"contain",flexShrink:0}}/>
             </div>
           </div>
           );
@@ -2697,7 +2697,7 @@ export default function App() {
         {/* Step 6 ref: Hole Note + Nav — fixed at bottom */}
         <div ref={tipRefs.nav} style={{flexShrink:0,borderTop:`1px solid ${P.border}`,background:P.bg}}>
         {/* Save + Next row */}
-        <div style={{padding:"4px 10px 2px",display:"flex",gap:5,alignItems:"center"}}>
+        <div style={{padding:"clamp(2px,0.6vh,4px) 10px clamp(1px,0.4vh,2px)",display:"flex",gap:5,alignItems:"center"}}>
           <SaveBtn P={P} onSave={saveRound} hint={savedRounds.length===0&&currentHole>0?"Tap Save to finish early":null}/>
           <div style={{flex:1}}/>
           {currentHole>=8&&currentHole<17&&<button onClick={completeRound} aria-label="Finish round" style={{padding:"10px 10px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green+"12",color:P.green,fontSize:11,fontWeight:700,cursor:"pointer",transition:"transform 0.1s ease",flexShrink:0}}>Finish ✓</button>}
