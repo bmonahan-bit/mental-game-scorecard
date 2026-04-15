@@ -2470,7 +2470,7 @@ export default function App() {
             OFFLINE — all data saves locally, syncs when back online
           </div>
         )}
-        <div style={{padding:"clamp(2px,0.8vh,4px) 12px clamp(1px,0.4vh,2px)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{padding:"8px 12px 4px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <button onClick={nav("home")} style={S.iconBtn} {...pp()}><Icons.Home color={P.muted} size={17}/></button>
           <div style={{textAlign:"center"}}><div style={{fontSize:17,fontWeight:800,color:P.white}}>Scorecard</div></div>
           <div style={{display:"flex",gap:4}}>
@@ -2482,7 +2482,7 @@ export default function App() {
           </div>
         </div>
 
-        <div ref={tipRefs.course} style={{flexShrink:0}}>
+        <div ref={tipRefs.course} style={{flexShrink:0,paddingTop:6}}>
         <CourseSearchBar
           P={P} S={S}
           courseName={courseName}
@@ -2494,7 +2494,7 @@ export default function App() {
           setCourseData={setCourseData}
         />
         </div>
-        <div style={{padding:"0 12px clamp(2px,0.8vh,6px)",display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
+        <div style={{padding:"0 12px 4px",display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
           <input type="date" value={roundDate} onChange={e=>setRoundDate(e.target.value)} style={{...S.input,flex:"0 0 auto",width:130,fontSize:12,padding:"6px 8px"}}/>
           <div style={{flex:1,display:"flex",justifyContent:"center"}}>
             <LiveClock P={P}/>
@@ -2552,7 +2552,7 @@ export default function App() {
           const runningPar = completedPar + curPar;
           const runningDiff = (completedHoles.length > 0 || (hasCurrentScore && hasCurrentPar)) ? runningStroke - runningPar : null;
           return (
-        <div ref={tipRefs.scoreRow} key={animKey} style={{padding:"clamp(1px,0.5vh,2px) 8px clamp(2px,0.8vh,4px)",display:"flex",alignItems:"center",gap:8,animation:"fadeSlide 0.25s ease-out",flexShrink:0}}>
+        <div ref={tipRefs.scoreRow} key={animKey} style={{padding:"2px 8px 4px",display:"flex",alignItems:"center",gap:8,animation:"fadeSlide 0.25s ease-out",flexShrink:0}}>
 
           {/* Back arrow — left of hole info */}
           <button onClick={()=>goToHole(Math.max(0,currentHole-1))} disabled={currentHole===0} style={{...navBtnS(P,currentHole===0),padding:"8px 10px",flexShrink:0,alignSelf:"center",marginTop:10}} aria-label="Previous hole">←</button>
@@ -2685,7 +2685,7 @@ export default function App() {
         {/* Step 6 ref: Hole Note + Nav — fixed at bottom */}
         <div ref={tipRefs.nav} style={{flexShrink:0,borderTop:`1px solid ${P.border}`,background:P.bg}}>
         {/* Save + Next row */}
-        <div style={{padding:"clamp(2px,0.6vh,4px) 10px clamp(1px,0.4vh,2px)",display:"flex",gap:5,alignItems:"center"}}>
+        <div style={{padding:"4px 10px 2px",display:"flex",gap:5,alignItems:"center"}}>
           <SaveBtn P={P} onSave={saveRound} hint={savedRounds.length===0&&currentHole>0?"Tap Save to finish early":null}/>
           <div style={{flex:1}}/>
           {currentHole>=8&&currentHole<17&&<button onClick={completeRound} aria-label="Finish round" style={{padding:"10px 10px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green+"12",color:P.green,fontSize:11,fontWeight:700,cursor:"pointer",transition:"transform 0.1s ease",flexShrink:0}}>Finish ✓</button>}
