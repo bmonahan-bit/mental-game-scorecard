@@ -2783,6 +2783,13 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
   const [logoPopped,setLogoPopped]=useState(false);
   const [heroBounce,setHeroBounce]=useState(false);
   const [banditBounce,setBanditBounce]=useState(false);
+  const [clerkTick, setClerkTick] = useState(0);
+  // Poll Clerk state so UI updates after sign-in/out without full page reload
+  useEffect(()=>{
+    const id = setInterval(()=>setClerkTick(t=>t+1), 1000);
+    return ()=>clearInterval(id);
+  },[]);
+  const clerkUser = window.__useUser ? window.__useUser() : null;
   function tapLogo(which) {
     if(which==="hero"){setHeroBounce(true);setTimeout(()=>setHeroBounce(false),500);}
     else{setBanditBounce(true);setTimeout(()=>setBanditBounce(false),500);}
@@ -2849,18 +2856,14 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
       <div style={{position:"absolute",top:"28%",left:"50%",transform:"translateX(-50%)",width:320,height:320,borderRadius:"50%",border:`1px solid ${ringColor}`,zIndex:1,pointerEvents:"none"}}/>
       <div style={{position:"absolute",top:"22%",left:"50%",transform:"translateX(-50%)",width:480,height:480,borderRadius:"50%",border:`1px solid ${ringColor}`,zIndex:1,pointerEvents:"none"}}/>
       {/* Top bar */}
-      <div style={{padding:"16px 20px 0",display:"flex",justifyContent:"space-between",alignItems:"center",position:"relative",zIndex:2}}>
-        {(()=>{
-          const clerkUser = window.__useUser ? window.__useUser() : null;
-          if (clerkUser?.isSignedIn) return (
-            <UserDropdown firstName={clerkUser.user?.firstName} overlay1={overlay1} overlay2={overlay2} textHigh={textHigh} textMid={textMid} P={P} onSettings={onSettings} onSignOut={onSignOut}/>
-          );
-          return (
-            <button onClick={()=>openWithClerk("signIn")} style={{display:"flex",alignItems:"center",gap:6,background:overlay1,border:`1px solid ${overlay2}`,borderRadius:10,padding:"7px 12px",fontSize:12,fontWeight:600,color:textMid,cursor:"pointer"}} {...pp()}>
-              <Icons.User color={textMid} size={14}/> Sign In
-            </button>
-          );
-        })()}
+      <div style={{padding:"16px 20px 0",display:"flex",justifyContent:"space-between",alignItems:"center",position:"relative",zIndex:50001}}>
+        {clerkUser?.isSignedIn ? (
+          <UserDropdown firstName={clerkUser.user?.firstName} overlay1={overlay1} overlay2={overlay2} textHigh={textHigh} textMid={textMid} P={P} onSettings={onSettings} onSignOut={onSignOut}/>
+        ) : (
+          <button onClick={()=>openWithClerk("signIn")} style={{display:"flex",alignItems:"center",gap:6,background:overlay1,border:`1px solid ${overlay2}`,borderRadius:10,padding:"7px 12px",fontSize:12,fontWeight:600,color:textMid,cursor:"pointer"}} {...pp()}>
+            <Icons.User color={textMid} size={14}/> Sign In
+          </button>
+        )}
         <div style={{display:"flex",gap:6,alignItems:"center"}}>
           {themeToggle}
         </div>
