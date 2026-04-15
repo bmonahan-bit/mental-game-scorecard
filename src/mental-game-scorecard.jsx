@@ -1078,35 +1078,48 @@ function checkNewMilestones(rounds) {
 // Score notation: returns { label, style } for a stroke score vs par
 // GIR: auto-calculated — strokes before putting must be <= par - 2
 // ─── SCROLL WHEEL PICKER ───
-function Stepper({ value, min=0, max=15, onChange, notation, P, allowEmpty=false, defaultVal=null }) {
-  const raw = value===""||value===null||value===undefined ? null : parseInt(value);
-  const val = raw !== null ? raw : (defaultVal !== null ? parseInt(defaultVal)||null : null);
+function Stepper({ value, min=1, max=15, onChange, notation, P, emptyable=false, defaultVal=null }) {
+  // Derive display value
+  const isEmpty = value===""||value===null||value===undefined;
+  const num = isEmpty ? null : parseInt(value)||null;
+  // If no score entered yet, show par as the display value (greyed)
+  const display = num !== null ? num : (defaultVal ? parseInt(defaultVal)||null : null);
+  const hasValue = num !== null; // true only if user has actually set a value
 
-  const borderRadius = notation?.diff <= -1 ? "50%" : notation?.diff >= 1 ? "6px" : "8px";
-  const borderColor = notation?.diff && notation.diff !== 0 ? (notation.diff < 0 ? P.green : P.red) : P.border;
-  const borderWidth = notation?.diff && Math.abs(notation.diff) >= 2 ? "2.5px" : "1.5px";
+  const borderRadius = notation?.diff<=-1?"50%":notation?.diff>=1?"6px":"8px";
+  const borderColor = notation?.diff&&notation.diff!==0?(notation.diff<0?P.green:P.red):P.border;
+  const borderWidth = notation?.diff&&Math.abs(notation.diff)>=2?"2.5px":"1.5px";
 
   function dec() {
-    const cur = val !== null ? val : (defaultVal ? parseInt(defaultVal)||min : min);
-    // allowEmpty: tapping − below min clears to empty
-    if (allowEmpty && val === null) return; // already empty
-    if (allowEmpty && cur <= min) { onChange(""); return; }
-    if (cur > min) onChange(String(cur - 1));
+    if (!hasValue) {
+      // No value set yet — use display (par) as starting point, go one below
+      const start = display||min;
+      if (start > min) onChange(String(start - 1));
+      return;
+    }
+    if (emptyable && num <= min) { onChange(""); return; } // clear below min
+    if (num > min) onChange(String(num - 1));
   }
+
   function inc() {
-    const cur = val !== null ? val : (defaultVal ? parseInt(defaultVal)||min : min);
-    if (cur < max) onChange(String(cur + 1));
-    else if (val === null) onChange(String(min));
+    if (!hasValue) {
+      // No value set yet — commit display value (par) as the actual score
+      onChange(String(display||min));
+      return;
+    }
+    if (num < max) onChange(String(num + 1));
   }
 
   return (
-    <div style={{display:"flex",alignItems:"center",border:`${borderWidth} solid ${borderColor}`,borderRadius,overflow:"hidden",background:P.inputBg,position:"relative"}}>
-      {notation?.diff && Math.abs(notation.diff) >= 2 && (
+    <div style={{display:"flex",alignItems:"center",borderRadius,border:`${borderWidth} solid ${borderColor}`,overflow:"hidden",background:P.inputBg,position:"relative",flexShrink:0}}>
+      {notation?.diff&&Math.abs(notation.diff)>=2&&(
         <div style={{position:"absolute",inset:3,borderRadius:notation.diff<=-2?"50%":"3px",border:`1px solid ${notation.diff<0?P.green:P.red}`,pointerEvents:"none",zIndex:1}}/>
       )}
-      <button onClick={dec} style={{width:28,height:38,background:"transparent",border:"none",color:P.muted,fontSize:18,fontWeight:300,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>−</button>
-      <div style={{width:28,textAlign:"center",fontSize:18,fontWeight:700,color:val!==null?P.white:P.muted,lineHeight:1,userSelect:"none"}}>{val!==null?val:"—"}</div>
-      <button onClick={inc} style={{width:28,height:38,background:"transparent",border:"none",color:P.muted,fontSize:18,fontWeight:300,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>+</button>
+      <button onClick={dec} style={{width:30,height:40,background:"transparent",border:"none",color:P.muted,fontSize:20,fontWeight:300,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent"}}>−</button>
+      <div style={{width:30,textAlign:"center",fontSize:18,fontWeight:700,color:hasValue?P.white:P.muted,lineHeight:1,userSelect:"none",flexShrink:0}}>
+        {display!==null?display:"—"}
+      </div>
+      <button onClick={inc} style={{width:30,height:40,background:"transparent",border:"none",color:P.muted,fontSize:20,fontWeight:300,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent"}}>+</button>
     </div>
   );
 }
@@ -2572,7 +2585,7 @@ export default function App() {
           {/* PUTTS */}
           <div style={{textAlign:"center",flexShrink:0}}>
             <div style={{fontSize:11,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:4}}>PUTTS</div>
-            <Stepper value={scores[currentHole].putts} min={0} max={9} onChange={v=>updateField("putts",v==="0"?"":v)} P={P} allowEmpty={true}/>
+            <Stepper value={scores[currentHole].putts} min={0} max={9} onChange={v=>updateField("putts",v)} P={P} emptyable={true}/>
           </div>
 
         </div>
