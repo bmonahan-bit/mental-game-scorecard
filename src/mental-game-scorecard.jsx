@@ -1125,11 +1125,12 @@ function Stepper({ value, min=1, max=15, onChange, notation, P, defaultVal=null,
 }
 
 function ScorePill({ value, par, onChange, P }) {
-  const num = value !== "" && value !== null && value !== undefined ? parseInt(value) : null;
+  const parsed = parseInt(value);
+  const num = (value !== "" && value !== null && value !== undefined && !isNaN(parsed)) ? parsed : null;
   const parNum = par ? parseInt(par) : null;
   const display = num !== null ? num : (parNum || "—");
   const isDefault = num === null;
-  const nt = (!isDefault && parNum) ? scoreNotation(String(num), String(parNum)) : null;
+  const nt = (num !== null && parNum) ? scoreNotation(String(num), String(parNum)) : null;
 
   const borderRadius = nt?.diff <= -1 ? "50%" : nt?.diff >= 1 ? "6px" : "8px";
   const borderColor = nt?.diff && nt.diff !== 0 ? (nt.diff < 0 ? P.green : P.red) : P.border;
@@ -1149,9 +1150,13 @@ function ScorePill({ value, par, onChange, P }) {
       {nt?.diff && Math.abs(nt.diff) >= 2 && (
         <div style={{position:"absolute",inset:3,borderRadius:nt.diff<=-2?"50%":"3px",border:`1px solid ${nt.diff<0?P.green:P.red}`,pointerEvents:"none",zIndex:1}}/>
       )}
-      <button onClick={dec} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,fontWeight:300,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1,zIndex:2}}>−</button>
+      <button onClick={dec} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",zIndex:2}}>
+        <svg width="16" height="3" viewBox="0 0 16 3"><rect x="0" y="0" width="16" height="3" rx="1.5" fill={P.muted}/></svg>
+      </button>
       <div style={{minWidth:28,textAlign:"center",fontSize:18,fontWeight:700,color:isDefault?P.muted:P.white,lineHeight:1,userSelect:"none",flexShrink:0,padding:"0 2px",zIndex:2}}>{display}</div>
-      <button onClick={inc} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,fontWeight:300,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1,zIndex:2}}>+</button>
+      <button onClick={inc} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",zIndex:2}}>
+        <svg width="16" height="16" viewBox="0 0 16 16"><rect x="0" y="6.5" width="16" height="3" rx="1.5" fill={P.muted}/><rect x="6.5" y="0" width="3" height="16" rx="1.5" fill={P.muted}/></svg>
+      </button>
     </div>
   );
 }
@@ -2649,9 +2654,13 @@ export default function App() {
                 const displayColor = num!==null ? P.white : P.muted;
                 return (
                   <div style={{display:"flex",alignItems:"center",borderRadius:8,border:`1.5px solid ${P.border}`,overflow:"hidden",background:P.inputBg,flexShrink:0}}>
-                    <button onClick={()=>{const cur=num!==null?num:2;if(cur<=0){updateField("putts","");return;}updateField("putts",String(cur-1));}} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>−</button>
+                    <button onClick={()=>{const cur=num!==null?num:2;if(cur<=0){updateField("putts","");return;}updateField("putts",String(cur-1));}} style={{width:32,height:40,background:"transparent",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent"}}>
+                      <svg width="16" height="3" viewBox="0 0 16 3"><rect x="0" y="0" width="16" height="3" rx="1.5" fill={P.muted}/></svg>
+                    </button>
                     <div style={{minWidth:28,textAlign:"center",fontSize:18,fontWeight:700,color:displayColor,lineHeight:1,userSelect:"none",flexShrink:0,padding:"0 2px"}}>{display}</div>
-                    <button onClick={()=>{const cur=num!==null?num:2;if(cur<9)updateField("putts",String(cur+1));}} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>+</button>
+                    <button onClick={()=>{const cur=num!==null?num:2;if(cur<9)updateField("putts",String(cur+1));}} style={{width:32,height:40,background:"transparent",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent"}}>
+                      <svg width="16" height="16" viewBox="0 0 16 16"><rect x="0" y="6.5" width="16" height="3" rx="1.5" fill={P.muted}/><rect x="6.5" y="0" width="3" height="16" rx="1.5" fill={P.muted}/></svg>
+                    </button>
                   </div>
                 );
               })()}
