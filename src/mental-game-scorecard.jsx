@@ -2583,10 +2583,6 @@ export default function App() {
               })}
             </div>
           ))}
-          {/* Save button below grid */}
-          <div style={{paddingTop:4,paddingBottom:2}}>
-            <SaveBtn P={P} onSave={saveRound} hint={savedRounds.length===0&&currentHole>0?"Tap Save to finish early":null}/>
-          </div>
         </div>
 
         {/* Single row: Hole N · PAR · SCORE · PUTTS */}
@@ -2671,6 +2667,12 @@ export default function App() {
                 onClick={()=>updateField("routine",scores[currentHole].routine?0:1)}
                 style={{width:42,height:40,borderRadius:8,border:`1.5px solid ${scores[currentHole].routine?P.green:P.border}`,background:scores[currentHole].routine?P.green+"18":"transparent",color:scores[currentHole].routine?P.green:P.muted,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent"}}
               >{scores[currentHole].routine?"✓":"—"}</button>
+            </div>
+
+            {/* SAVE */}
+            <div style={{textAlign:"center",flexShrink:0,marginLeft:"auto"}}>
+              <div style={{fontSize:10,color:"transparent",letterSpacing:1,fontWeight:700,marginBottom:3}}>·</div>
+              <SaveBtn P={P} onSave={saveRound}/>
             </div>
 
           </div>
@@ -2770,9 +2772,8 @@ export default function App() {
 
         {/* Step 6 ref: Hole Note + Nav — fixed at bottom */}
         <div ref={tipRefs.nav} style={{flexShrink:0,borderTop:`1px solid ${P.border}`,background:P.bg}}>
-        {/* Save + Next row */}
+        {/* Next / Finish row */}
         <div style={{padding:"4px 10px 2px",display:"flex",gap:5,alignItems:"center"}}>
-          <SaveBtn P={P} onSave={saveRound} hint={savedRounds.length===0&&currentHole>0?"Tap Save to finish early":null}/>
           <div style={{flex:1}}/>
           {currentHole>=8&&currentHole<17&&<button onClick={completeRound} aria-label="Finish round" style={{padding:"10px 10px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green+"12",color:P.green,fontSize:11,fontWeight:700,cursor:"pointer",transition:"transform 0.1s ease",flexShrink:0}}>Finish ✓</button>}
           {currentHole===17?(
