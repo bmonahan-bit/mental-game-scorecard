@@ -1274,10 +1274,6 @@ async function shareRoundAsImage(r, darkMode) {
     ctx.fillStyle = white;
     ctx.font = "bold 13px 'Avenir Next', -apple-system, sans-serif";
     ctx.fillText(h, barX, y + 14);
-    // vs bandit
-    ctx.fillStyle = muted;
-    ctx.font = "11px 'Avenir Next', -apple-system, sans-serif";
-    ctx.fillText(`vs ${bandits[i]}`, barX + 120, y + 14);
     // Hero bar
     ctx.fillStyle = hColor + "33";
     roundRect(ctx, barX, y + 20, barW, 14, 4);
@@ -1287,13 +1283,11 @@ async function shareRoundAsImage(r, darkMode) {
       roundRect(ctx, barX, y + 20, Math.max(8, (hc / maxHB) * barW), 14, 4);
       ctx.fill();
     }
-    // Counts
+    // Hero count (left of bar)
     ctx.fillStyle = hColor;
     ctx.font = "bold 11px 'Avenir Next', -apple-system, sans-serif";
     ctx.textAlign = "right";
     ctx.fillText(hc, barX - 6, y + 32);
-    ctx.fillStyle = red;
-    ctx.fillText(bc, W - 52, y + 32);
     ctx.textAlign = "left";
     // Bandit bar (right-to-left)
     ctx.fillStyle = red + "33";
@@ -1304,6 +1298,18 @@ async function shareRoundAsImage(r, darkMode) {
       roundRect(ctx, barX + barW - Math.max(6, (bc / maxHB) * barW), y + 38, Math.max(6, (bc / maxHB) * barW), 10, 3);
       ctx.fill();
     }
+    // Bandit count (right of bar)
+    ctx.fillStyle = red;
+    ctx.font = "bold 11px 'Avenir Next', -apple-system, sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText(bc, W - 52, y + 47);
+    ctx.textAlign = "left";
+    // Bandit name below red bar, right-aligned
+    ctx.fillStyle = muted;
+    ctx.font = "10px 'Avenir Next', -apple-system, sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText(bandits[i], barX + barW, y + 62);
+    ctx.textAlign = "left";
   });
 
   // Bottom branding
