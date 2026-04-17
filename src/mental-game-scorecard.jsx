@@ -2726,7 +2726,7 @@ export default function App() {
         </div>
 
         {/* Carry-forward intention reminder */}
-        {carryForward&&(
+        {carryForward&&currentHole===0&&(
           <div style={{margin:"0 10px 6px",padding:"8px 12px",borderRadius:9,background:"#ca8a0410",border:"1px solid #ca8a0430",display:"flex",alignItems:"center",gap:10}}>
             <Icons.Note color="#ca8a04" size={14}/>
             <div style={{minWidth:0}}>
