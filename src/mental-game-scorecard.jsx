@@ -2768,7 +2768,7 @@ export default function App() {
                 {streak>=3&&<div style={{display:"flex",alignItems:"center",gap:2,padding:"1px 5px",borderRadius:20,background:P.green+"15",border:`1px solid ${P.green}33`}}><Icons.Fire color={P.green} size={10}/><span style={{fontSize:10,fontWeight:700,color:P.green}}>{streak}</span></div>}
               </div>
             </div>
-            <button onClick={()=>goToHole(Math.min(17,currentHole+1))} disabled={currentHole===17} style={{...navBtnS(P,currentHole===17),padding:"6px 10px",flexShrink:0}} aria-label="Next hole">→</button>
+            <button onClick={()=>currentHole<17?advanceHole():goToHole(currentHole)} disabled={currentHole===17} style={{...navBtnS(P,currentHole===17),padding:"6px 10px",flexShrink:0}} aria-label="Next hole">→</button>
           </div>
 
           {/* Row 2: PAR | SCORE | PUTTS | PSR */}
@@ -2777,7 +2777,7 @@ export default function App() {
             {/* PAR */}
             <div style={{textAlign:"center",flexShrink:0}}>
               <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3}}>PAR</div>
-              <input value={scores[currentHole].par} onChange={e=>{const p=e.target.value.replace(/\D/g,"").slice(0,1);updateField("par",p);if(p&&!scores[currentHole].strokeScore)updateField("strokeScore",p);}} style={{...S.miniInput,width:42,fontSize:18}} inputMode="numeric" aria-label="Par"/>
+              <input value={scores[currentHole].par} onChange={e=>{const p=e.target.value.replace(/\D/g,"").slice(0,1);updateField("par",p);if(p&&!scores[currentHole].strokeScore)updateField("strokeScore",p);}} style={{width:40,height:40,borderRadius:8,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:18,textAlign:"center",outline:"none",fontWeight:700,boxSizing:"border-box",padding:0,flexShrink:0}} inputMode="numeric" aria-label="Par"/>
             </div>
 
             {/* SCORE */}
@@ -2840,7 +2840,7 @@ export default function App() {
               </div>
               <button
                 onClick={()=>updateField("routine",scores[currentHole].routine?0:1)}
-                style={{width:42,height:40,borderRadius:8,border:`1.5px solid ${scores[currentHole].routine?P.green:P.border}`,background:scores[currentHole].routine?P.green+"18":"transparent",color:scores[currentHole].routine?P.green:P.muted,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent"}}
+                style={{width:40,height:40,borderRadius:8,border:`1.5px solid ${scores[currentHole].routine?P.green:P.border}`,background:scores[currentHole].routine?P.green+"18":"transparent",color:scores[currentHole].routine?P.green:P.muted,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent",flexShrink:0}}
               >{scores[currentHole].routine?"✓":"—"}</button>
             </div>
 
