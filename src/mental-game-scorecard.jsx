@@ -2577,9 +2577,9 @@ export default function App() {
           {/* Row 1: Hole info + nav arrows */}
           <div style={{display:"flex",alignItems:"center",gap:6}}>
             <button onClick={()=>goToHole(Math.max(0,currentHole-1))} disabled={currentHole===0} style={{...navBtnS(P,currentHole===0),padding:"6px 10px",flexShrink:0}} aria-label="Previous hole">←</button>
-            <div style={{flex:1,minWidth:0}}>
+            <div style={{flex:1,minWidth:0,textAlign:"center"}}>
               {notation&&notation.diff!==0&&<div style={{fontSize:9,fontWeight:700,color:notation.diff<0?P.green:P.red,letterSpacing:0.5}}>{notation.label}</div>}
-              <div style={{display:"flex",alignItems:"baseline",gap:6,flexWrap:"nowrap"}}>
+              <div style={{display:"flex",alignItems:"baseline",gap:6,flexWrap:"nowrap",justifyContent:"center"}}>
                 <span style={{fontSize:20,fontWeight:900,lineHeight:1,color:P.white,whiteSpace:"nowrap"}}>Hole {currentHole+1}</span>
                 {scores[currentHole].yardage&&<span style={{fontSize:12,fontWeight:600,color:P.muted}}>{scores[currentHole].yardage} yds</span>}
                 {runningDiff!==null&&<span style={{fontSize:13,fontWeight:700,color:runningDiff<0?P.green:runningDiff>0?P.red:P.gold,whiteSpace:"nowrap"}}>{runningDiff>0?"+":""}{runningDiff===0?"E":runningDiff}</span>}
@@ -2612,9 +2612,9 @@ export default function App() {
                 return (
                   <div style={{display:"flex",alignItems:"center",borderRadius:br,border:`${bw} solid ${bc}`,overflow:"hidden",background:P.inputBg,position:"relative",flexShrink:0}}>
                     {notation2?.diff&&Math.abs(notation2.diff)>=2&&<div style={{position:"absolute",inset:3,borderRadius:notation2.diff<=-2?"50%":"3px",border:`1px solid ${notation2.diff<0?P.green:P.red}`,pointerEvents:"none",zIndex:1}}/>}
-                    <button onTouchEnd={e=>{e.stopPropagation();const cur=num!==null?num:parseInt(pv)||1;if(cur>1)updateField("strokeScore",String(cur-1));}} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>−</button>
+                    <button onClick={()=>{const cur=num!==null?num:parseInt(pv)||1;if(cur>1)updateField("strokeScore",String(cur-1));}} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>−</button>
                     <div style={{minWidth:28,textAlign:"center",fontSize:18,fontWeight:700,color:num!==null?P.white:P.muted,lineHeight:1,userSelect:"none",flexShrink:0,padding:"0 2px"}}>{num!==null?num:pv||"—"}</div>
-                    <button onTouchEnd={e=>{e.stopPropagation();const cur=num!==null?num:parseInt(pv)||1;if(cur<15)updateField("strokeScore",String(cur+1));}} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>+</button>
+                    <button onClick={()=>{const cur=num!==null?num:parseInt(pv)||1;if(cur<15)updateField("strokeScore",String(cur+1));}} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>+</button>
                   </div>
                 );
               })()}
@@ -2628,9 +2628,9 @@ export default function App() {
                 const num = pv!==""&&pv!==null&&pv!==undefined ? parseInt(pv) : null;
                 return (
                   <div style={{display:"flex",alignItems:"center",borderRadius:8,border:`1.5px solid ${P.border}`,overflow:"hidden",background:P.inputBg,flexShrink:0}}>
-                    <button onTouchEnd={e=>{e.stopPropagation();if(num===null||num===0){updateField("putts","");return;}updateField("putts",String(num-1));}} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>−</button>
+                    <button onClick={()=>{if(num===null||num===0){updateField("putts","");return;}updateField("putts",String(num-1));}} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>−</button>
                     <div style={{minWidth:28,textAlign:"center",fontSize:18,fontWeight:700,color:num!==null?P.white:P.muted,lineHeight:1,userSelect:"none",flexShrink:0,padding:"0 2px"}}>{num!==null?num:"—"}</div>
-                    <button onTouchEnd={e=>{e.stopPropagation();const cur=num!==null?num:0;if(cur<9)updateField("putts",String(cur+1));}} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>+</button>
+                    <button onClick={()=>{const cur=num!==null?num:0;if(cur<9)updateField("putts",String(cur+1));}} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>+</button>
                   </div>
                 );
               })()}
@@ -2643,7 +2643,6 @@ export default function App() {
                 <button onClick={()=>setShowPSRInfo(true)} style={{width:13,height:13,borderRadius:"50%",border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:7,cursor:"pointer",display:"inline-flex",alignItems:"center",justifyContent:"center",padding:0,lineHeight:1,flexShrink:0}}>?</button>
               </div>
               <button
-                onTouchEnd={e=>{e.stopPropagation();updateField("routine",scores[currentHole].routine?0:1);}}
                 onClick={()=>updateField("routine",scores[currentHole].routine?0:1)}
                 style={{width:42,height:40,borderRadius:8,border:`1.5px solid ${scores[currentHole].routine?P.green:P.border}`,background:scores[currentHole].routine?P.green+"18":"transparent",color:scores[currentHole].routine?P.green:P.muted,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent"}}
               >{scores[currentHole].routine?"✓":"—"}</button>
