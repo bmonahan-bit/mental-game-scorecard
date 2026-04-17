@@ -2549,10 +2549,11 @@ export default function App() {
         />
         </div>
         <div style={{padding:"0 12px 4px",display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
-          <input type="date" value={roundDate} onChange={e=>setRoundDate(e.target.value)} style={{...S.input,flex:1,fontSize:12,padding:"6px 8px"}}/>
-          <button onClick={()=>setInGameCaddie(!inGameCaddie)} {...pp()} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:4,padding:"6px 8px",borderRadius:10,border:`1.5px solid ${inGameCaddie?"#006747":P.border}`,background:inGameCaddie?"#00674715":"transparent",cursor:"pointer",transition:"all 0.15s",flexShrink:0}}>
+          <input type="date" value={roundDate} onChange={e=>setRoundDate(e.target.value)} style={{...S.input,flex:"0 0 auto",width:130,fontSize:12,padding:"6px 8px"}}/>
+          <div style={{flex:1}}/>
+          <button onClick={()=>setInGameCaddie(!inGameCaddie)} {...pp()} style={{display:"flex",alignItems:"center",gap:4,padding:"6px 8px",borderRadius:8,border:`1.5px solid ${inGameCaddie?"#006747":P.border}`,background:inGameCaddie?"#00674715":"transparent",cursor:"pointer",transition:"all 0.15s",flexShrink:0}}>
             <Icons.Brain color={inGameCaddie?"#006747":P.muted} size={12}/>
-            <span style={{fontSize:12,fontWeight:700,color:inGameCaddie?"#006747":P.muted}}>Caddie</span>
+            <span style={{fontSize:10,fontWeight:700,color:inGameCaddie?"#006747":P.muted}}>Caddie</span>
             <div style={{width:22,height:12,borderRadius:6,background:inGameCaddie?"#006747":P.border,position:"relative",transition:"background 0.2s",flexShrink:0}}><div style={{width:8,height:8,borderRadius:"50%",background:"#fff",position:"absolute",top:2,left:inGameCaddie?12:2,transition:"left 0.2s",boxShadow:"0 1px 2px rgba(0,0,0,0.2)"}}/></div>
           </button>
         </div>
@@ -2708,7 +2709,7 @@ export default function App() {
         </div>}
 
         {/* Hole Note — above intentions */}
-        <div style={{margin:"0 10px 4px",flexShrink:0}}>
+        <div style={{margin:"0 10px 6px",flexShrink:0}}>
           <button onClick={()=>setHoleNoteOpen(!holeNoteOpen)} style={{width:"100%",padding:"6px 12px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.card,color:P.white,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",transition:"transform 0.1s ease"}} {...pp()}>
             <span style={{display:"flex",alignItems:"center",gap:5}}><Icons.Note color={scores[currentHole].holeNote?P.accent:P.muted} size={13}/> {scores[currentHole].holeNote?"Hole Note ✓":"Add Hole Note"}</span>
             <span style={{fontSize:10,color:P.muted,transition:"transform 0.2s",transform:holeNoteOpen?"rotate(180deg)":"rotate(0)"}}>▼</span>
@@ -2726,14 +2727,17 @@ export default function App() {
 
         {/* Carry-forward intention reminder */}
         {carryForward&&currentHole===0&&(
-          <div style={{margin:"0 12px 4px",padding:"5px 10px",borderRadius:9,background:"#ca8a0410",border:"1px solid #ca8a0430",display:"flex",alignItems:"center",gap:8}}>
-            <Icons.Note color="#ca8a04" size={12}/>
-            <div style={{minWidth:0}}><div style={{fontSize:8,fontWeight:800,letterSpacing:1.5,color:"#ca8a04"}}>YOUR INTENTION TODAY</div><div style={{fontSize:11,color:P.white,fontStyle:"italic",lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{carryForward}</div></div>
+          <div style={{margin:"0 10px 6px",padding:"8px 12px",borderRadius:9,background:"#ca8a0410",border:"1px solid #ca8a0430",display:"flex",alignItems:"center",gap:10}}>
+            <Icons.Note color="#ca8a04" size={14}/>
+            <div style={{minWidth:0}}>
+              <div style={{fontSize:10,fontWeight:800,letterSpacing:1.5,color:"#ca8a04",marginBottom:2}}>YOUR INTENTION TODAY</div>
+              <div style={{fontSize:13,color:P.white,fontStyle:"italic",lineHeight:1.4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{carryForward}</div>
+            </div>
           </div>
         )}
 
         {/* Mental Net Bar — merged with matchup toggle */}
-        <div ref={tipRefs.mentalBar}>
+        <div ref={tipRefs.mentalBar} style={{marginTop:2}}>
         {matchupOpen&&(()=>{
           const scoredHoles=scores.slice(0,currentHole+1).filter(h=>h.strokeScore&&h.par);
           const rs=scoredHoles.reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0);
