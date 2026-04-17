@@ -1727,6 +1727,7 @@ export default function App() {
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showMentalNetInfo, setShowMentalNetInfo] = useState(false);
+  const [showPSRInfo, setShowPSRInfo] = useState(false);
   const [streakBanner, setStreakBanner] = useState(null); // {count}
   const [showConfetti, setShowConfetti] = useState(false);
   const [showFireworks, setShowFireworks] = useState(false);
@@ -2345,6 +2346,27 @@ export default function App() {
           </div>
         )}
 
+        {/* PSR Info Modal */}
+        {showPSRInfo&&(
+          <div onClick={()=>setShowPSRInfo(false)} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 20px"}}>
+            <div onClick={e=>e.stopPropagation()} style={{background:P.card,borderRadius:20,padding:"24px 20px",width:"100%",maxWidth:360,border:`1.5px solid ${P.border}`}}>
+              <div style={{fontSize:17,fontWeight:900,color:P.white,marginBottom:4}}>Pre-Shot Routine (PSR)</div>
+              <div style={{fontSize:13,color:P.muted,lineHeight:1.6,marginBottom:14}}>Your pre-shot routine is the repeatable sequence of actions you take before every shot — alignment, visualization, a breath, a trigger word. It's one of the most powerful tools in your mental game.</div>
+              <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+                <div style={{padding:"10px 14px",borderRadius:10,background:P.green+"12",border:`1px solid ${P.green}33`}}>
+                  <div style={{fontSize:12,fontWeight:700,color:P.green,marginBottom:2}}>Tap ✓ if you completed your routine on every shot this hole</div>
+                  <div style={{fontSize:12,color:P.muted}}>This includes tee shots, approach shots, chips, and putts.</div>
+                </div>
+                <div style={{padding:"10px 14px",borderRadius:10,background:P.card,border:`1px solid ${P.border}`}}>
+                  <div style={{fontSize:12,fontWeight:700,color:P.white,marginBottom:2}}>Why it matters</div>
+                  <div style={{fontSize:12,color:P.muted}}>Research shows consistent pre-shot routines reduce anxiety, improve focus, and lead to more committed shots. Your PSR% tracks how disciplined your process is over time.</div>
+                </div>
+              </div>
+              <button onClick={()=>setShowPSRInfo(false)} style={{width:"100%",padding:"12px",borderRadius:12,border:"none",background:P.green,color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer"}}>Got it</button>
+            </div>
+          </div>
+        )}
+
         {/* Multi-step tooltip tour */}
         {!tipDone&&!dropdownOpen&&(()=>{
           const tips=[
@@ -2496,9 +2518,7 @@ export default function App() {
         </div>
         <div style={{padding:"0 12px 4px",display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
           <input type="date" value={roundDate} onChange={e=>setRoundDate(e.target.value)} style={{...S.input,flex:"0 0 auto",width:130,fontSize:12,padding:"6px 8px"}}/>
-          <div style={{flex:1,display:"flex",justifyContent:"center"}}>
-            <LiveClock P={P}/>
-          </div>
+          <div style={{flex:1}}/>
           <button onClick={()=>setInGameCaddie(!inGameCaddie)} {...pp()} style={{display:"flex",alignItems:"center",gap:4,padding:"5px 8px",borderRadius:8,border:`1.5px solid ${inGameCaddie?"#006747":P.border}`,background:inGameCaddie?"#00674715":"transparent",cursor:"pointer",transition:"all 0.15s",flexShrink:0}}>
             <Icons.Brain color={inGameCaddie?"#006747":P.muted} size={12}/>
             <span style={{fontSize:10,fontWeight:700,color:inGameCaddie?"#006747":P.muted}}>Caddie</span>
@@ -2552,42 +2572,84 @@ export default function App() {
           const runningPar = completedPar + curPar;
           const runningDiff = (completedHoles.length > 0 || (hasCurrentScore && hasCurrentPar)) ? runningStroke - runningPar : null;
           return (
-        <div ref={tipRefs.scoreRow} key={animKey} style={{padding:"2px 8px 4px",display:"flex",alignItems:"center",gap:8,animation:"fadeSlide 0.25s ease-out",flexShrink:0}}>
+        <div ref={tipRefs.scoreRow} key={animKey} style={{padding:"2px 8px 4px",display:"flex",flexDirection:"column",gap:0,animation:"fadeSlide 0.25s ease-out",flexShrink:0}}>
 
-          {/* Back arrow — left of hole info */}
-          <button onClick={()=>goToHole(Math.max(0,currentHole-1))} disabled={currentHole===0} style={{...navBtnS(P,currentHole===0),padding:"8px 10px",flexShrink:0,alignSelf:"center",marginTop:10}} aria-label="Previous hole">←</button>
-
-          {/* Hole N — left */}
-          <div style={{flex:1,minWidth:0,paddingTop:12}}>
-            {notation&&notation.diff!==0&&<div style={{fontSize:9,fontWeight:700,color:notation.diff<0?P.green:P.red,letterSpacing:0.5,marginBottom:1}}>{notation.label}</div>}
-            <div style={{display:"flex",alignItems:"baseline",gap:6,flexWrap:"nowrap"}}>
-              <span style={{fontSize:22,fontWeight:900,lineHeight:1,color:P.white,whiteSpace:"nowrap"}}>Hole {currentHole+1}</span>
-              {runningDiff!==null&&<span style={{fontSize:14,fontWeight:700,color:runningDiff<0?P.green:runningDiff>0?P.red:P.gold,whiteSpace:"nowrap"}}>{runningDiff>0?"+":""}{runningDiff===0?"E":runningDiff}</span>}
+          {/* Row 1: Hole info + nav arrows */}
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <button onClick={()=>goToHole(Math.max(0,currentHole-1))} disabled={currentHole===0} style={{...navBtnS(P,currentHole===0),padding:"6px 10px",flexShrink:0}} aria-label="Previous hole">←</button>
+            <div style={{flex:1,minWidth:0}}>
+              {notation&&notation.diff!==0&&<div style={{fontSize:9,fontWeight:700,color:notation.diff<0?P.green:P.red,letterSpacing:0.5}}>{notation.label}</div>}
+              <div style={{display:"flex",alignItems:"baseline",gap:6,flexWrap:"nowrap"}}>
+                <span style={{fontSize:20,fontWeight:900,lineHeight:1,color:P.white,whiteSpace:"nowrap"}}>Hole {currentHole+1}</span>
+                {scores[currentHole].yardage&&<span style={{fontSize:12,fontWeight:600,color:P.muted}}>{scores[currentHole].yardage} yds</span>}
+                {runningDiff!==null&&<span style={{fontSize:13,fontWeight:700,color:runningDiff<0?P.green:runningDiff>0?P.red:P.gold,whiteSpace:"nowrap"}}>{runningDiff>0?"+":""}{runningDiff===0?"E":runningDiff}</span>}
+                {streak>=3&&<div style={{display:"flex",alignItems:"center",gap:2,padding:"1px 5px",borderRadius:20,background:P.green+"15",border:`1px solid ${P.green}33`}}><Icons.Fire color={P.green} size={10}/><span style={{fontSize:10,fontWeight:700,color:P.green}}>{streak}</span></div>}
+              </div>
             </div>
-            <div style={{display:"flex",alignItems:"center",gap:6,marginTop:2}}>
-              {scores[currentHole].yardage&&<div style={{fontSize:13,fontWeight:600,color:P.muted}}>{scores[currentHole].yardage} yds</div>}
-              {streak>=3&&<div style={{display:"flex",alignItems:"center",gap:2,padding:"1px 5px",borderRadius:20,background:P.green+"15",border:`1px solid ${P.green}33`}}><Icons.Fire color={P.green} size={10}/><span style={{fontSize:10,fontWeight:700,color:P.green}}>{streak}</span></div>}
+            <button onClick={()=>goToHole(Math.min(17,currentHole+1))} disabled={currentHole===17} style={{...navBtnS(P,currentHole===17),padding:"6px 10px",flexShrink:0}} aria-label="Next hole">→</button>
+          </div>
+
+          {/* Row 2: PAR | SCORE | PUTTS | PSR */}
+          <div style={{display:"flex",alignItems:"flex-end",gap:8,paddingTop:4}}>
+
+            {/* PAR */}
+            <div style={{textAlign:"center",flexShrink:0}}>
+              <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3}}>PAR</div>
+              <input value={scores[currentHole].par} onChange={e=>{const p=e.target.value.replace(/\D/g,"").slice(0,1);updateField("par",p);if(p&&!scores[currentHole].strokeScore)updateField("strokeScore",p);}} style={{...S.miniInput,width:42,fontSize:18}} inputMode="numeric" aria-label="Par"/>
             </div>
-          </div>
 
-          {/* PAR */}
-          <div style={{textAlign:"center",flexShrink:0}}>
-            <div style={{fontSize:11,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:4}}>PAR</div>
-            <input value={scores[currentHole].par} onChange={e=>{const p=e.target.value.replace(/\D/g,"").slice(0,1);updateField("par",p);if(p&&!scores[currentHole].strokeScore)updateField("strokeScore",p);}} style={{...S.miniInput,width:42,fontSize:18}} inputMode="numeric" aria-label="Par"/>
-          </div>
+            {/* SCORE */}
+            <div style={{textAlign:"center",flexShrink:0}}>
+              <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3}}>SCORE</div>
+              {(()=>{
+                const sv = scores[currentHole].strokeScore;
+                const pv = scores[currentHole].par;
+                const notation2 = scoreNotation(sv, pv);
+                const num = sv!==""&&sv!==null&&sv!==undefined ? parseInt(sv) : null;
+                const br = notation2?.diff<=-1?"50%":notation2?.diff>=1?"6px":"8px";
+                const bc = notation2?.diff&&notation2.diff!==0?(notation2.diff<0?P.green:P.red):P.border;
+                const bw = notation2?.diff&&Math.abs(notation2.diff)>=2?"2.5px":"1.5px";
+                return (
+                  <div style={{display:"flex",alignItems:"center",borderRadius:br,border:`${bw} solid ${bc}`,overflow:"hidden",background:P.inputBg,position:"relative",flexShrink:0}}>
+                    {notation2?.diff&&Math.abs(notation2.diff)>=2&&<div style={{position:"absolute",inset:3,borderRadius:notation2.diff<=-2?"50%":"3px",border:`1px solid ${notation2.diff<0?P.green:P.red}`,pointerEvents:"none",zIndex:1}}/>}
+                    <button onTouchEnd={e=>{e.stopPropagation();const cur=num!==null?num:parseInt(pv)||1;if(cur>1)updateField("strokeScore",String(cur-1));}} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>−</button>
+                    <div style={{minWidth:28,textAlign:"center",fontSize:18,fontWeight:700,color:num!==null?P.white:P.muted,lineHeight:1,userSelect:"none",flexShrink:0,padding:"0 2px"}}>{num!==null?num:pv||"—"}</div>
+                    <button onTouchEnd={e=>{e.stopPropagation();const cur=num!==null?num:parseInt(pv)||1;if(cur<15)updateField("strokeScore",String(cur+1));}} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>+</button>
+                  </div>
+                );
+              })()}
+            </div>
 
-          {/* SCORE */}
-          <div style={{textAlign:"center",flexShrink:0}}>
-            <div style={{fontSize:11,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:4}}>SCORE</div>
-            <Stepper value={scores[currentHole].strokeScore} min={1} max={15} onChange={v=>updateField("strokeScore",v)} notation={notation} P={P} defaultVal={scores[currentHole].par}/>
-          </div>
+            {/* PUTTS */}
+            <div style={{textAlign:"center",flexShrink:0}}>
+              <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3}}>PUTTS</div>
+              {(()=>{
+                const pv = scores[currentHole].putts;
+                const num = pv!==""&&pv!==null&&pv!==undefined ? parseInt(pv) : null;
+                return (
+                  <div style={{display:"flex",alignItems:"center",borderRadius:8,border:`1.5px solid ${P.border}`,overflow:"hidden",background:P.inputBg,flexShrink:0}}>
+                    <button onTouchEnd={e=>{e.stopPropagation();if(num===null||num===0){updateField("putts","");return;}updateField("putts",String(num-1));}} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>−</button>
+                    <div style={{minWidth:28,textAlign:"center",fontSize:18,fontWeight:700,color:num!==null?P.white:P.muted,lineHeight:1,userSelect:"none",flexShrink:0,padding:"0 2px"}}>{num!==null?num:"—"}</div>
+                    <button onTouchEnd={e=>{e.stopPropagation();const cur=num!==null?num:0;if(cur<9)updateField("putts",String(cur+1));}} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>+</button>
+                  </div>
+                );
+              })()}
+            </div>
 
-          {/* PUTTS */}
-          <div style={{textAlign:"center",flexShrink:0}}>
-            <div style={{fontSize:11,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:4}}>PUTTS</div>
-            <Stepper value={scores[currentHole].putts} min={0} max={9} onChange={v=>updateField("putts",v)} P={P} emptyable={true} defaultVal="2"/>
-          </div>
+            {/* PSR — Pre-Shot Routine */}
+            <div style={{textAlign:"center",flexShrink:0}}>
+              <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3,display:"flex",alignItems:"center",gap:2,justifyContent:"center"}}>
+                PSR
+                <button onClick={()=>setShowPSRInfo(true)} style={{width:13,height:13,borderRadius:"50%",border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:7,cursor:"pointer",display:"inline-flex",alignItems:"center",justifyContent:"center",padding:0,lineHeight:1,flexShrink:0}}>?</button>
+              </div>
+              <button
+                onTouchEnd={e=>{e.stopPropagation();updateField("routine",scores[currentHole].routine?0:1);}}
+                onClick={()=>updateField("routine",scores[currentHole].routine?0:1)}
+                style={{width:42,height:40,borderRadius:8,border:`1.5px solid ${scores[currentHole].routine?P.green:P.border}`,background:scores[currentHole].routine?P.green+"18":"transparent",color:scores[currentHole].routine?P.green:P.muted,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent"}}
+              >{scores[currentHole].routine?"✓":"—"}</button>
+            </div>
 
+          </div>
         </div>
           );})()}
 
@@ -3514,6 +3576,7 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
   const fs=scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0),bs=scores.slice(9).reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0);
   const fPutts=scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.putts)||0),0),bPutts=scores.slice(9).reduce((s,h)=>s+(parseInt(h.putts)||0),0);
   const fGir=scores.slice(0,9).filter(h=>calcGir(h)).length,bGir=scores.slice(9).filter(h=>calcGir(h)).length;
+  const fPsr=scores.slice(0,9).filter(h=>h.routine).length,bPsr=scores.slice(9).filter(h=>h.routine).length;
   const hasHCP = scores.some(h=>h.strokeIndex);
   const hcpAllowance = handicap ? parseFloat(handicap) : null;
   function getNetScore(strokeScore, par, si) {
@@ -3532,7 +3595,7 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
         <table style={{borderCollapse:"collapse",fontSize:16,minWidth:"100%"}}>
           <thead>
             <tr>
-              {["#","H","B","Net","Par","Scr","+/-","Pts","GIR"].map(h=>(
+              {["#","H","B","Net","Par","Scr","+/-","Pts","GIR","PSR"].map(h=>(
                 <th key={h} style={{padding:"6px 5px",textAlign:"center",color:P.muted,borderBottom:`1.5px solid ${P.border}`,fontSize:12,fontWeight:700,whiteSpace:"nowrap",position:"sticky",top:0,background:P.bg,zIndex:1}}>{h}</th>
               ))}
             </tr>
@@ -3567,6 +3630,7 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
                   <td style={{...S.cell,fontWeight:700,color:runDiff===null?P.muted:runDiff<0?P.green:runDiff>0?P.red:P.gold}}>{runDiff===null?"—":runDiff===0?"E":(runDiff>0?"+":"")+runDiff}</td>
                   <td style={{...S.cell,color:h.putts>2?P.red:h.putts===1?P.green:P.white,fontWeight:h.putts?700:400,padding:"12px 6px"}}>{h.putts||"—"}</td>
                                     <td style={{...S.cell,color:calcGir(h)?P.accent:P.muted,fontWeight:700,padding:"12px 6px"}}>{calcGir(h)?"✓":"—"}</td>
+                  <td style={{...S.cell,color:h.routine?P.green:P.muted,fontWeight:700,padding:"12px 6px"}}>{h.routine?"✓":"—"}</td>
                 </tr>,
                 i===8&&<tr key="out" style={{background:P.cardAlt,borderTop:`1.5px solid ${P.border}`}}>
                   <td style={{...S.cell,fontWeight:800,fontSize:11,color:P.muted}}>OUT</td>
@@ -3578,6 +3642,7 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
                   <td style={{...S.cell,fontWeight:700,color:fs&&fp?(fs-fp)<0?P.green:(fs-fp)>0?P.red:P.gold:P.muted}}>{fs&&fp?(fs-fp)===0?"E":((fs-fp)>0?"+":"")+(fs-fp):"—"}</td>
                   <td style={{...S.cell,fontWeight:700,color:P.white,padding:"12px 6px"}}>{fPutts||"—"}</td>
                   <td style={{...S.cell,fontWeight:700,color:P.accent,padding:"12px 6px"}}>{fGir}/9</td>
+                  <td style={{...S.cell,fontWeight:700,color:P.green,padding:"12px 6px"}}>{fPsr}/9</td>
                 </tr>,
               ];
             })}
@@ -3591,6 +3656,7 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
               <td style={{...S.cell,fontWeight:700,color:bs&&bp?(bs-bp)<0?P.green:(bs-bp)>0?P.red:P.gold:P.muted}}>{bs&&bp?(bs-bp)===0?"E":((bs-bp)>0?"+":"")+(bs-bp):"—"}</td>
               <td style={{...S.cell,fontWeight:700,color:P.white,padding:"12px 6px"}}>{bPutts||"—"}</td>
               <td style={{...S.cell,fontWeight:700,color:P.accent,padding:"12px 6px"}}>{bGir}/9</td>
+              <td style={{...S.cell,fontWeight:700,color:P.green,padding:"12px 6px"}}>{bPsr}/9</td>
             </tr>
             <tr style={{background:P.accent+"10",borderTop:`2px solid ${P.accent}44`}}>
               <td style={{...S.cell,fontWeight:800,fontSize:11,color:P.accent}}>TOT</td>
@@ -3602,6 +3668,7 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
               <td style={{...S.cell,fontWeight:800,color:(fs+bs)&&(fp+bp)?(fs+bs-(fp+bp))<0?P.green:(fs+bs-(fp+bp))>0?P.red:P.gold:P.muted}}>{(fs+bs)&&(fp+bp)?(fs+bs-(fp+bp))===0?"E":((fs+bs-(fp+bp))>0?"+":"")+(fs+bs-(fp+bp)):"—"}</td>
               <td style={{...S.cell,fontWeight:800,color:P.white,padding:"12px 6px"}}>{fPutts+bPutts||"—"}</td>
               <td style={{...S.cell,fontWeight:800,color:P.accent,padding:"12px 6px"}}>{fGir+bGir}/18</td>
+              <td style={{...S.cell,fontWeight:800,color:P.green,padding:"12px 6px"}}>{Math.round(((fPsr+bPsr)/18)*100)}%</td>
             </tr>
           </tbody>
         </table>
@@ -4656,7 +4723,12 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
     if(!rounds.length)return null;
     const hT=Object.fromEntries(HEROES.map(h=>[h,0])),bT=Object.fromEntries(BANDITS.map(b=>[b,0]));
     rounds.forEach(r=>{if(!r.scores)return;r.scores.forEach(hole=>{HEROES.forEach(h=>{hT[h]+=hole.heroes[h]||0;});BANDITS.forEach(b=>{bT[b]+=hole.bandits[b]||0;});});});
-    const trend=[...rounds].reverse().map(r=>({label:r.date?.slice(5)||"?",net:r.net,stroke:r.totalStroke||null,par:r.totalPar||null,scoreToPar:r.totalStroke&&r.totalPar?r.totalStroke-r.totalPar:null,checklistDone:r.preRoundMeta?.checklistDone}));
+    const trend=[...rounds].reverse().map(r=>{
+      const holesPlayed = r.scores ? r.scores.filter(h=>h.strokeScore&&h.par).length : 0;
+      const psrHoles = r.scores ? r.scores.filter(h=>h.routine&&(h.strokeScore||h.par)).length : 0;
+      const psrPct = holesPlayed>=1 ? Math.round((psrHoles/holesPlayed)*100) : null;
+      return {label:r.date?.slice(5)||"?",net:r.net,stroke:r.totalStroke||null,par:r.totalPar||null,scoreToPar:r.totalStroke&&r.totalPar?r.totalStroke-r.totalPar:null,checklistDone:r.preRoundMeta?.checklistDone,psrPct};
+    });
     const topHero=HEROES.reduce((a,b)=>hT[a]>hT[b]?a:b),topBandit=BANDITS.reduce((a,b)=>bT[a]>bT[b]?a:b);
     const avgNet=rounds.reduce((s,r)=>s+(r.net||0),0)/rounds.length;
     const ws=rounds.filter(r=>r.totalStroke>0);const avgStroke=ws.length?ws.reduce((s,r)=>s+r.totalStroke,0)/ws.length:null;const bestStroke=ws.length?Math.min(...ws.map(r=>r.totalStroke)):null;
@@ -5768,6 +5840,9 @@ function RoundStatsView({round,onHome,onShare,S}) {
   const bPutts=round.scores?round.scores.slice(9).reduce((s,h)=>s+(parseInt(h.putts)||0),0):0;
   const fGir=round.scores?round.scores.slice(0,9).filter(h=>calcGir(h)).length:0;
   const bGir=round.scores?round.scores.slice(9).filter(h=>calcGir(h)).length:0;
+  const fPsr=round.scores?round.scores.slice(0,9).filter(h=>h.routine).length:0;
+  const bPsr=round.scores?round.scores.slice(9).filter(h=>h.routine).length:0;
+  const totalPsrPct=round.scores?Math.round(((fPsr+bPsr)/Math.max(1,round.scores.filter(h=>h.strokeScore||h.par).length))*100):0;
   const frontStats=round.scores?getNineStats(round.scores,0,9):{heroes:0,bandits:0,net:0};
   const backStats=round.scores?getNineStats(round.scores,9,18):{heroes:0,bandits:0,net:0};
 
@@ -5823,7 +5898,7 @@ function RoundStatsView({round,onHome,onShare,S}) {
         <div style={{overflowX:"auto",marginBottom:14,background:P.card,borderRadius:12,border:`1.5px solid ${P.border}`}}>
           <table style={{borderCollapse:"collapse",fontSize:16,minWidth:"100%"}}>
             <thead>
-              <tr>{["#","H","B","Net","Par","Scr","+/-","Pts","GIR"].map(h=>(
+              <tr>{["#","H","B","Net","Par","Scr","+/-","Pts","GIR","PSR"].map(h=>(
                 <th key={h} style={{...cell,padding:"6px 4px",color:P.muted,borderBottom:`1.5px solid ${P.border}`,fontSize:11,fontWeight:700}}>{h}</th>
               ))}</tr>
             </thead>
@@ -5845,6 +5920,7 @@ function RoundStatsView({round,onHome,onShare,S}) {
                     <td style={{...cell,fontWeight:700,color:runDiR===null?P.muted:runDiR<0?P.green:runDiR>0?P.red:P.gold}}>{runDiR===null?"—":runDiR===0?"E":(runDiR>0?"+":"")+runDiR}</td>
                     <td style={{...cell,color:h.putts>2?P.red:h.putts===1?P.green:P.white,fontWeight:h.putts?700:400,padding:"12px 6px"}}>{h.putts||"—"}</td>
                                         <td style={{...cell,color:calcGir(h)?P.accent:P.muted,fontWeight:700,padding:"12px 6px"}}>{calcGir(h)?"✓":"—"}</td>
+                    <td style={{...cell,color:h.routine?P.green:P.muted,fontWeight:700,padding:"12px 6px"}}>{h.routine?"✓":"—"}</td>
                   </tr>,
                   i===8&&<tr key="out" style={{background:P.accent+"10",borderTop:`1.5px solid ${P.border}`}}>
                     <td style={{...cell,fontWeight:800,fontSize:11,color:P.muted}}>OUT</td>
@@ -5856,6 +5932,7 @@ function RoundStatsView({round,onHome,onShare,S}) {
                     <td style={{...cell,fontWeight:700,color:fs&&fp?(fs-fp)<0?P.green:(fs-fp)>0?P.red:P.gold:P.muted}}>{fs&&fp?(fs-fp)===0?"E":((fs-fp)>0?"+":"")+(fs-fp):"—"}</td>
                     <td style={{...cell,fontWeight:700,padding:"12px 6px"}}>{fPutts||"—"}</td>
                     <td style={{...cell,fontWeight:700,color:P.accent,padding:"12px 6px"}}>{fGir}/9</td>
+                    <td style={{...cell,fontWeight:700,color:P.green,padding:"12px 6px"}}>{fPsr}/9</td>
                   </tr>,
                 ];
               })}
@@ -5869,6 +5946,7 @@ function RoundStatsView({round,onHome,onShare,S}) {
                 <td style={{...cell,fontWeight:700,color:bs&&bp?(bs-bp)<0?P.green:(bs-bp)>0?P.red:P.gold:P.muted}}>{bs&&bp?(bs-bp)===0?"E":((bs-bp)>0?"+":"")+(bs-bp):"—"}</td>
                 <td style={{...cell,fontWeight:700,padding:"12px 6px"}}>{bPutts||"—"}</td>
                 <td style={{...cell,fontWeight:700,color:P.accent,padding:"12px 6px"}}>{bGir}/9</td>
+                <td style={{...cell,fontWeight:700,color:P.green,padding:"12px 6px"}}>{bPsr}/9</td>
               </tr>
               <tr style={{background:P.accent+"18",borderTop:`2px solid ${P.accent}44`}}>
                 <td style={{...cell,fontWeight:800,fontSize:11,color:P.accent}}>TOT</td>
@@ -5880,6 +5958,7 @@ function RoundStatsView({round,onHome,onShare,S}) {
                 <td style={{...cell,fontWeight:800,color:(fs+bs)&&(fp+bp)?(fs+bs-(fp+bp))<0?P.green:(fs+bs-(fp+bp))>0?P.red:P.gold:P.muted}}>{(fs+bs)&&(fp+bp)?(fs+bs-(fp+bp))===0?"E":((fs+bs-(fp+bp))>0?"+":"")+(fs+bs-(fp+bp)):"—"}</td>
                 <td style={{...cell,fontWeight:800,color:P.white,padding:"12px 6px"}}>{fPutts+bPutts||"—"}</td>
                 <td style={{...cell,fontWeight:800,color:P.accent,padding:"12px 6px"}}>{fGir+bGir}/18</td>
+                <td style={{...cell,fontWeight:800,color:P.green,padding:"12px 6px"}}>{totalPsrPct}%</td>
               </tr>
             </tbody>
           </table>
@@ -5994,34 +6073,42 @@ function ComboTrendChart({P, trend, rounds, onSelectRound}) {
   const maxS = strokes.length ? Math.max(...strokes) : 100;
   const strokeRange = Math.max(maxS - minS, 10);
 
-  // Build SVG polyline points for score line
   const n = trend.length;
-  const svgW = 320; // logical width
+  const svgW = 320;
   const colW = svgW / n;
+
+  // Score line points
   const linePoints = trend.map((t, i) => {
     if (!t.stroke) return null;
     const x = colW * i + colW / 2;
-    // Score line sits in lower LINE_AREA band (top of that band = low score = good)
     const y = TOTAL_H - 6 - ((t.stroke - minS) / strokeRange) * (LINE_AREA - 12);
     return { x, y, t, i };
   }).filter(Boolean);
   const polyline = linePoints.map(p => `${p.x},${p.y}`).join(' ');
 
+  // PSR% line points — plotted on its own scale 0-100% across the bar area
+  const psrPoints = trend.map((t, i) => {
+    if (t.psrPct === null || t.psrPct === undefined) return null;
+    const x = colW * i + colW / 2;
+    // Map 0-100% to BAR_AREA (top of bar = high %)
+    const y = 14 + ((100 - t.psrPct) / 100) * (BAR_AREA - 20);
+    return { x, y, t, i };
+  }).filter(Boolean);
+  const psrPolyline = psrPoints.map(p => `${p.x},${p.y}`).join(' ');
+
   return (
     <div style={{background:P.card,borderRadius:12,padding:"8px 10px",border:`1.5px solid ${P.border}`,marginBottom:8}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-        <div style={{fontSize:10,color:P.muted,fontWeight:700,letterSpacing:1}}>MENTAL NET + SCORE TREND</div>
-        <div style={{display:"flex",gap:10,alignItems:"center"}}>
-          <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:10,height:10,borderRadius:2,background:P.green}}/><span style={{fontSize:9,color:P.muted}}>+Net</span></div>
-          <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:10,height:10,borderRadius:2,background:P.red}}/><span style={{fontSize:9,color:P.muted}}>-Net</span></div>
-          <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:16,height:2,background:P.gold,borderRadius:1}}/><span style={{fontSize:9,color:P.muted}}>Score</span></div>
-          <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:7,height:7,borderRadius:"50%",background:P.green,opacity:0.8}}/><span style={{fontSize:9,color:P.muted}}>Routine</span></div>
+        <div style={{fontSize:10,color:P.muted,fontWeight:700,letterSpacing:1}}>MENTAL NET + SCORE + PSR</div>
+        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+          <div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:10,height:10,borderRadius:2,background:P.green}}/><span style={{fontSize:9,color:P.muted}}>+Net</span></div>
+          <div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:10,height:10,borderRadius:2,background:P.red}}/><span style={{fontSize:9,color:P.muted}}>-Net</span></div>
+          <div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:14,height:2,background:P.gold,borderRadius:1}}/><span style={{fontSize:9,color:P.muted}}>Score</span></div>
+          <div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:14,height:2,background:"#7c3aed",borderRadius:1}}/><span style={{fontSize:9,color:P.muted}}>PSR%</span></div>
         </div>
       </div>
 
       <div style={{position:"relative",height:TOTAL_H}}>
-
-
         {/* Bars */}
         <div style={{position:"absolute",top:0,left:0,right:0,bottom:LINE_AREA,display:"flex",gap:2,alignItems:"stretch"}}>
           {trend.map((t, i) => {
@@ -6031,17 +6118,13 @@ function ComboTrendChart({P, trend, rounds, onSelectRound}) {
             const round = roundsChron[i] || null;
             return (
               <div key={i} style={{flex:1,display:"flex",flexDirection:"column",cursor:round?"pointer":"default",position:"relative"}} onClick={()=>round&&onSelectRound(round)} {...pp()}>
-                {/* label */}
                 <div style={{height:14,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,color:pos?P.green:P.red}}>
                   {t.net!==0?(t.net>0?"+":"")+t.net:""}
                 </div>
-                {/* positive half */}
                 <div style={{flex:1,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
                   {pos&&<div style={{width:"80%",height:barH,borderRadius:"3px 3px 0 0",background:P.green,opacity:0.9}}/>}
                 </div>
-                {/* midline */}
                 <div style={{height:1,background:P.border,flexShrink:0}}/>
-                {/* negative half */}
                 <div style={{flex:1,display:"flex",alignItems:"flex-start",justifyContent:"center"}}>
                   {!pos&&<div style={{width:"80%",height:barH,borderRadius:"0 0 3px 3px",background:P.red,opacity:0.9}}/>}
                 </div>
@@ -6050,36 +6133,48 @@ function ComboTrendChart({P, trend, rounds, onSelectRound}) {
           })}
         </div>
 
-        {/* Score line SVG overlay */}
-        {linePoints.length >= 2 && (
-          <svg style={{position:"absolute",top:0,left:0,width:"100%",height:TOTAL_H,overflow:"visible",pointerEvents:"none"}} viewBox={`0 0 ${svgW} ${TOTAL_H}`} preserveAspectRatio="none">
-            <polyline points={polyline} fill="none" stroke={P.gold} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" opacity="0.9"/>
-            {linePoints.map(p => (
-              <circle key={p.i} cx={p.x} cy={p.y} r="3" fill={P.gold} stroke={P.card} strokeWidth="1.5"/>
-            ))}
-          </svg>
-        )}
+        {/* SVG overlay — score line + PSR line */}
+        <svg style={{position:"absolute",top:0,left:0,width:"100%",height:TOTAL_H,overflow:"visible",pointerEvents:"none"}} viewBox={`0 0 ${svgW} ${TOTAL_H}`} preserveAspectRatio="none">
+          {/* PSR line */}
+          {psrPoints.length >= 2 && (
+            <>
+              <polyline points={psrPolyline} fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" opacity="0.85" strokeDasharray="4 2"/>
+              {psrPoints.map(p => (
+                <circle key={p.i} cx={p.x} cy={p.y} r="2.5" fill="#7c3aed" stroke={P.card} strokeWidth="1.5" opacity="0.9"/>
+              ))}
+            </>
+          )}
+          {/* Score line */}
+          {linePoints.length >= 2 && (
+            <>
+              <polyline points={polyline} fill="none" stroke={P.gold} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" opacity="0.9"/>
+              {linePoints.map(p => (
+                <circle key={p.i} cx={p.x} cy={p.y} r="3" fill={P.gold} stroke={P.card} strokeWidth="1.5"/>
+              ))}
+            </>
+          )}
+        </svg>
 
-        {/* Score dots clickable — overlay absolute positioned */}
+        {/* Clickable score dots */}
         {linePoints.map(p => {
           const roundsChron = [...rounds].reverse();
           const round = roundsChron[p.i] || null;
           return (
-            <div key={p.i}
-              onClick={()=>round&&onSelectRound(round)} {...pp()}
-              style={{position:"absolute",left:`calc(${(p.i/n)*100}% + ${colW/2/svgW*100*1}%)`,top:p.y-10,width:20,height:20,cursor:"pointer",transform:"translate(-50%,-50%)",zIndex:10}}
-              title={`${p.t.stroke} strokes — tap for breakdown`}
+            <div key={p.i} onClick={()=>round&&onSelectRound(round)} {...pp()}
+              style={{position:"absolute",left:`calc(${(p.i/n)*100}% + ${colW/2/svgW*100}%)`,top:p.y-10,width:20,height:20,cursor:"pointer",transform:"translate(-50%,-50%)",zIndex:10}}
+              title={`${p.t.stroke} strokes`}
             />
           );
         })}
       </div>
 
-      {/* Date labels + score labels */}
+      {/* Date labels */}
       <div style={{display:"flex",gap:2,marginTop:1}}>
         {trend.map((t,i)=>(
           <div key={i} style={{flex:1,textAlign:"center"}}>
             <div style={{fontSize:9,color:P.muted,fontWeight:500,lineHeight:1.2}}>{t.label}</div>
             {t.stroke&&<div style={{fontSize:9,color:P.gold,fontWeight:700}}>{t.stroke}</div>}
+            {t.psrPct!==null&&t.psrPct!==undefined&&<div style={{fontSize:9,color:"#7c3aed",fontWeight:700}}>{t.psrPct}%</div>}
             <div style={{display:"flex",justifyContent:"center",marginTop:2}}>
               {t.checklistDone===true&&<div style={{width:5,height:5,borderRadius:"50%",background:P.green,opacity:0.8}}/>}
               {t.checklistDone===false&&<div style={{width:5,height:5,borderRadius:"50%",background:P.border}}/>}
@@ -6088,7 +6183,7 @@ function ComboTrendChart({P, trend, rounds, onSelectRound}) {
           </div>
         ))}
       </div>
-      <div style={{fontSize:10,color:P.muted,marginTop:4,textAlign:"center",fontWeight:500}}>Tap any bar or score to see round breakdown · <span style={{color:P.green}}>●</span> routine done</div>
+      <div style={{fontSize:10,color:P.muted,marginTop:4,textAlign:"center",fontWeight:500}}>Tap any bar or score to see round breakdown</div>
     </div>
   );
 }
