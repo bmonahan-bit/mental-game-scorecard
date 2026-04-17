@@ -2772,15 +2772,11 @@ export default function App() {
 
         {/* Step 6 ref: Hole Note + Nav — fixed at bottom */}
         <div ref={tipRefs.nav} style={{flexShrink:0,borderTop:`1px solid ${P.border}`,background:P.bg}}>
-        {/* Next / Finish row */}
+        {/* Finish row */}
         <div style={{padding:"4px 10px 2px",display:"flex",gap:5,alignItems:"center"}}>
           <div style={{flex:1}}/>
           {currentHole>=8&&currentHole<17&&<button onClick={completeRound} aria-label="Finish round" style={{padding:"10px 10px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green+"12",color:P.green,fontSize:11,fontWeight:700,cursor:"pointer",transition:"transform 0.1s ease",flexShrink:0}}>Finish ✓</button>}
-          {currentHole===17?(
-            <button onClick={completeRound} style={{padding:"10px 14px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green,color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",transition:"transform 0.1s ease",flexShrink:0}} {...pp()}>Finish ✓</button>
-          ):(
-            <button onClick={advanceHole} style={{...navBtnS(P,false),padding:"10px 14px",fontSize:18,fontWeight:800,flexShrink:0}} aria-label="Next hole" {...pp()}>→</button>
-          )}
+          {currentHole===17&&<button onClick={completeRound} style={{padding:"10px 14px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green,color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",transition:"transform 0.1s ease",flexShrink:0}} {...pp()}>Finish ✓</button>}
         </div>
         {/* Hole Note */}
         <div style={{padding:"0 12px 3px"}}>
