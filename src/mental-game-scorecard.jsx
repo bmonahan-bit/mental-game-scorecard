@@ -2605,7 +2605,8 @@ export default function App() {
                 const sv = scores[currentHole].strokeScore;
                 const pv = scores[currentHole].par;
                 const notation2 = scoreNotation(sv, pv);
-                const num = sv!==""&&sv!==null&&sv!==undefined ? parseInt(sv) : null;
+                const parsed = parseInt(sv);
+                const num = (sv!==""&&sv!==null&&sv!==undefined&&!isNaN(parsed)) ? parsed : null;
                 const br = notation2?.diff<=-1?"50%":notation2?.diff>=1?"6px":"8px";
                 const bc = notation2?.diff&&notation2.diff!==0?(notation2.diff<0?P.green:P.red):P.border;
                 const bw = notation2?.diff&&Math.abs(notation2.diff)>=2?"2.5px":"1.5px";
@@ -2625,12 +2626,15 @@ export default function App() {
               <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3}}>PUTTS</div>
               {(()=>{
                 const pv = scores[currentHole].putts;
-                const num = pv!==""&&pv!==null&&pv!==undefined ? parseInt(pv) : null;
+                const parsed = parseInt(pv);
+                const num = (pv!==""&&pv!==null&&pv!==undefined&&!isNaN(parsed)) ? parsed : null;
+                const display = num!==null ? num : 2;
+                const displayColor = num!==null ? P.white : P.muted;
                 return (
                   <div style={{display:"flex",alignItems:"center",borderRadius:8,border:`1.5px solid ${P.border}`,overflow:"hidden",background:P.inputBg,flexShrink:0}}>
-                    <button onClick={()=>{if(num===null||num===0){updateField("putts","");return;}updateField("putts",String(num-1));}} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>−</button>
-                    <div style={{minWidth:28,textAlign:"center",fontSize:18,fontWeight:700,color:num!==null?P.white:P.muted,lineHeight:1,userSelect:"none",flexShrink:0,padding:"0 2px"}}>{num!==null?num:"—"}</div>
-                    <button onClick={()=>{const cur=num!==null?num:0;if(cur<9)updateField("putts",String(cur+1));}} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>+</button>
+                    <button onClick={()=>{const cur=num!==null?num:2;if(cur<=0){updateField("putts","");return;}updateField("putts",String(cur-1));}} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>−</button>
+                    <div style={{minWidth:28,textAlign:"center",fontSize:18,fontWeight:700,color:displayColor,lineHeight:1,userSelect:"none",flexShrink:0,padding:"0 2px"}}>{display}</div>
+                    <button onClick={()=>{const cur=num!==null?num:2;if(cur<9)updateField("putts",String(cur+1));}} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>+</button>
                   </div>
                 );
               })()}
