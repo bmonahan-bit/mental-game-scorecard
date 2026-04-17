@@ -4958,9 +4958,9 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
               </div>
             )}
             {stats.bestStreak>=2&&(
-              <div style={{flex:1,background:P.card,borderRadius:10,padding:"6px 10px",border:`1.5px solid ${P.border}`,display:"flex",alignItems:"center",gap:6}}>
+              <div style={{flex:1,background:P.card,borderRadius:10,padding:"6px 10px",border:`1.5px solid ${P.border}`,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
                 <Icons.Fire color={P.green} size={14}/>
-                <div>
+                <div style={{textAlign:"center"}}>
                   <div style={{fontSize:18,fontWeight:900,color:P.green,lineHeight:1}}>{stats.bestStreak}</div>
                   <div style={{fontSize:9,color:P.muted,fontWeight:500}}>best streak</div>
                 </div>
