@@ -1316,6 +1316,117 @@ async function shareRoundAsImage(r, darkMode) {
   return canvas;
 }
 
+async function scorecardAsImage(r, darkMode) {
+  try { await document.fonts.ready; } catch {}
+  const scores = r.scores || [];
+  const count = scores.slice(9).some(h=>h.par||h.strokeScore) ? 18 : 9;
+  const CW=38, CH=28, PAD=16, HDR=60, ROWS=6, LW=60;
+  const W = PAD*2 + LW + CW*count;
+  const H = HDR + ROWS*CH + PAD + 30;
+  const canvas = document.createElement("canvas");
+  canvas.width=W; canvas.height=H;
+  const ctx = canvas.getContext("2d");
+  const bg=darkMode?"#09090b":"#f6f7f4", card=darkMode?"#141416":"#ffffff";
+  const border=darkMode?"#2a2a2e":"#e0e2dc", white=darkMode?"#f8fafc":"#0f172a";
+  const muted="#71717a", green="#16a34a", red="#dc2626", gold="#ca8a04";
+  const pmGold="#c9a84c", accent="#2563eb";
+  const netColor=r.net>0?green:r.net<0?red:gold;
+
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  // Header
+  ctx.fillStyle=white; ctx.font="bold 17px 'Avenir Next',-apple-system,sans-serif";
+  ctx.fillText(r.course||"Scorecard", PAD+LW, 26);
+  ctx.fillStyle=muted; ctx.font="11px 'Avenir Next',-apple-system,sans-serif";
+  ctx.fillText(r.date||"", PAD+LW, 42);
+  // Net badge
+  ctx.fillStyle=netColor+"22"; roundRect(ctx,W-80,10,68,36,8); ctx.fill();
+  ctx.fillStyle=netColor; ctx.font="bold 20px 'Avenir Next',-apple-system,sans-serif"; ctx.textAlign="center";
+  ctx.fillText((r.net>0?"+":"")+r.net, W-46, 35); ctx.textAlign="left";
+  ctx.fillStyle=muted; ctx.font="bold 9px 'Avenir Next',-apple-system,sans-serif"; ctx.textAlign="center";
+  ctx.fillText("MENTAL NET", W-46, 44); ctx.textAlign="left";
+
+  const TX=PAD+LW;
+  const rowLabels=["HOLE","PAR","SCORE","PUTTS","H","B"];
+  const rowColors=[muted,muted,white,muted,green,red];
+
+  // Row labels
+  rowLabels.forEach((label,ri)=>{
+    ctx.fillStyle=rowColors[ri];
+    ctx.font=`${ri===2?"bold ":""}9px 'Avenir Next',-apple-system,sans-serif`;
+    ctx.textAlign="left";
+    ctx.fillText(label, PAD, HDR+ri*CH+CH*0.72);
+  });
+
+  // Col cells
+  for(let i=0;i<count;i++){
+    const h=scores[i]||{};
+    const x=TX+i*CW;
+    const par=parseInt(h.par)||null;
+    const score=parseInt(h.strokeScore)||null;
+    const diff=score&&par?score-par:null;
+    const hCount=h.heroes?Object.values(h.heroes).reduce((s,v)=>s+v,0):0;
+    const bCount=h.bandits?Object.values(h.bandits).reduce((s,v)=>s+v,0):0;
+    const putts=h.putts!==""&&h.putts!==null&&h.putts!==undefined?parseInt(h.putts):null;
+
+    // Alt col bg
+    if(i%2===0){ctx.fillStyle=darkMode?"#ffffff06":"#00000004";ctx.fillRect(x,HDR,CW,ROWS*CH);}
+    // 9/18 divider
+    if(i===9){ctx.strokeStyle=accent+"66";ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x,HDR);ctx.lineTo(x,HDR+ROWS*CH);ctx.stroke();}
+
+    ctx.textAlign="center";
+    const cx=x+CW/2;
+
+    // Hole
+    ctx.fillStyle=accent;ctx.font="bold 10px 'Avenir Next',-apple-system,sans-serif";
+    ctx.fillText(i+1,cx,HDR+CH*0.72);
+
+    // Par
+    ctx.fillStyle=muted;ctx.font="10px 'Avenir Next',-apple-system,sans-serif";
+    ctx.fillText(par||"—",cx,HDR+CH+CH*0.72);
+
+    // Score
+    if(score){
+      const sc=diff===null?white:diff<0?green:diff>0?red:white;
+      if(diff!=null&&diff<=-1){ctx.strokeStyle=green;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(cx,HDR+2*CH+CH*0.45,10,0,Math.PI*2);ctx.stroke();}
+      if(diff!=null&&diff<=-2){ctx.strokeStyle=gold;ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,HDR+2*CH+CH*0.45,13,0,Math.PI*2);ctx.stroke();}
+      if(diff!=null&&diff===1){ctx.strokeStyle=red;ctx.lineWidth=1.5;roundRect(ctx,cx-10,HDR+2*CH+4,20,18,2);ctx.stroke();}
+      if(diff!=null&&diff>=2){ctx.strokeStyle=red;ctx.lineWidth=1.5;roundRect(ctx,cx-12,HDR+2*CH+2,24,20,2);ctx.stroke();roundRect(ctx,cx-9,HDR+2*CH+5,18,14,1);ctx.stroke();}
+      ctx.fillStyle=sc;ctx.font="bold 11px 'Avenir Next',-apple-system,sans-serif";
+      ctx.fillText(score,cx,HDR+2*CH+CH*0.72);
+    } else {
+      ctx.fillStyle=muted;ctx.font="10px 'Avenir Next',-apple-system,sans-serif";
+      ctx.fillText("—",cx,HDR+2*CH+CH*0.72);
+    }
+
+    // Putts
+    ctx.fillStyle=putts!==null?(putts===1?green:putts>=3?red:white):muted;
+    ctx.font="10px 'Avenir Next',-apple-system,sans-serif";
+    ctx.fillText(putts!==null?putts:"—",cx,HDR+3*CH+CH*0.72);
+
+    // Heroes
+    ctx.fillStyle=hCount>0?green:muted;ctx.font=`${hCount>0?"bold ":""}10px 'Avenir Next',-apple-system,sans-serif`;
+    ctx.fillText(hCount>0?hCount:"—",cx,HDR+4*CH+CH*0.72);
+
+    // Bandits
+    ctx.fillStyle=bCount>0?red:muted;ctx.font=`${bCount>0?"bold ":""}10px 'Avenir Next',-apple-system,sans-serif`;
+    ctx.fillText(bCount>0?bCount:"—",cx,HDR+5*CH+CH*0.72);
+  }
+
+  // Grid lines
+  ctx.strokeStyle=border;ctx.lineWidth=0.5;
+  for(let ri=0;ri<=ROWS;ri++){
+    const y=HDR+ri*CH;
+    ctx.beginPath();ctx.moveTo(TX-4,y);ctx.lineTo(TX+count*CW,y);ctx.stroke();
+  }
+
+  ctx.textAlign="left";
+  ctx.fillStyle=pmGold;ctx.font="bold 9px 'Avenir Next',-apple-system,sans-serif";ctx.textAlign="center";
+  ctx.fillText("PAUL MONAHAN GOLF · Mental Game Scorecard",W/2,H-8);
+  ctx.textAlign="left";
+  return canvas;
+}
+
 function roundRect(ctx, x, y, w, h, r) {
   if (typeof r === "number") r = [r, r, r, r];
   const [tl, tr, br, bl] = r;
@@ -1339,51 +1450,72 @@ function truncate(ctx, text, maxW) {
 }
 
 async function shareRound(r, darkMode) {
-  let canvas;
+  let breakdownCanvas, scorecardCanvas;
   try {
-    canvas = await shareRoundAsImage(r, darkMode);
+    [breakdownCanvas, scorecardCanvas] = await Promise.all([
+      shareRoundAsImage(r, darkMode),
+      scorecardAsImage(r, darkMode),
+    ]);
   } catch(err) {
-    console.error("shareRoundAsImage failed:", err);
+    console.error("shareRound canvas failed:", err);
     fallbackShare(r); return;
   }
-  canvas.toBlob(async (blob) => {
-    if (!blob) { fallbackShare(r); return; }
-    const file = new File([blob], "mental-game-scorecard.png", { type: "image/png" });
 
-    // 1. Try native share with image file (iOS 15+, Android Chrome)
-    if (navigator.share) {
+  function canvasToFile(canvas, name) {
+    return new Promise(resolve => {
+      canvas.toBlob(blob => {
+        resolve(blob ? new File([blob], name, { type:"image/png" }) : null);
+      }, "image/png");
+    });
+  }
+
+  const [file1, file2] = await Promise.all([
+    canvasToFile(breakdownCanvas, "mental-game-breakdown.png"),
+    canvasToFile(scorecardCanvas, "mental-game-scorecard.png"),
+  ]);
+
+  if (!file1 || !file2) { fallbackShare(r); return; }
+  const files = [file1, file2];
+
+  if (navigator.share) {
+    // Try with both images
+    try {
+      await navigator.share({ files, title:"Mental Game Scorecard", text:buildShareText(r) });
+      return;
+    } catch(e) {
+      if (e?.name==="AbortError") return;
+      // Try single image fallback
       try {
-        await navigator.share({ files: [file], title: "Mental Game Scorecard", text: buildShareText(r) });
+        await navigator.share({ files:[file1], title:"Mental Game Scorecard", text:buildShareText(r) });
         return;
-      } catch(e) {
-        if (e?.name === "AbortError") return;
-        // file share not supported — try text only share
+      } catch(e2) {
+        if (e2?.name==="AbortError") return;
         try {
-          await navigator.share({ title: "Mental Game Scorecard", text: buildShareText(r) });
+          await navigator.share({ title:"Mental Game Scorecard", text:buildShareText(r) });
           return;
-        } catch(e2) {
-          if (e2?.name === "AbortError") return;
-        }
+        } catch(e3) { if (e3?.name==="AbortError") return; }
       }
     }
+  }
 
-    // 2. Try writing image to clipboard (desktop Chrome/Edge)
-    try {
-      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-      showToast("Scorecard image copied to clipboard!", "success", 3000);
-      return;
-    } catch {}
+  // Clipboard: write first image
+  try {
+    await navigator.clipboard.write([new ClipboardItem({ "image/png": await canvasToFile(breakdownCanvas,"b.png") })]);
+    showToast("Scorecard image copied to clipboard!", "success", 3000);
+    return;
+  } catch {}
 
-    // 3. Download image as final fallback
-    try {
-      const url = URL.createObjectURL(blob);
+  // Download both
+  try {
+    [file1, file2].forEach((f,i) => {
+      const url = URL.createObjectURL(f);
       const a = document.createElement("a");
-      a.href = url; a.download = `scorecard-${r.date||"round"}.png`;
+      a.href=url; a.download=f.name;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      showToast("Scorecard image downloaded!", "success");
-    } catch { fallbackShare(r); }
-  }, "image/png");
+    });
+    showToast("Scorecard images downloaded!", "success");
+  } catch { fallbackShare(r); }
 }
 
 function fallbackShare(r) {
