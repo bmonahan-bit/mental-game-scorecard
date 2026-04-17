@@ -2771,18 +2771,18 @@ export default function App() {
             <button onClick={()=>currentHole<17?advanceHole():goToHole(currentHole)} disabled={currentHole===17} style={{...navBtnS(P,currentHole===17),padding:"6px 10px",flexShrink:0}} aria-label="Next hole">→</button>
           </div>
 
-          {/* Row 2: PAR | SCORE | PUTTS | PSR */}
-          <div style={{display:"flex",alignItems:"flex-end",gap:8,paddingTop:4}}>
+          {/* Row 2: PAR | SCORE | PUTTS | PSR | SAVE */}
+          <div style={{display:"flex",alignItems:"center",gap:8,paddingTop:4}}>
 
             {/* PAR */}
-            <div style={{textAlign:"center",flexShrink:0}}>
-              <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3,height:16,display:"flex",alignItems:"center",justifyContent:"center"}}>PAR</div>
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0}}>
+              <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700}}>PAR</div>
               <input value={scores[currentHole].par} onChange={e=>{const p=e.target.value.replace(/\D/g,"").slice(0,1);updateField("par",p);if(p&&!scores[currentHole].strokeScore)updateField("strokeScore",p);}} style={{width:40,height:40,borderRadius:8,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:18,textAlign:"center",outline:"none",fontWeight:700,boxSizing:"border-box",padding:0,flexShrink:0,display:"block"}} inputMode="numeric" aria-label="Par"/>
             </div>
 
             {/* SCORE */}
-            <div style={{textAlign:"center",flexShrink:0}}>
-              <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3,height:16,display:"flex",alignItems:"center",justifyContent:"center"}}>SCORE</div>
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0}}>
+              <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700}}>SCORE</div>
               {(()=>{
                 const sv = scores[currentHole].strokeScore;
                 const parsed = parseInt(sv);
@@ -2810,8 +2810,8 @@ export default function App() {
             </div>
 
             {/* PUTTS */}
-            <div style={{textAlign:"center",flexShrink:0}}>
-              <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3,height:16,display:"flex",alignItems:"center",justifyContent:"center"}}>PUTTS</div>
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0}}>
+              <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700}}>PUTTS</div>
               {(()=>{
                 const pv = scores[currentHole].putts;
                 const parsed = parseInt(pv);
@@ -2832,21 +2832,20 @@ export default function App() {
               })()}
             </div>
 
-            {/* PSR — Pre-Shot Routine */}
-            <div style={{textAlign:"center",flexShrink:0}}>
-              <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3,height:16,display:"flex",alignItems:"center",justifyContent:"center",gap:2}}>
+            {/* PSR */}
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0}}>
+              <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700,display:"flex",alignItems:"center",gap:2}}>
                 PSR
                 <button onClick={()=>setShowPSRInfo(true)} style={{width:13,height:13,borderRadius:"50%",border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:7,cursor:"pointer",display:"inline-flex",alignItems:"center",justifyContent:"center",padding:0,lineHeight:1,flexShrink:0}}>?</button>
               </div>
-              <button
-                onClick={()=>updateField("routine",scores[currentHole].routine?0:1)}
-                style={{width:40,height:40,borderRadius:8,border:`1.5px solid ${scores[currentHole].routine?P.green:P.border}`,background:scores[currentHole].routine?P.green+"18":"transparent",color:scores[currentHole].routine?P.green:P.muted,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent",flexShrink:0}}
-              >{scores[currentHole].routine?"✓":"—"}</button>
+              <button onClick={()=>updateField("routine",scores[currentHole].routine?0:1)} style={{width:40,height:40,borderRadius:8,border:`1.5px solid ${scores[currentHole].routine?P.green:P.border}`,background:scores[currentHole].routine?P.green+"18":"transparent",color:scores[currentHole].routine?P.green:P.muted,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent",flexShrink:0}}>
+                {scores[currentHole].routine?"✓":"—"}
+              </button>
             </div>
 
             {/* SAVE */}
-            <div style={{textAlign:"center",flexShrink:0,marginLeft:"auto"}}>
-              <div style={{fontSize:10,color:"transparent",letterSpacing:1,fontWeight:700,marginBottom:3,height:16}}>·</div>
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0,marginLeft:"auto"}}>
+              <div style={{fontSize:10,color:"transparent",fontWeight:700}}>·</div>
               <SaveBtn P={P} onSave={saveRound}/>
             </div>
 
