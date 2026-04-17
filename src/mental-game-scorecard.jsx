@@ -2790,16 +2790,15 @@ export default function App() {
 
         </div>{/* end matchup ref wrapper — scrollable area ends here */}
 
-        {/* Step 6 ref: Nav — fixed at bottom */}
-        <div ref={tipRefs.nav} style={{flexShrink:0,borderTop:`1px solid ${P.border}`,background:P.bg}}>
-        {/* Finish row */}
-        <div style={{padding:"4px 10px 2px",display:"flex",gap:5,alignItems:"center"}}>
-          <div style={{flex:1}}/>
-          {currentHole>=8&&currentHole<17&&<button onClick={completeRound} aria-label="Finish round" style={{padding:"10px 10px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green+"12",color:P.green,fontSize:11,fontWeight:700,cursor:"pointer",transition:"transform 0.1s ease",flexShrink:0}}>Finish ✓</button>}
-          {currentHole===17&&<button onClick={completeRound} style={{padding:"10px 14px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green,color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",transition:"transform 0.1s ease",flexShrink:0}} {...pp()}>Finish ✓</button>}
-        </div>
+        {/* Finish button — only shown on holes 9+ */}
+        {(currentHole>=8)&&(
+          <div ref={tipRefs.nav} style={{flexShrink:0,borderTop:`1px solid ${P.border}`,background:P.bg,padding:"4px 10px 2px",display:"flex",justifyContent:"flex-end"}}>
+            {currentHole<17&&<button onClick={completeRound} aria-label="Finish round" style={{padding:"10px 10px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green+"12",color:P.green,fontSize:11,fontWeight:700,cursor:"pointer",flexShrink:0}}>Finish ✓</button>}
+            {currentHole===17&&<button onClick={completeRound} style={{padding:"10px 14px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green,color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",flexShrink:0}} {...pp()}>Finish ✓</button>}
+          </div>
+        )}
         <div style={{height:"calc(6px + env(safe-area-inset-bottom, 0px))"}}/>
-        </div>{/* end nav ref wrapper */}
+
 
 
         <style>{`
