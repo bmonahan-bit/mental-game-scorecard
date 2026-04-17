@@ -2776,13 +2776,13 @@ export default function App() {
 
             {/* PAR */}
             <div style={{textAlign:"center",flexShrink:0}}>
-              <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3}}>PAR</div>
-              <input value={scores[currentHole].par} onChange={e=>{const p=e.target.value.replace(/\D/g,"").slice(0,1);updateField("par",p);if(p&&!scores[currentHole].strokeScore)updateField("strokeScore",p);}} style={{width:40,height:40,borderRadius:8,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:18,textAlign:"center",outline:"none",fontWeight:700,boxSizing:"border-box",padding:0,flexShrink:0}} inputMode="numeric" aria-label="Par"/>
+              <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3,height:16,display:"flex",alignItems:"center",justifyContent:"center"}}>PAR</div>
+              <input value={scores[currentHole].par} onChange={e=>{const p=e.target.value.replace(/\D/g,"").slice(0,1);updateField("par",p);if(p&&!scores[currentHole].strokeScore)updateField("strokeScore",p);}} style={{width:40,height:40,borderRadius:8,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:18,textAlign:"center",outline:"none",fontWeight:700,boxSizing:"border-box",padding:0,flexShrink:0,display:"block"}} inputMode="numeric" aria-label="Par"/>
             </div>
 
             {/* SCORE */}
             <div style={{textAlign:"center",flexShrink:0}}>
-              <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3}}>SCORE</div>
+              <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3,height:16,display:"flex",alignItems:"center",justifyContent:"center"}}>SCORE</div>
               {(()=>{
                 const sv = scores[currentHole].strokeScore;
                 const parsed = parseInt(sv);
@@ -2811,7 +2811,7 @@ export default function App() {
 
             {/* PUTTS */}
             <div style={{textAlign:"center",flexShrink:0}}>
-              <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3}}>PUTTS</div>
+              <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3,height:16,display:"flex",alignItems:"center",justifyContent:"center"}}>PUTTS</div>
               {(()=>{
                 const pv = scores[currentHole].putts;
                 const parsed = parseInt(pv);
@@ -2834,7 +2834,7 @@ export default function App() {
 
             {/* PSR — Pre-Shot Routine */}
             <div style={{textAlign:"center",flexShrink:0}}>
-              <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3,display:"flex",alignItems:"center",gap:2,justifyContent:"center"}}>
+              <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3,height:16,display:"flex",alignItems:"center",justifyContent:"center",gap:2}}>
                 PSR
                 <button onClick={()=>setShowPSRInfo(true)} style={{width:13,height:13,borderRadius:"50%",border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:7,cursor:"pointer",display:"inline-flex",alignItems:"center",justifyContent:"center",padding:0,lineHeight:1,flexShrink:0}}>?</button>
               </div>
@@ -2846,7 +2846,7 @@ export default function App() {
 
             {/* SAVE */}
             <div style={{textAlign:"center",flexShrink:0,marginLeft:"auto"}}>
-              <div style={{fontSize:10,color:"transparent",letterSpacing:1,fontWeight:700,marginBottom:3}}>·</div>
+              <div style={{fontSize:10,color:"transparent",letterSpacing:1,fontWeight:700,marginBottom:3,height:16}}>·</div>
               <SaveBtn P={P} onSave={saveRound}/>
             </div>
 
