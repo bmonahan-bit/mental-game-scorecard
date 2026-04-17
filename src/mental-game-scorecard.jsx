@@ -1124,43 +1124,6 @@ function Stepper({ value, min=1, max=15, onChange, notation, P, defaultVal=null,
   );
 }
 
-function ScorePill({ value, par, onChange, P }) {
-  const parsed = parseInt(value);
-  const num = (value !== "" && value !== null && value !== undefined && !isNaN(parsed)) ? parsed : null;
-  const parNum = par ? parseInt(par) : null;
-  const display = num !== null ? num : (parNum || "—");
-  const isDefault = num === null;
-  const nt = (num !== null && parNum) ? scoreNotation(String(num), String(parNum)) : null;
-
-  const borderRadius = nt?.diff <= -1 ? "50%" : nt?.diff >= 1 ? "6px" : "8px";
-  const borderColor = nt?.diff && nt.diff !== 0 ? (nt.diff < 0 ? P.green : P.red) : P.border;
-  const borderWidth = nt?.diff && Math.abs(nt.diff) >= 2 ? "2.5px" : "1.5px";
-
-  function dec() {
-    const cur = num !== null ? num : (parNum || 1);
-    if (cur > 1) onChange(String(cur - 1));
-  }
-  function inc() {
-    const cur = num !== null ? num : (parNum || 1);
-    if (cur < 15) onChange(String(cur + 1));
-  }
-
-  return (
-    <div style={{position:"relative",display:"inline-flex",alignItems:"center",borderRadius,border:`${borderWidth} solid ${borderColor}`,overflow:"hidden",background:P.inputBg,flexShrink:0}}>
-      {nt?.diff && Math.abs(nt.diff) >= 2 && (
-        <div style={{position:"absolute",inset:3,borderRadius:nt.diff<=-2?"50%":"3px",border:`1px solid ${nt.diff<0?P.green:P.red}`,pointerEvents:"none",zIndex:1}}/>
-      )}
-      <button onClick={dec} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",zIndex:2}}>
-        <svg width="16" height="3" viewBox="0 0 16 3"><rect x="0" y="0" width="16" height="3" rx="1.5" fill={P.muted}/></svg>
-      </button>
-      <div style={{minWidth:28,textAlign:"center",fontSize:18,fontWeight:700,color:isDefault?P.muted:P.white,lineHeight:1,userSelect:"none",flexShrink:0,padding:"0 2px",zIndex:2}}>{display}</div>
-      <button onClick={inc} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",zIndex:2}}>
-        <svg width="16" height="16" viewBox="0 0 16 16"><rect x="0" y="6.5" width="16" height="3" rx="1.5" fill={P.muted}/><rect x="6.5" y="0" width="3" height="16" rx="1.5" fill={P.muted}/></svg>
-      </button>
-    </div>
-  );
-}
-
 function calcGir(hole) {
   const s = parseInt(hole.strokeScore), p = parseInt(hole.par);
   const putts = hole.putts !== "" && hole.putts !== null && hole.putts !== undefined ? (parseInt(hole.putts) || 0) : null;
@@ -2635,11 +2598,16 @@ export default function App() {
             {/* SCORE */}
             <div style={{textAlign:"center",flexShrink:0}}>
               <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3}}>SCORE</div>
-              <ScorePill
+              <input
                 value={scores[currentHole].strokeScore}
-                par={scores[currentHole].par}
-                onChange={v=>updateField("strokeScore",v)}
-                P={P}
+                onChange={e=>{
+                  const v = e.target.value.replace(/\D/g,"").slice(0,2);
+                  updateField("strokeScore", v);
+                }}
+                placeholder={scores[currentHole].par||"—"}
+                inputMode="numeric"
+                style={{...S.miniInput, width:58, fontSize:18}}
+                aria-label="Score"
               />
             </div>
 
