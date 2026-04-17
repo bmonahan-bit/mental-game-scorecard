@@ -1318,111 +1318,194 @@ async function shareRoundAsImage(r, darkMode) {
 
 async function scorecardAsImage(r, darkMode) {
   try { await document.fonts.ready; } catch {}
-  const scores = r.scores || [];
-  const count = scores.slice(9).some(h=>h.par||h.strokeScore) ? 18 : 9;
-  const CW=38, CH=28, PAD=16, HDR=60, ROWS=6, LW=60;
-  const W = PAD*2 + LW + CW*count;
-  const H = HDR + ROWS*CH + PAD + 30;
+  const scores = r.scores || Array.from({length:18},()=>({bandits:{},heroes:{},par:"",strokeScore:"",putts:"",routine:0}));
+  const bg=darkMode?"#09090b":"#f6f7f4", card=darkMode?"#18181b":"#ffffff";
+  const cardAlt=darkMode?"#111113":"#f1f3ee", border=darkMode?"#27272a":"#e0e2dc";
+  const white=darkMode?"#f8fafc":"#0f172a", muted="#71717a";
+  const green="#16a34a", red="#dc2626", gold="#ca8a04", pmGold="#c9a84c", accent="#2563eb";
+
+  const cols = ["#","H","B","Net","Par","Scr","+/-","Pts","GIR","PSR"];
+  const colW = [28,28,28,36,28,36,36,28,28,28]; // px per col
+  const totalW = colW.reduce((s,w)=>s+w,0);
+  const PAD=16, ROW=22, HDR_ROW=20;
+  // 18 rows + OUT + IN + TOT = 21 rows
+  const W = PAD*2 + totalW;
+  const H = PAD + HDR_ROW + 21*ROW + PAD;
   const canvas = document.createElement("canvas");
-  canvas.width=W; canvas.height=H;
-  const ctx = canvas.getContext("2d");
-  const bg=darkMode?"#09090b":"#f6f7f4", card=darkMode?"#141416":"#ffffff";
-  const border=darkMode?"#2a2a2e":"#e0e2dc", white=darkMode?"#f8fafc":"#0f172a";
-  const muted="#71717a", green="#16a34a", red="#dc2626", gold="#ca8a04";
-  const pmGold="#c9a84c", accent="#2563eb";
-  const netColor=r.net>0?green:r.net<0?red:gold;
+  const scale = 2; // retina
+  canvas.width=W*scale; canvas.height=H*scale;
+  const ctx=canvas.getContext("2d");
+  ctx.scale(scale,scale);
 
   ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
 
-  // Header
-  ctx.fillStyle=white; ctx.font="bold 17px 'Avenir Next',-apple-system,sans-serif";
-  ctx.fillText(r.course||"Scorecard", PAD+LW, 26);
-  ctx.fillStyle=muted; ctx.font="11px 'Avenir Next',-apple-system,sans-serif";
-  ctx.fillText(r.date||"", PAD+LW, 42);
-  // Net badge
-  ctx.fillStyle=netColor+"22"; roundRect(ctx,W-80,10,68,36,8); ctx.fill();
-  ctx.fillStyle=netColor; ctx.font="bold 20px 'Avenir Next',-apple-system,sans-serif"; ctx.textAlign="center";
-  ctx.fillText((r.net>0?"+":"")+r.net, W-46, 35); ctx.textAlign="left";
-  ctx.fillStyle=muted; ctx.font="bold 9px 'Avenir Next',-apple-system,sans-serif"; ctx.textAlign="center";
-  ctx.fillText("MENTAL NET", W-46, 44); ctx.textAlign="left";
+  // Helper: col x positions
+  const colX = [];
+  let cx2=PAD;
+  colW.forEach(w=>{colX.push(cx2);cx2+=w;});
 
-  const TX=PAD+LW;
-  const rowLabels=["HOLE","PAR","SCORE","PUTTS","H","B"];
-  const rowColors=[muted,muted,white,muted,green,red];
-
-  // Row labels
-  rowLabels.forEach((label,ri)=>{
-    ctx.fillStyle=rowColors[ri];
-    ctx.font=`${ri===2?"bold ":""}9px 'Avenir Next',-apple-system,sans-serif`;
+  // Helper: cell text
+  function cell(text, ci, row, color, bold=false, align="center") {
+    ctx.fillStyle=color||white;
+    ctx.font=`${bold?"bold ":""}10px 'Avenir Next',-apple-system,sans-serif`;
+    ctx.textAlign=align==="center"?"center":"left";
+    const x = align==="center" ? colX[ci]+colW[ci]/2 : colX[ci]+3;
+    ctx.fillText(String(text), x, PAD+HDR_ROW+row*ROW+ROW*0.68);
     ctx.textAlign="left";
-    ctx.fillText(label, PAD, HDR+ri*CH+CH*0.72);
-  });
+  }
 
-  // Col cells
-  for(let i=0;i<count;i++){
+  // Header row
+  cols.forEach((h,ci)=>{
+    ctx.fillStyle=muted; ctx.font="bold 9px 'Avenir Next',-apple-system,sans-serif"; ctx.textAlign="center";
+    ctx.fillText(h, colX[ci]+colW[ci]/2, PAD+HDR_ROW*0.75);
+  });
+  ctx.textAlign="left";
+  // Header bottom border
+  ctx.strokeStyle=border; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(PAD,PAD+HDR_ROW); ctx.lineTo(W-PAD,PAD+HDR_ROW); ctx.stroke();
+
+  // Per-hole rows
+  for(let i=0;i<18;i++){
     const h=scores[i]||{};
-    const x=TX+i*CW;
+    const rowY=PAD+HDR_ROW+i*ROW;
+    // Alt row bg
+    ctx.fillStyle=i%2===0?card:bg; ctx.fillRect(PAD,rowY,totalW,ROW);
+
+    const hStats={heroes:Object.values(h.heroes||{}).reduce((s,v)=>s+v,0),bandits:Object.values(h.bandits||{}).reduce((s,v)=>s+v,0)};
+    hStats.net=hStats.heroes-hStats.bandits;
     const par=parseInt(h.par)||null;
     const score=parseInt(h.strokeScore)||null;
     const diff=score&&par?score-par:null;
-    const hCount=h.heroes?Object.values(h.heroes).reduce((s,v)=>s+v,0):0;
-    const bCount=h.bandits?Object.values(h.bandits).reduce((s,v)=>s+v,0):0;
+    const runStroke=scores.slice(0,i+1).filter(x=>x.strokeScore&&x.par).reduce((a,x)=>a+(parseInt(x.strokeScore)||0),0);
+    const runPar=scores.slice(0,i+1).filter(x=>x.strokeScore&&x.par).reduce((a,x)=>a+(parseInt(x.par)||0),0);
+    const runDiff=(h.strokeScore&&h.par)?runStroke-runPar:null;
     const putts=h.putts!==""&&h.putts!==null&&h.putts!==undefined?parseInt(h.putts):null;
+    const gir=(()=>{const s=score,p=par,pt=putts!==null?putts:null;if(!s||!p||pt===null)return false;return(s-pt)<=(p-2);})();
 
-    // Alt col bg
-    if(i%2===0){ctx.fillStyle=darkMode?"#ffffff06":"#00000004";ctx.fillRect(x,HDR,CW,ROWS*CH);}
-    // 9/18 divider
-    if(i===9){ctx.strokeStyle=accent+"66";ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x,HDR);ctx.lineTo(x,HDR+ROWS*CH);ctx.stroke();}
+    cell(i+1,0,i,accent,true);
+    cell(hStats.heroes||"—",1,i,green,hStats.heroes>0);
+    cell(hStats.bandits||"—",2,i,red,hStats.bandits>0);
+    cell(hStats.heroes+hStats.bandits>0?(hStats.net>0?"+":"")+hStats.net:"—",3,i,hStats.net>0?green:hStats.net<0?red:hStats.heroes+hStats.bandits>0?gold:muted,true);
+    cell(par||"—",4,i,muted);
 
-    ctx.textAlign="center";
-    const cx=x+CW/2;
-
-    // Hole
-    ctx.fillStyle=accent;ctx.font="bold 10px 'Avenir Next',-apple-system,sans-serif";
-    ctx.fillText(i+1,cx,HDR+CH*0.72);
-
-    // Par
-    ctx.fillStyle=muted;ctx.font="10px 'Avenir Next',-apple-system,sans-serif";
-    ctx.fillText(par||"—",cx,HDR+CH+CH*0.72);
-
-    // Score
+    // Score with notation circles/boxes
     if(score){
-      const sc=diff===null?white:diff<0?green:diff>0?red:white;
-      if(diff!=null&&diff<=-1){ctx.strokeStyle=green;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(cx,HDR+2*CH+CH*0.45,10,0,Math.PI*2);ctx.stroke();}
-      if(diff!=null&&diff<=-2){ctx.strokeStyle=gold;ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,HDR+2*CH+CH*0.45,13,0,Math.PI*2);ctx.stroke();}
-      if(diff!=null&&diff===1){ctx.strokeStyle=red;ctx.lineWidth=1.5;roundRect(ctx,cx-10,HDR+2*CH+4,20,18,2);ctx.stroke();}
-      if(diff!=null&&diff>=2){ctx.strokeStyle=red;ctx.lineWidth=1.5;roundRect(ctx,cx-12,HDR+2*CH+2,24,20,2);ctx.stroke();roundRect(ctx,cx-9,HDR+2*CH+5,18,14,1);ctx.stroke();}
-      ctx.fillStyle=sc;ctx.font="bold 11px 'Avenir Next',-apple-system,sans-serif";
-      ctx.fillText(score,cx,HDR+2*CH+CH*0.72);
-    } else {
-      ctx.fillStyle=muted;ctx.font="10px 'Avenir Next',-apple-system,sans-serif";
-      ctx.fillText("—",cx,HDR+2*CH+CH*0.72);
+      const scoreColor=diff<0?green:diff>0?red:white;
+      const scx=colX[5]+colW[5]/2, scy=PAD+HDR_ROW+i*ROW+ROW*0.5;
+      if(diff<=-2){ctx.strokeStyle=gold;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(scx,scy,9,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.arc(scx,scy,6,0,Math.PI*2);ctx.stroke();}
+      else if(diff===-1){ctx.strokeStyle=green;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(scx,scy,9,0,Math.PI*2);ctx.stroke();}
+      else if(diff===1){ctx.strokeStyle=red;ctx.lineWidth=1.5;roundRect(ctx,scx-9,scy-8,18,16,2);ctx.stroke();}
+      else if(diff>=2){ctx.strokeStyle=red;ctx.lineWidth=1.5;roundRect(ctx,scx-10,scy-9,20,18,2);ctx.stroke();roundRect(ctx,scx-7,scy-6,14,12,1);ctx.stroke();}
+      ctx.fillStyle=scoreColor;ctx.font="bold 10px 'Avenir Next',-apple-system,sans-serif";ctx.textAlign="center";
+      ctx.fillText(score,scx,scy+ROW*0.18);ctx.textAlign="left";
+    } else { cell("—",5,i,muted); }
+
+    cell(runDiff===null?"—":runDiff===0?"E":(runDiff>0?"+":"")+runDiff,6,i,runDiff===null?muted:runDiff<0?green:runDiff>0?red:gold,true);
+    cell(putts!==null?putts:"—",7,i,putts===1?green:putts>=3?red:white,putts!==null);
+    cell(gir?"✓":"—",8,i,gir?accent:muted,gir);
+    cell(h.routine?"✓":"—",9,i,h.routine?green:muted,!!h.routine);
+
+    // Row bottom border
+    ctx.strokeStyle=border;ctx.lineWidth=0.5;
+    ctx.beginPath();ctx.moveTo(PAD,rowY+ROW);ctx.lineTo(W-PAD,rowY+ROW);ctx.stroke();
+
+    // OUT separator after hole 9
+    if(i===8){
+      const outY=PAD+HDR_ROW+9*ROW;
+      ctx.fillStyle=cardAlt;ctx.fillRect(PAD,outY,totalW,ROW);
+      ctx.strokeStyle=border;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(PAD,outY);ctx.lineTo(W-PAD,outY);ctx.stroke();
+      const fp=scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.par)||0),0);
+      const fs2=scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0);
+      const fH=scores.slice(0,9).reduce((s,h)=>s+Object.values(h.heroes||{}).reduce((a,v)=>a+v,0),0);
+      const fB=scores.slice(0,9).reduce((s,h)=>s+Object.values(h.bandits||{}).reduce((a,v)=>a+v,0),0);
+      const fNet=fH-fB, fPutts2=scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.putts)||0),0);
+      const fGir2=scores.slice(0,9).filter(h2=>calcGir(h2)).length;
+      const fPsr2=scores.slice(0,9).filter(h2=>h2.routine).length;
+      ctx.fillStyle=muted;ctx.font="bold 9px 'Avenir Next',-apple-system,sans-serif";ctx.textAlign="center";
+      ctx.fillText("OUT",colX[0]+colW[0]/2,outY+ROW*0.68);ctx.textAlign="left";
+      cell(fH||"—",1,9,green,true); cell(fB||"—",2,9,red,true);
+      cell(fNet>0?"+"+fNet:fNet,3,9,fNet>0?green:fNet<0?red:gold,true);
+      cell(fp||"—",4,9,muted); cell(fs2||"—",5,9,white,true);
+      cell(fs2&&fp?(fs2-fp)===0?"E":((fs2-fp)>0?"+":"")+(fs2-fp):"—",6,9,fs2&&fp?(fs2-fp)<0?green:(fs2-fp)>0?red:gold:muted,true);
+      cell(fPutts2||"—",7,9,white,true); cell(`${fGir2}/9`,8,9,accent,true); cell(`${fPsr2}/9`,9,9,green,true);
     }
-
-    // Putts
-    ctx.fillStyle=putts!==null?(putts===1?green:putts>=3?red:white):muted;
-    ctx.font="10px 'Avenir Next',-apple-system,sans-serif";
-    ctx.fillText(putts!==null?putts:"—",cx,HDR+3*CH+CH*0.72);
-
-    // Heroes
-    ctx.fillStyle=hCount>0?green:muted;ctx.font=`${hCount>0?"bold ":""}10px 'Avenir Next',-apple-system,sans-serif`;
-    ctx.fillText(hCount>0?hCount:"—",cx,HDR+4*CH+CH*0.72);
-
-    // Bandits
-    ctx.fillStyle=bCount>0?red:muted;ctx.font=`${bCount>0?"bold ":""}10px 'Avenir Next',-apple-system,sans-serif`;
-    ctx.fillText(bCount>0?bCount:"—",cx,HDR+5*CH+CH*0.72);
   }
 
-  // Grid lines
-  ctx.strokeStyle=border;ctx.lineWidth=0.5;
-  for(let ri=0;ri<=ROWS;ri++){
-    const y=HDR+ri*CH;
-    ctx.beginPath();ctx.moveTo(TX-4,y);ctx.lineTo(TX+count*CW,y);ctx.stroke();
-  }
+  // IN row (row index 19 = after hole 18)
+  const inRowIdx=19;
+  const inY=PAD+HDR_ROW+inRowIdx*ROW;
+  ctx.fillStyle=cardAlt;ctx.fillRect(PAD,inY,totalW,ROW);
+  ctx.strokeStyle=border;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(PAD,inY);ctx.lineTo(W-PAD,inY);ctx.stroke();
+  const bp=scores.slice(9).reduce((s,h)=>s+(parseInt(h.par)||0),0);
+  const bs2=scores.slice(9).reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0);
+  const bH=scores.slice(9).reduce((s,h)=>s+Object.values(h.heroes||{}).reduce((a,v)=>a+v,0),0);
+  const bB=scores.slice(9).reduce((s,h)=>s+Object.values(h.bandits||{}).reduce((a,v)=>a+v,0),0);
+  const bNet=bH-bB, bPutts2=scores.slice(9).reduce((s,h)=>s+(parseInt(h.putts)||0),0);
+  const bGir2=scores.slice(9).filter(h=>calcGir(h)).length, bPsr2=scores.slice(9).filter(h=>h.routine).length;
+  ctx.fillStyle=muted;ctx.font="bold 9px 'Avenir Next',-apple-system,sans-serif";ctx.textAlign="center";
+  ctx.fillText("IN",colX[0]+colW[0]/2,inY+ROW*0.68);ctx.textAlign="left";
+  cell(bH||"—",1,inRowIdx,green,true); cell(bB||"—",2,inRowIdx,red,true);
+  cell(bNet>0?"+"+bNet:bNet,3,inRowIdx,bNet>0?green:bNet<0?red:gold,true);
+  cell(bp||"—",4,inRowIdx,muted); cell(bs2||"—",5,inRowIdx,white,true);
+  cell(bs2&&bp?(bs2-bp)===0?"E":((bs2-bp)>0?"+":"")+(bs2-bp):"—",6,inRowIdx,bs2&&bp?(bs2-bp)<0?green:(bs2-bp)>0?red:gold:muted,true);
+  cell(bPutts2||"—",7,inRowIdx,white,true); cell(`${bGir2}/9`,8,inRowIdx,accent,true); cell(`${bPsr2}/9`,9,inRowIdx,green,true);
 
-  ctx.textAlign="left";
-  ctx.fillStyle=pmGold;ctx.font="bold 9px 'Avenir Next',-apple-system,sans-serif";ctx.textAlign="center";
-  ctx.fillText("PAUL MONAHAN GOLF · Mental Game Scorecard",W/2,H-8);
+  // TOT row
+  const totRowIdx=20;
+  const totY=PAD+HDR_ROW+totRowIdx*ROW;
+  ctx.fillStyle=accent+"18";ctx.fillRect(PAD,totY,totalW,ROW);
+  ctx.strokeStyle=accent+"44";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(PAD,totY);ctx.lineTo(W-PAD,totY);ctx.stroke();
+  const fp2=scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.par)||0),0);
+  const fs3=scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0);
+  const fH2=scores.slice(0,9).reduce((s,h)=>s+Object.values(h.heroes||{}).reduce((a,v)=>a+v,0),0);
+  const fB2=scores.slice(0,9).reduce((s,h)=>s+Object.values(h.bandits||{}).reduce((a,v)=>a+v,0),0);
+  const fPutts3=scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.putts)||0),0);
+  const fGir3=scores.slice(0,9).filter(h=>calcGir(h)).length, fPsr3=scores.slice(0,9).filter(h=>h.routine).length;
+  const tH=fH2+bH, tB=fB2+bB, tNet=tH-tB, tP=fp2+bp, tS=fs3+bs2, tPutts=fPutts3+bPutts2;
+  const tGir=fGir3+bGir2, tPsr=fPsr3+bPsr2;
+  const holesPlayed=scores.filter(h=>h.strokeScore&&h.par).length||18;
+  ctx.fillStyle=muted;ctx.font="bold 9px 'Avenir Next',-apple-system,sans-serif";ctx.textAlign="center";
+  ctx.fillText("TOT",colX[0]+colW[0]/2,totY+ROW*0.68);ctx.textAlign="left";
+  cell(tH||"—",1,totRowIdx,green,true); cell(tB||"—",2,totRowIdx,red,true);
+  cell(tNet>0?"+"+tNet:tNet,3,totRowIdx,tNet>0?green:tNet<0?red:gold,true);
+  cell(tP||"—",4,totRowIdx,muted,true); cell(tS||"—",5,totRowIdx,white,true);
+  cell(tS&&tP?(tS-tP)===0?"E":((tS-tP)>0?"+":"")+(tS-tP):"—",6,totRowIdx,tS&&tP?(tS-tP)<0?green:(tS-tP)>0?red:gold:muted,true);
+  cell(tPutts||"—",7,totRowIdx,white,true); cell(`${tGir}/18`,8,totRowIdx,accent,true);
+  cell(`${Math.round((tPsr/holesPlayed)*100)}%`,9,totRowIdx,green,true);
+
+  return canvas;
+}
+
+async function buildCombinedShareImage(r, darkMode) {
+  try { await document.fonts.ready; } catch {}
+  const [breakdownCanvas, scorecardCanvas] = await Promise.all([
+    shareRoundAsImage(r, darkMode),
+    scorecardAsImage(r, darkMode),
+  ]);
+  const GAP=16, PAD=16;
+  const W = Math.max(breakdownCanvas.width, scorecardCanvas.width*0.5) + PAD*2;
+  // Scale scorecard to fit width
+  const scScale = (W-PAD*2) / scorecardCanvas.width;
+  const scH = scorecardCanvas.height * scScale;
+  const bdScale = (W-PAD*2) / breakdownCanvas.width;
+  const bdH = breakdownCanvas.height * bdScale;
+  const H = PAD + bdH + GAP + scH + PAD;
+  const canvas = document.createElement("canvas");
+  const bg=darkMode?"#09090b":"#f6f7f4";
+  const pmGold="#c9a84c";
+  canvas.width=W; canvas.height=H;
+  const ctx=canvas.getContext("2d");
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+  // Draw breakdown
+  ctx.drawImage(breakdownCanvas, PAD, PAD, W-PAD*2, bdH);
+  // Divider
+  ctx.strokeStyle=darkMode?"#27272a":"#e0e2dc"; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(PAD, PAD+bdH+GAP/2); ctx.lineTo(W-PAD, PAD+bdH+GAP/2); ctx.stroke();
+  // Draw scorecard
+  ctx.drawImage(scorecardCanvas, PAD, PAD+bdH+GAP, W-PAD*2, scH);
+  // Branding
+  ctx.fillStyle=pmGold; ctx.font="bold 10px 'Avenir Next',-apple-system,sans-serif"; ctx.textAlign="center";
+  ctx.fillText("PAUL MONAHAN GOLF · Mental Game Scorecard", W/2, H-6);
   ctx.textAlign="left";
   return canvas;
 }
@@ -1450,72 +1533,32 @@ function truncate(ctx, text, maxW) {
 }
 
 async function shareRound(r, darkMode) {
-  let breakdownCanvas, scorecardCanvas;
+  let canvas;
   try {
-    [breakdownCanvas, scorecardCanvas] = await Promise.all([
-      shareRoundAsImage(r, darkMode),
-      scorecardAsImage(r, darkMode),
-    ]);
+    canvas = await buildCombinedShareImage(r, darkMode);
   } catch(err) {
-    console.error("shareRound canvas failed:", err);
+    console.error("shareRound failed:", err);
     fallbackShare(r); return;
   }
-
-  function canvasToFile(canvas, name) {
-    return new Promise(resolve => {
-      canvas.toBlob(blob => {
-        resolve(blob ? new File([blob], name, { type:"image/png" }) : null);
-      }, "image/png");
-    });
-  }
-
-  const [file1, file2] = await Promise.all([
-    canvasToFile(breakdownCanvas, "mental-game-breakdown.png"),
-    canvasToFile(scorecardCanvas, "mental-game-scorecard.png"),
-  ]);
-
-  if (!file1 || !file2) { fallbackShare(r); return; }
-  const files = [file1, file2];
-
-  if (navigator.share) {
-    // Try with both images
-    try {
-      await navigator.share({ files, title:"Mental Game Scorecard", text:buildShareText(r) });
-      return;
-    } catch(e) {
-      if (e?.name==="AbortError") return;
-      // Try single image fallback
-      try {
-        await navigator.share({ files:[file1], title:"Mental Game Scorecard", text:buildShareText(r) });
-        return;
-      } catch(e2) {
-        if (e2?.name==="AbortError") return;
-        try {
-          await navigator.share({ title:"Mental Game Scorecard", text:buildShareText(r) });
-          return;
-        } catch(e3) { if (e3?.name==="AbortError") return; }
-      }
+  canvas.toBlob(async (blob) => {
+    if (!blob) { fallbackShare(r); return; }
+    const file = new File([blob], "mental-game-scorecard.png", { type:"image/png" });
+    if (navigator.share && navigator.canShare && navigator.canShare({files:[file]})) {
+      try { await navigator.share({ files:[file] }); return; } catch(e) { if(e?.name==="AbortError") return; }
     }
-  }
-
-  // Clipboard: write first image
-  try {
-    await navigator.clipboard.write([new ClipboardItem({ "image/png": await canvasToFile(breakdownCanvas,"b.png") })]);
-    showToast("Scorecard image copied to clipboard!", "success", 3000);
-    return;
-  } catch {}
-
-  // Download both
-  try {
-    [file1, file2].forEach((f,i) => {
-      const url = URL.createObjectURL(f);
-      const a = document.createElement("a");
-      a.href=url; a.download=f.name;
+    try {
+      await navigator.clipboard.write([new ClipboardItem({"image/png":blob})]);
+      showToast("Scorecard copied to clipboard!", "success", 3000); return;
+    } catch {}
+    try {
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement("a");
+      a.href=url; a.download=`scorecard-${r.date||"round"}.png`;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    });
-    showToast("Scorecard images downloaded!", "success");
-  } catch { fallbackShare(r); }
+      showToast("Scorecard downloaded!", "success");
+    } catch { fallbackShare(r); }
+  }, "image/png");
 }
 
 function fallbackShare(r) {
