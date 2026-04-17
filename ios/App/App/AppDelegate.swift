@@ -1,4 +1,4 @@
-import UIKit
+bnhji;9import UIKit
 import Capacitor
 
 @UIApplicationMain

@@ -1,5 +1,9 @@
 {
   "appId": "com.paulmonahan.mentalgamescorecard",
   "appName": "Mental Game Scorecard",
-  "webDir": "dist"
+  "webDir": "dist",
+  "server": {
+    "url": "https://mental-game-scorecard.netlify.app",
+    "cleartext": false
+  }
 }
