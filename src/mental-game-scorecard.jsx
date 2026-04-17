@@ -2598,17 +2598,25 @@ export default function App() {
             {/* SCORE */}
             <div style={{textAlign:"center",flexShrink:0}}>
               <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3}}>SCORE</div>
-              <input
-                value={scores[currentHole].strokeScore}
-                onChange={e=>{
-                  const v = e.target.value.replace(/\D/g,"").slice(0,2);
-                  updateField("strokeScore", v);
-                }}
-                placeholder={scores[currentHole].par||"—"}
-                inputMode="numeric"
-                style={{...S.miniInput, width:58, fontSize:18}}
-                aria-label="Score"
-              />
+              {(()=>{
+                const sv = scores[currentHole].strokeScore;
+                const parsed = parseInt(sv);
+                const num = (sv!==""&&sv!==null&&sv!==undefined&&!isNaN(parsed)) ? parsed : null;
+                const parNum = parseInt(scores[currentHole].par)||null;
+                const display = num!==null ? num : (parNum||"—");
+                const displayColor = num!==null ? P.white : P.muted;
+                return (
+                  <div style={{display:"flex",alignItems:"center",borderRadius:8,border:`1.5px solid ${P.border}`,overflow:"hidden",background:P.inputBg,flexShrink:0}}>
+                    <button onClick={()=>{const cur=num!==null?num:(parNum||1);if(cur>1)updateField("strokeScore",String(cur-1));}} style={{width:32,height:40,background:"transparent",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent"}}>
+                      <svg width="16" height="3" viewBox="0 0 16 3"><rect x="0" y="0" width="16" height="3" rx="1.5" fill={P.muted}/></svg>
+                    </button>
+                    <div style={{minWidth:28,textAlign:"center",fontSize:18,fontWeight:700,color:displayColor,lineHeight:1,userSelect:"none",flexShrink:0,padding:"0 2px"}}>{display}</div>
+                    <button onClick={()=>{const cur=num!==null?num:(parNum||1);if(cur<15)updateField("strokeScore",String(cur+1));}} style={{width:32,height:40,background:"transparent",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent"}}>
+                      <svg width="16" height="16" viewBox="0 0 16 16"><rect x="0" y="6.5" width="16" height="3" rx="1.5" fill={P.muted}/><rect x="6.5" y="0" width="3" height="16" rx="1.5" fill={P.muted}/></svg>
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* PUTTS */}
