@@ -3830,8 +3830,8 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
                                     <td style={{...S.cell,color:calcGir(h)?P.accent:P.muted,fontWeight:700,padding:"12px 6px"}}>{calcGir(h)?"✓":"—"}</td>
                   <td style={{...S.cell,color:h.routine?P.green:P.muted,fontWeight:700,padding:"12px 6px"}}>{h.routine?"✓":"—"}</td>
                 </tr>,
-                i===8&&<tr key="out" style={{background:P.cardAlt,borderTop:`1.5px solid ${P.border}`}}>
-                  <td style={{...S.cell,fontWeight:800,fontSize:11,color:P.muted}}>OUT</td>
+                i===8&&<tr key="out" style={{background:P.accent+"18",borderTop:`2px solid ${P.border}`,borderBottom:`2px solid ${P.border}`}}>
+                  <td style={{...S.cell,fontWeight:800,fontSize:11,color:P.accent}}>OUT</td>
                   <td style={{...S.cell,color:P.green,fontWeight:700}}>{front.heroes}</td>
                   <td style={{...S.cell,color:P.red,fontWeight:700}}>{front.bandits}</td>
                   <td style={{...S.cell,fontWeight:800,color:front.net>0?P.green:front.net<0?P.red:P.gold}}>{front.net>0?"+":""}{front.net}</td>
@@ -6120,8 +6120,8 @@ function RoundStatsView({round,onHome,onShare,S}) {
                                         <td style={{...cell,color:calcGir(h)?P.accent:P.muted,fontWeight:700,padding:"12px 6px"}}>{calcGir(h)?"✓":"—"}</td>
                     <td style={{...cell,color:h.routine?P.green:P.muted,fontWeight:700,padding:"12px 6px"}}>{h.routine?"✓":"—"}</td>
                   </tr>,
-                  i===8&&<tr key="out" style={{background:P.cardAlt,borderTop:`1.5px solid ${P.border}`}}>
-                    <td style={{...cell,fontWeight:800,fontSize:11,color:P.muted}}>OUT</td>
+                  i===8&&<tr key="out" style={{background:P.accent+"18",borderTop:`2px solid ${P.border}`,borderBottom:`2px solid ${P.border}`}}>
+                    <td style={{...cell,fontWeight:800,fontSize:11,color:P.accent}}>OUT</td>
                     <td style={{...cell,color:P.green,fontWeight:700}}>{frontStats.heroes}</td>
                     <td style={{...cell,color:P.red,fontWeight:700}}>{frontStats.bandits}</td>
                     <td style={{...cell,fontWeight:800,color:frontStats.net>0?P.green:frontStats.net<0?P.red:P.gold}}>{frontStats.net>0?"+":""}{frontStats.net}</td>
