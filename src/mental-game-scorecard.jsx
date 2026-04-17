@@ -1124,6 +1124,38 @@ function Stepper({ value, min=1, max=15, onChange, notation, P, defaultVal=null,
   );
 }
 
+function ScorePill({ value, par, onChange, P }) {
+  const num = value !== "" && value !== null && value !== undefined ? parseInt(value) : null;
+  const parNum = par ? parseInt(par) : null;
+  const display = num !== null ? num : (parNum || "—");
+  const isDefault = num === null;
+  const nt = (!isDefault && parNum) ? scoreNotation(String(num), String(parNum)) : null;
+
+  const borderRadius = nt?.diff <= -1 ? "50%" : nt?.diff >= 1 ? "6px" : "8px";
+  const borderColor = nt?.diff && nt.diff !== 0 ? (nt.diff < 0 ? P.green : P.red) : P.border;
+  const borderWidth = nt?.diff && Math.abs(nt.diff) >= 2 ? "2.5px" : "1.5px";
+
+  function dec() {
+    const cur = num !== null ? num : (parNum || 1);
+    if (cur > 1) onChange(String(cur - 1));
+  }
+  function inc() {
+    const cur = num !== null ? num : (parNum || 1);
+    if (cur < 15) onChange(String(cur + 1));
+  }
+
+  return (
+    <div style={{position:"relative",display:"inline-flex",alignItems:"center",borderRadius,border:`${borderWidth} solid ${borderColor}`,overflow:"hidden",background:P.inputBg,flexShrink:0}}>
+      {nt?.diff && Math.abs(nt.diff) >= 2 && (
+        <div style={{position:"absolute",inset:3,borderRadius:nt.diff<=-2?"50%":"3px",border:`1px solid ${nt.diff<0?P.green:P.red}`,pointerEvents:"none",zIndex:1}}/>
+      )}
+      <button onClick={dec} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,fontWeight:300,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1,zIndex:2}}>−</button>
+      <div style={{minWidth:28,textAlign:"center",fontSize:18,fontWeight:700,color:isDefault?P.muted:P.white,lineHeight:1,userSelect:"none",flexShrink:0,padding:"0 2px",zIndex:2}}>{display}</div>
+      <button onClick={inc} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,fontWeight:300,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1,zIndex:2}}>+</button>
+    </div>
+  );
+}
+
 function calcGir(hole) {
   const s = parseInt(hole.strokeScore), p = parseInt(hole.par);
   const putts = hole.putts !== "" && hole.putts !== null && hole.putts !== undefined ? (parseInt(hole.putts) || 0) : null;
@@ -2538,15 +2570,12 @@ export default function App() {
                 const i=start+j,s=getHoleStats(scores,i),act=i===currentHole,has=s.bandits>0||s.heroes>0;
                 const nt=scoreNotation(scores[i].strokeScore,scores[i].par);
                 const diff=nt?.diff??null;
-                // Background fill: hero-green or bandit-red if logged, else card
                 const bgFill=has?(s.net>0?P.green:s.net<0?P.red:P.cardAlt):act?P.accent+"15":P.card;
                 const borderColor=act?P.accent:diff===null?P.border:diff<=-1?P.green:diff>=1?P.red:P.border;
                 const borderWidth=act?"2px":"1.5px";
-                // Text: white with outline when has data, else standard
                 const numColor=has?"#ffffff":(act?P.accent:(P.muted));
                 const textShadow=has?"0 0 0 1px rgba(0,0,0,0.6), 0 1px 2px rgba(0,0,0,0.5)":undefined;
                 return <button key={i} onClick={()=>goToHole(i)} {...pp()} style={{aspectRatio:"1",borderRadius:diff<=-1&&!act?"50%":diff>=1&&!act?"5px":7,border:`${borderWidth} solid ${borderColor}`,background:bgFill,color:numColor,fontWeight:700,fontSize:12,cursor:"pointer",transition:"all 0.12s ease",position:"relative",display:"flex",alignItems:"center",justifyContent:"center",minWidth:0,padding:0,textShadow}}>
-                  {/* Double notation: inner ring for eagle (-2) and double bogey (+2) */}
                   {!act&&diff!==null&&Math.abs(diff)>=2&&<span style={{position:"absolute",inset:3,borderRadius:diff<=-2?"50%":"3px",border:`1.5px solid rgba(255,255,255,0.7)`,pointerEvents:"none"}}/>}
                   {i+1}
                   {scores[i].holeNote&&!act&&<div style={{position:"absolute",top:1,right:2,width:3,height:3,borderRadius:"50%",background:has?"rgba(255,255,255,0.7)":P.accent}}/>}
@@ -2554,6 +2583,10 @@ export default function App() {
               })}
             </div>
           ))}
+          {/* Save button below grid */}
+          <div style={{paddingTop:4,paddingBottom:2}}>
+            <SaveBtn P={P} onSave={saveRound} hint={savedRounds.length===0&&currentHole>0?"Tap Save to finish early":null}/>
+          </div>
         </div>
 
         {/* Single row: Hole N · PAR · SCORE · PUTTS */}
@@ -2601,24 +2634,12 @@ export default function App() {
             {/* SCORE */}
             <div style={{textAlign:"center",flexShrink:0}}>
               <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:3}}>SCORE</div>
-              {(()=>{
-                const sv = scores[currentHole].strokeScore;
-                const pv = scores[currentHole].par;
-                const notation2 = scoreNotation(sv, pv);
-                const parsed = parseInt(sv);
-                const num = (sv!==""&&sv!==null&&sv!==undefined&&!isNaN(parsed)) ? parsed : null;
-                const br = notation2?.diff<=-1?"50%":notation2?.diff>=1?"6px":"8px";
-                const bc = notation2?.diff&&notation2.diff!==0?(notation2.diff<0?P.green:P.red):P.border;
-                const bw = notation2?.diff&&Math.abs(notation2.diff)>=2?"2.5px":"1.5px";
-                return (
-                  <div style={{display:"flex",alignItems:"center",borderRadius:br,border:`${bw} solid ${bc}`,overflow:"hidden",background:P.inputBg,position:"relative",flexShrink:0}}>
-                    {notation2?.diff&&Math.abs(notation2.diff)>=2&&<div style={{position:"absolute",inset:3,borderRadius:notation2.diff<=-2?"50%":"3px",border:`1px solid ${notation2.diff<0?P.green:P.red}`,pointerEvents:"none",zIndex:1}}/>}
-                    <button onClick={()=>{const cur=num!==null?num:parseInt(pv)||1;if(cur>1)updateField("strokeScore",String(cur-1));}} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>−</button>
-                    <div style={{minWidth:28,textAlign:"center",fontSize:18,fontWeight:700,color:num!==null?P.white:P.muted,lineHeight:1,userSelect:"none",flexShrink:0,padding:"0 2px"}}>{num!==null?num:pv||"—"}</div>
-                    <button onClick={()=>{const cur=num!==null?num:parseInt(pv)||1;if(cur<15)updateField("strokeScore",String(cur+1));}} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>+</button>
-                  </div>
-                );
-              })()}
+              <ScorePill
+                value={scores[currentHole].strokeScore}
+                par={scores[currentHole].par}
+                onChange={v=>updateField("strokeScore",v)}
+                P={P}
+              />
             </div>
 
             {/* PUTTS */}
