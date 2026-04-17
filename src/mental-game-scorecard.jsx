@@ -1081,8 +1081,8 @@ function checkNewMilestones(rounds) {
 function Stepper({ value, min=1, max=15, onChange, notation, P, defaultVal=null, emptyable=false }) {
   // isEmpty = user hasn't tapped yet; display shows defaultVal (par) in muted style
   const isEmpty = value===""||value===null||value===undefined;
-  const num = isEmpty ? null : (parseInt(value)||0);
-  const displayNum = isEmpty ? (defaultVal ? parseInt(defaultVal)||null : null) : num;
+  const num = isEmpty ? null : parseInt(value);
+  const displayNum = isEmpty ? (defaultVal ? parseInt(defaultVal)||null : null) : (num!==null&&!isNaN(num)?num:null);
 
   const borderRadius = notation?.diff<=-1?"50%":notation?.diff>=1?"6px":"8px";
   const borderColor = notation?.diff&&notation.diff!==0?(notation.diff<0?P.green:P.red):P.border;
@@ -1115,7 +1115,7 @@ function Stepper({ value, min=1, max=15, onChange, notation, P, defaultVal=null,
       {notation?.diff&&Math.abs(notation.diff)>=2&&(
         <div style={{position:"absolute",inset:3,borderRadius:notation.diff<=-2?"50%":"3px",border:`1px solid ${notation.diff<0?P.green:P.red}`,pointerEvents:"none",zIndex:1}}/>
       )}
-      <button onTouchEnd={handleDec} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>-</button>
+      <button onTouchEnd={handleDec} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>−</button>
       <div style={{minWidth:28,textAlign:"center",fontSize:18,fontWeight:700,color:isEmpty?P.muted:P.white,lineHeight:1,userSelect:"none",flexShrink:0,padding:"0 2px"}}>
         {displayNum!==null?displayNum:"—"}
       </div>
