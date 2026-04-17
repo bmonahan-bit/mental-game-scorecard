@@ -2504,7 +2504,8 @@ export default function App() {
           </div>
         </div>
 
-        <div ref={tipRefs.course} style={{flexShrink:0,paddingTop:6}}>
+        <div style={{flexShrink:0,paddingTop:6}}>
+        <div ref={tipRefs.course}>
         <CourseSearchBar
           P={P} S={S}
           courseName={courseName}
@@ -2515,6 +2516,7 @@ export default function App() {
           courseData={courseData}
           setCourseData={setCourseData}
         />
+        </div>
         </div>
         <div style={{padding:"0 12px 4px",display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
           <input type="date" value={roundDate} onChange={e=>setRoundDate(e.target.value)} style={{...S.input,flex:"0 0 auto",width:130,fontSize:12,padding:"6px 8px"}}/>
