@@ -1419,8 +1419,9 @@ async function scorecardAsImage(r, darkMode) {
     // OUT row between holes 9 and 10
     if(i===8){
       const outRI=9, outY=PAD+HDR_ROW+outRI*ROW;
-      ctx.fillStyle=cardAlt;ctx.fillRect(PAD,outY,totalW,ROW);
-      ctx.strokeStyle=border;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(PAD,outY);ctx.lineTo(W-PAD,outY);ctx.stroke();
+      ctx.fillStyle=accent+"30";ctx.fillRect(PAD,outY,totalW,ROW);
+      ctx.strokeStyle=border;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(PAD,outY);ctx.lineTo(W-PAD,outY);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(PAD,outY+ROW);ctx.lineTo(W-PAD,outY+ROW);ctx.stroke();
       const fp=scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.par)||0),0);
       const fs2=scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0);
       const fH=scores.slice(0,9).reduce((s,h)=>s+Object.values(h.heroes||{}).reduce((a,v)=>a+v,0),0);
@@ -1428,7 +1429,7 @@ async function scorecardAsImage(r, darkMode) {
       const fNet=fH-fB,fPutts2=scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.putts)||0),0);
       const fGir2=scores.slice(0,9).filter(h2=>calcGir(h2)).length;
       const fPsr2=scores.slice(0,9).filter(h2=>h2.routine).length;
-      ctx.fillStyle=muted;ctx.font="bold 9px 'Avenir Next',-apple-system,sans-serif";ctx.textAlign="center";
+      ctx.fillStyle=accent;ctx.font="bold 9px 'Avenir Next',-apple-system,sans-serif";ctx.textAlign="center";
       ctx.fillText("OUT",colX[0]+colW[0]/2,outY+ROW*0.68);ctx.textAlign="left";
       cell(fH||"—",1,outRI,green,true);cell(fB||"—",2,outRI,red,true);
       cell(fNet>0?"+"+fNet:fNet,3,outRI,fNet>0?green:fNet<0?red:gold,true);
@@ -6104,21 +6105,32 @@ function RoundStatsView({round,onHome,onShare,S}) {
               {round.scores&&Array.from({length:18},(_,i)=>{
                 const s=getHoleStats(round.scores,i);
                 const h=round.scores[i]||{par:"",strokeScore:"",putts:"",heroes:{},bandits:{}};
+                const nt=scoreNotation(h.strokeScore,h.par);
                 const runStR=round.scores.slice(0,i+1).filter(x=>x&&x.strokeScore&&x.par).reduce((a,x)=>a+(parseInt(x.strokeScore)||0),0);
                 const runPaR=round.scores.slice(0,i+1).filter(x=>x&&x.strokeScore&&x.par).reduce((a,x)=>a+(parseInt(x.par)||0),0);
                 const runDiR=(h.strokeScore&&h.par)?runStR-runPaR:null;
-                    return [
-                  <tr key={i} style={{background:i%2===0?P.cardAlt:"transparent"}}>
+                return [
+                  <tr key={i} style={{background:i%2===0?P.card:"transparent"}}>
                     <td style={{...cell,fontWeight:700,color:P.accent}}>{i+1}</td>
-                    <td style={{...cell,color:P.green,fontWeight:700}}>{s.heroes||"—"}</td>
-                    <td style={{...cell,color:P.red,fontWeight:700}}>{s.bandits||"—"}</td>
+                    <td style={{...cell,color:P.green,fontWeight:600}}>{s.heroes||"—"}</td>
+                    <td style={{...cell,color:P.red,fontWeight:600}}>{s.bandits||"—"}</td>
                     <td style={{...cell,fontWeight:700,color:s.net>0?P.green:s.net<0?P.red:s.heroes+s.bandits>0?P.gold:P.muted}}>{s.heroes+s.bandits>0?(s.net>0?"+":"")+s.net:"—"}</td>
                     <td style={cell}>{h.par||"—"}</td>
-                    <td style={{...cell,color:h.strokeScore&&h.par?(+h.strokeScore-+h.par>0?P.red:+h.strokeScore-+h.par<0?P.green:P.white):P.white,fontWeight:h.strokeScore?700:400}}>{h.strokeScore||"—"}</td>
+                    <td style={{...cell,fontWeight:h.strokeScore?800:400}}>
+                      {h.strokeScore?(()=>{
+                        const diff=nt?.diff??0;
+                        const base={display:"inline-flex",alignItems:"center",justifyContent:"center",width:24,height:24,fontSize:13,fontWeight:800,position:"relative",color:diff<0?P.green:diff>0?P.red:P.white};
+                        if(diff<=-2)return(<span style={{...base}}><span style={{position:"absolute",inset:-1,borderRadius:"50%",border:`1.5px solid ${P.gold}`}}/><span style={{position:"absolute",inset:3,borderRadius:"50%",border:`1.5px solid ${P.gold}`}}/><span style={{color:P.gold}}>{h.strokeScore}</span></span>);
+                        if(diff===-1)return(<span style={{...base,borderRadius:"50%",border:`1.5px solid ${P.green}`}}>{h.strokeScore}</span>);
+                        if(diff===0)return(<span style={base}>{h.strokeScore}</span>);
+                        if(diff===1)return(<span style={{...base,borderRadius:3,border:`1.5px solid ${P.red}`}}>{h.strokeScore}</span>);
+                        return(<span style={{...base}}><span style={{position:"absolute",inset:-1,borderRadius:3,border:`1.5px solid ${P.red}`}}/><span style={{position:"absolute",inset:3,borderRadius:2,border:`1.5px solid ${P.red}`}}/><span style={{color:P.red}}>{h.strokeScore}</span></span>);
+                      })():"—"}
+                    </td>
                     <td style={{...cell,fontWeight:700,color:runDiR===null?P.muted:runDiR<0?P.green:runDiR>0?P.red:P.gold}}>{runDiR===null?"—":runDiR===0?"E":(runDiR>0?"+":"")+runDiR}</td>
-                    <td style={{...cell,color:h.putts>2?P.red:h.putts===1?P.green:P.white,fontWeight:h.putts?700:400,padding:"12px 6px"}}>{h.putts||"—"}</td>
-                                        <td style={{...cell,color:calcGir(h)?P.accent:P.muted,fontWeight:700,padding:"12px 6px"}}>{calcGir(h)?"✓":"—"}</td>
-                    <td style={{...cell,color:h.routine?P.green:P.muted,fontWeight:700,padding:"12px 6px"}}>{h.routine?"✓":"—"}</td>
+                    <td style={{...cell,color:parseInt(h.putts)>2?P.red:parseInt(h.putts)===1?P.green:P.white,fontWeight:h.putts?700:400}}>{h.putts||"—"}</td>
+                    <td style={{...cell,color:calcGir(h)?P.accent:P.muted,fontWeight:700}}>{calcGir(h)?"✓":"—"}</td>
+                    <td style={{...cell,color:h.routine?P.green:P.muted,fontWeight:700}}>{h.routine?"✓":"—"}</td>
                   </tr>,
                   i===8&&<tr key="out" style={{background:P.accent+"18",borderTop:`2px solid ${P.border}`,borderBottom:`2px solid ${P.border}`}}>
                     <td style={{...cell,fontWeight:800,fontSize:11,color:P.accent}}>OUT</td>
@@ -6128,9 +6140,9 @@ function RoundStatsView({round,onHome,onShare,S}) {
                     <td style={{...cell,fontWeight:700}}>{fp||"—"}</td>
                     <td style={{...cell,fontWeight:700}}>{fs||"—"}</td>
                     <td style={{...cell,fontWeight:700,color:fs&&fp?(fs-fp)<0?P.green:(fs-fp)>0?P.red:P.gold:P.muted}}>{fs&&fp?(fs-fp)===0?"E":((fs-fp)>0?"+":"")+(fs-fp):"—"}</td>
-                    <td style={{...cell,fontWeight:700,padding:"12px 6px"}}>{fPutts||"—"}</td>
-                    <td style={{...cell,fontWeight:700,color:P.accent,padding:"12px 6px"}}>{fGir}/9</td>
-                    <td style={{...cell,fontWeight:700,color:P.green,padding:"12px 6px"}}>{fPsr}/9</td>
+                    <td style={{...cell,fontWeight:700}}>{fPutts||"—"}</td>
+                    <td style={{...cell,fontWeight:700,color:P.accent}}>{fGir}/9</td>
+                    <td style={{...cell,fontWeight:700,color:P.green}}>{fPsr}/9</td>
                   </tr>,
                 ];
               })}
