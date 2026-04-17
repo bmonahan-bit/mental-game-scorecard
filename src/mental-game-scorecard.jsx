@@ -1078,48 +1078,48 @@ function checkNewMilestones(rounds) {
 // Score notation: returns { label, style } for a stroke score vs par
 // GIR: auto-calculated — strokes before putting must be <= par - 2
 // ─── SCROLL WHEEL PICKER ───
-function Stepper({ value, min=1, max=15, onChange, notation, P, emptyable=false, defaultVal=null }) {
-  // Derive display value
+function Stepper({ value, min=1, max=15, onChange, notation, P, defaultVal=null, emptyable=false }) {
+  // isEmpty = user hasn't tapped yet; display shows defaultVal (par) in muted style
   const isEmpty = value===""||value===null||value===undefined;
-  const num = isEmpty ? null : parseInt(value)||null;
-  // If no score entered yet, show par as the display value (greyed)
-  const display = num !== null ? num : (defaultVal ? parseInt(defaultVal)||null : null);
-  const hasValue = num !== null; // true only if user has actually set a value
+  const num = isEmpty ? null : (parseInt(value)||0);
+  const displayNum = isEmpty ? (defaultVal ? parseInt(defaultVal)||null : null) : num;
 
   const borderRadius = notation?.diff<=-1?"50%":notation?.diff>=1?"6px":"8px";
   const borderColor = notation?.diff&&notation.diff!==0?(notation.diff<0?P.green:P.red):P.border;
   const borderWidth = notation?.diff&&Math.abs(notation.diff)>=2?"2.5px":"1.5px";
 
   function dec() {
-    if (!hasValue) {
-      // No value set yet — use display (par) as starting point, go one below
-      const start = display||min;
-      if (start > min) onChange(String(start - 1));
+    if (isEmpty) {
+      const start = defaultVal ? parseInt(defaultVal)||min : min;
+      if (emptyable) { onChange(""); return; }
+      onChange(String(Math.max(min, start - 1)));
       return;
     }
-    if (emptyable && num <= min) { onChange(""); return; } // clear below min
+    if (emptyable && num <= min) { onChange(""); return; }
     if (num > min) onChange(String(num - 1));
   }
-
   function inc() {
-    if (!hasValue) {
-      // No value set yet — commit display value (par) as the actual score
-      onChange(String(display||min));
+    if (isEmpty) {
+      const start = defaultVal ? parseInt(defaultVal)||min : min;
+      onChange(String(start));
       return;
     }
     if (num < max) onChange(String(num + 1));
   }
+
+  function handleDec(e) { e.stopPropagation(); dec(); }
+  function handleInc(e) { e.stopPropagation(); inc(); }
 
   return (
     <div style={{display:"flex",alignItems:"center",borderRadius,border:`${borderWidth} solid ${borderColor}`,overflow:"hidden",background:P.inputBg,position:"relative",flexShrink:0}}>
       {notation?.diff&&Math.abs(notation.diff)>=2&&(
         <div style={{position:"absolute",inset:3,borderRadius:notation.diff<=-2?"50%":"3px",border:`1px solid ${notation.diff<0?P.green:P.red}`,pointerEvents:"none",zIndex:1}}/>
       )}
-      <button onClick={dec} style={{width:30,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,fontWeight:400,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>-</button>
-      <div style={{width:30,textAlign:"center",fontSize:18,fontWeight:700,color:hasValue?P.white:P.muted,lineHeight:1,userSelect:"none",flexShrink:0}}>
-        {display!==null?display:"—"}
+      <button onTouchEnd={handleDec} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>-</button>
+      <div style={{minWidth:28,textAlign:"center",fontSize:18,fontWeight:700,color:isEmpty?P.muted:P.white,lineHeight:1,userSelect:"none",flexShrink:0,padding:"0 2px"}}>
+        {displayNum!==null?displayNum:"—"}
       </div>
-      <button onClick={inc} style={{width:30,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,fontWeight:400,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>+</button>
+      <button onTouchEnd={handleInc} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>+</button>
     </div>
   );
 }
@@ -2585,7 +2585,7 @@ export default function App() {
           {/* PUTTS */}
           <div style={{textAlign:"center",flexShrink:0}}>
             <div style={{fontSize:11,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:4}}>PUTTS</div>
-            <Stepper value={scores[currentHole].putts} min={0} max={9} onChange={v=>updateField("putts",v)} P={P} emptyable={true}/>
+            <Stepper value={scores[currentHole].putts} min={0} max={9} onChange={v=>updateField("putts",v)} P={P} emptyable={true} defaultVal="2"/>
           </div>
 
         </div>
