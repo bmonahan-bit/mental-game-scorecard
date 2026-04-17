@@ -1305,8 +1305,8 @@ async function shareRoundAsImage(r, darkMode) {
     ctx.fillText(bc, W - 52, y + 47);
     ctx.textAlign = "left";
     // Bandit name below red bar, right-aligned
-    ctx.fillStyle = muted;
-    ctx.font = "10px 'Avenir Next', -apple-system, sans-serif";
+    ctx.fillStyle = white;
+    ctx.font = "bold 13px 'Avenir Next', -apple-system, sans-serif";
     ctx.textAlign = "right";
     ctx.fillText(bandits[i], barX + barW, y + 62);
     ctx.textAlign = "left";
@@ -1370,11 +1370,14 @@ async function scorecardAsImage(r, darkMode) {
   ctx.strokeStyle=border; ctx.lineWidth=1.5;
   ctx.beginPath(); ctx.moveTo(PAD,PAD+HDR_ROW); ctx.lineTo(W-PAD,PAD+HDR_ROW); ctx.stroke();
 
+  // Row index: holes 0-8 → rows 0-8, OUT → row 9, holes 9-17 → rows 10-18, IN → row 19, TOT → row 20
+  function rowIdx(i) { return i < 9 ? i : i + 1; }
+
   // Per-hole rows
   for(let i=0;i<18;i++){
     const h=scores[i]||{};
-    const rowY=PAD+HDR_ROW+i*ROW;
-    // Alt row bg
+    const ri = rowIdx(i);
+    const rowY=PAD+HDR_ROW+ri*ROW;
     ctx.fillStyle=i%2===0?card:bg; ctx.fillRect(PAD,rowY,totalW,ROW);
 
     const hStats={heroes:Object.values(h.heroes||{}).reduce((s,v)=>s+v,0),bandits:Object.values(h.bandits||{}).reduce((s,v)=>s+v,0)};
@@ -1388,52 +1391,50 @@ async function scorecardAsImage(r, darkMode) {
     const putts=h.putts!==""&&h.putts!==null&&h.putts!==undefined?parseInt(h.putts):null;
     const gir=(()=>{const s=score,p=par,pt=putts!==null?putts:null;if(!s||!p||pt===null)return false;return(s-pt)<=(p-2);})();
 
-    cell(i+1,0,i,accent,true);
-    cell(hStats.heroes||"—",1,i,green,hStats.heroes>0);
-    cell(hStats.bandits||"—",2,i,red,hStats.bandits>0);
-    cell(hStats.heroes+hStats.bandits>0?(hStats.net>0?"+":"")+hStats.net:"—",3,i,hStats.net>0?green:hStats.net<0?red:hStats.heroes+hStats.bandits>0?gold:muted,true);
-    cell(par||"—",4,i,muted);
+    cell(i+1,0,ri,accent,true);
+    cell(hStats.heroes||"—",1,ri,green,hStats.heroes>0);
+    cell(hStats.bandits||"—",2,ri,red,hStats.bandits>0);
+    cell(hStats.heroes+hStats.bandits>0?(hStats.net>0?"+":"")+hStats.net:"—",3,ri,hStats.net>0?green:hStats.net<0?red:hStats.heroes+hStats.bandits>0?gold:muted,true);
+    cell(par||"—",4,ri,muted);
 
-    // Score with notation circles/boxes
     if(score){
       const scoreColor=diff<0?green:diff>0?red:white;
-      const scx=colX[5]+colW[5]/2, scy=PAD+HDR_ROW+i*ROW+ROW*0.5;
+      const scx=colX[5]+colW[5]/2, scy=rowY+ROW*0.5;
       if(diff<=-2){ctx.strokeStyle=gold;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(scx,scy,9,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.arc(scx,scy,6,0,Math.PI*2);ctx.stroke();}
       else if(diff===-1){ctx.strokeStyle=green;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(scx,scy,9,0,Math.PI*2);ctx.stroke();}
       else if(diff===1){ctx.strokeStyle=red;ctx.lineWidth=1.5;roundRect(ctx,scx-9,scy-8,18,16,2);ctx.stroke();}
       else if(diff>=2){ctx.strokeStyle=red;ctx.lineWidth=1.5;roundRect(ctx,scx-10,scy-9,20,18,2);ctx.stroke();roundRect(ctx,scx-7,scy-6,14,12,1);ctx.stroke();}
       ctx.fillStyle=scoreColor;ctx.font="bold 10px 'Avenir Next',-apple-system,sans-serif";ctx.textAlign="center";
       ctx.fillText(score,scx,scy+ROW*0.18);ctx.textAlign="left";
-    } else { cell("—",5,i,muted); }
+    } else { cell("—",5,ri,muted); }
 
-    cell(runDiff===null?"—":runDiff===0?"E":(runDiff>0?"+":"")+runDiff,6,i,runDiff===null?muted:runDiff<0?green:runDiff>0?red:gold,true);
-    cell(putts!==null?putts:"—",7,i,putts===1?green:putts>=3?red:white,putts!==null);
-    cell(gir?"✓":"—",8,i,gir?accent:muted,gir);
-    cell(h.routine?"✓":"—",9,i,h.routine?green:muted,!!h.routine);
+    cell(runDiff===null?"—":runDiff===0?"E":(runDiff>0?"+":"")+runDiff,6,ri,runDiff===null?muted:runDiff<0?green:runDiff>0?red:gold,true);
+    cell(putts!==null?putts:"—",7,ri,putts===1?green:putts>=3?red:white,putts!==null);
+    cell(gir?"✓":"—",8,ri,gir?accent:muted,gir);
+    cell(h.routine?"✓":"—",9,ri,h.routine?green:muted,!!h.routine);
 
-    // Row bottom border
     ctx.strokeStyle=border;ctx.lineWidth=0.5;
     ctx.beginPath();ctx.moveTo(PAD,rowY+ROW);ctx.lineTo(W-PAD,rowY+ROW);ctx.stroke();
 
-    // OUT separator after hole 9
+    // OUT row between holes 9 and 10
     if(i===8){
-      const outY=PAD+HDR_ROW+9*ROW;
+      const outRI=9, outY=PAD+HDR_ROW+outRI*ROW;
       ctx.fillStyle=cardAlt;ctx.fillRect(PAD,outY,totalW,ROW);
       ctx.strokeStyle=border;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(PAD,outY);ctx.lineTo(W-PAD,outY);ctx.stroke();
       const fp=scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.par)||0),0);
       const fs2=scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0);
       const fH=scores.slice(0,9).reduce((s,h)=>s+Object.values(h.heroes||{}).reduce((a,v)=>a+v,0),0);
       const fB=scores.slice(0,9).reduce((s,h)=>s+Object.values(h.bandits||{}).reduce((a,v)=>a+v,0),0);
-      const fNet=fH-fB, fPutts2=scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.putts)||0),0);
+      const fNet=fH-fB,fPutts2=scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.putts)||0),0);
       const fGir2=scores.slice(0,9).filter(h2=>calcGir(h2)).length;
       const fPsr2=scores.slice(0,9).filter(h2=>h2.routine).length;
       ctx.fillStyle=muted;ctx.font="bold 9px 'Avenir Next',-apple-system,sans-serif";ctx.textAlign="center";
       ctx.fillText("OUT",colX[0]+colW[0]/2,outY+ROW*0.68);ctx.textAlign="left";
-      cell(fH||"—",1,9,green,true); cell(fB||"—",2,9,red,true);
-      cell(fNet>0?"+"+fNet:fNet,3,9,fNet>0?green:fNet<0?red:gold,true);
-      cell(fp||"—",4,9,muted); cell(fs2||"—",5,9,white,true);
-      cell(fs2&&fp?(fs2-fp)===0?"E":((fs2-fp)>0?"+":"")+(fs2-fp):"—",6,9,fs2&&fp?(fs2-fp)<0?green:(fs2-fp)>0?red:gold:muted,true);
-      cell(fPutts2||"—",7,9,white,true); cell(`${fGir2}/9`,8,9,accent,true); cell(`${fPsr2}/9`,9,9,green,true);
+      cell(fH||"—",1,outRI,green,true);cell(fB||"—",2,outRI,red,true);
+      cell(fNet>0?"+"+fNet:fNet,3,outRI,fNet>0?green:fNet<0?red:gold,true);
+      cell(fp||"—",4,outRI,muted);cell(fs2||"—",5,outRI,white,true);
+      cell(fs2&&fp?(fs2-fp)===0?"E":((fs2-fp)>0?"+":"")+(fs2-fp):"—",6,outRI,fs2&&fp?(fs2-fp)<0?green:(fs2-fp)>0?red:gold:muted,true);
+      cell(fPutts2||"—",7,outRI,white,true);cell(`${fGir2}/9`,8,outRI,accent,true);cell(`${fPsr2}/9`,9,outRI,green,true);
     }
   }
 
