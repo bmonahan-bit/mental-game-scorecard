@@ -1125,12 +1125,11 @@ function Stepper({ value, min=1, max=15, onChange, notation, P, defaultVal=null,
 }
 
 function ScorePill({ value, par, onChange, P }) {
-  const parsed = parseInt(value);
-  const num = (value !== "" && value !== null && value !== undefined && !isNaN(parsed)) ? parsed : null;
+  const num = value !== "" && value !== null && value !== undefined ? parseInt(value) : null;
   const parNum = par ? parseInt(par) : null;
   const display = num !== null ? num : (parNum || "—");
   const isDefault = num === null;
-  const nt = (num !== null && parNum) ? scoreNotation(String(num), String(parNum)) : null;
+  const nt = (!isDefault && parNum) ? scoreNotation(String(num), String(parNum)) : null;
 
   const borderRadius = nt?.diff <= -1 ? "50%" : nt?.diff >= 1 ? "6px" : "8px";
   const borderColor = nt?.diff && nt.diff !== 0 ? (nt.diff < 0 ? P.green : P.red) : P.border;
@@ -1150,9 +1149,9 @@ function ScorePill({ value, par, onChange, P }) {
       {nt?.diff && Math.abs(nt.diff) >= 2 && (
         <div style={{position:"absolute",inset:3,borderRadius:nt.diff<=-2?"50%":"3px",border:`1px solid ${nt.diff<0?P.green:P.red}`,pointerEvents:"none",zIndex:1}}/>
       )}
-      <button onClick={dec} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:20,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1,zIndex:2,fontFamily:"monospace"}}>-</button>
+      <button onClick={dec} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,fontWeight:300,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1,zIndex:2}}>−</button>
       <div style={{minWidth:28,textAlign:"center",fontSize:18,fontWeight:700,color:isDefault?P.muted:P.white,lineHeight:1,userSelect:"none",flexShrink:0,padding:"0 2px",zIndex:2}}>{display}</div>
-      <button onClick={inc} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:20,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1,zIndex:2,fontFamily:"monospace"}}>+</button>
+      <button onClick={inc} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,fontWeight:300,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1,zIndex:2}}>+</button>
     </div>
   );
 }
@@ -2550,11 +2549,10 @@ export default function App() {
         />
         </div>
         <div style={{padding:"0 12px 4px",display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
-          <input type="date" value={roundDate} onChange={e=>setRoundDate(e.target.value)} style={{...S.input,flex:"0 0 auto",width:130,fontSize:12,padding:"6px 8px"}}/>
-          <div style={{flex:1}}/>
-          <button onClick={()=>setInGameCaddie(!inGameCaddie)} {...pp()} style={{display:"flex",alignItems:"center",gap:4,padding:"5px 8px",borderRadius:8,border:`1.5px solid ${inGameCaddie?"#006747":P.border}`,background:inGameCaddie?"#00674715":"transparent",cursor:"pointer",transition:"all 0.15s",flexShrink:0}}>
+          <input type="date" value={roundDate} onChange={e=>setRoundDate(e.target.value)} style={{...S.input,flex:1,fontSize:12,padding:"6px 8px"}}/>
+          <button onClick={()=>setInGameCaddie(!inGameCaddie)} {...pp()} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:4,padding:"6px 8px",borderRadius:10,border:`1.5px solid ${inGameCaddie?"#006747":P.border}`,background:inGameCaddie?"#00674715":"transparent",cursor:"pointer",transition:"all 0.15s",flexShrink:0}}>
             <Icons.Brain color={inGameCaddie?"#006747":P.muted} size={12}/>
-            <span style={{fontSize:10,fontWeight:700,color:inGameCaddie?"#006747":P.muted}}>Caddie</span>
+            <span style={{fontSize:12,fontWeight:700,color:inGameCaddie?"#006747":P.muted}}>Caddie</span>
             <div style={{width:22,height:12,borderRadius:6,background:inGameCaddie?"#006747":P.border,position:"relative",transition:"background 0.2s",flexShrink:0}}><div style={{width:8,height:8,borderRadius:"50%",background:"#fff",position:"absolute",top:2,left:inGameCaddie?12:2,transition:"left 0.2s",boxShadow:"0 1px 2px rgba(0,0,0,0.2)"}}/></div>
           </button>
         </div>
@@ -2709,69 +2707,9 @@ export default function App() {
           );})}
         </div>}
 
-        {/* Carry-forward intention reminder */}
-        {carryForward&&currentHole===0&&(
-          <div style={{margin:"0 12px 4px",padding:"5px 10px",borderRadius:9,background:"#ca8a0410",border:"1px solid #ca8a0430",display:"flex",alignItems:"center",gap:8}}>
-            <Icons.Note color="#ca8a04" size={12}/>
-            <div style={{minWidth:0}}><div style={{fontSize:8,fontWeight:800,letterSpacing:1.5,color:"#ca8a04"}}>YOUR INTENTION TODAY</div><div style={{fontSize:11,color:P.white,fontStyle:"italic",lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{carryForward}</div></div>
-          </div>
-        )}
-
-        {/* Mental Net Bar */}
-        <div ref={tipRefs.mentalBar} style={{margin:"0 10px 2px",flexShrink:0}}>
-        {matchupOpen&&(()=>{
-          const scoredHoles=scores.slice(0,currentHole+1).filter(h=>h.strokeScore&&h.par);
-          const rs=scoredHoles.reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0);
-          const rp=scoredHoles.reduce((s,h)=>s+(parseInt(h.par)||0),0);
-          const rd=scoredHoles.length>0?rs-rp:null;
-          const holeHeroes=hH?Object.values(hH).filter(v=>v>0).length:0;
-          const holeBandits=hB?Object.values(hB).filter(v=>v>0).length:0;
-          return (
-          <div style={{padding:"5px 10px",borderRadius:10,background:total.net>0?P.green+"12":total.net<0?P.red+"12":P.card,border:`1.5px solid ${total.net>0?P.green+"44":total.net<0?P.red+"44":P.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",gap:6,transition:"all 0.3s ease"}}>
-            <div style={{display:"flex",alignItems:"center",gap:5,flex:1}}>
-              <img src={darkMode?HEROES_LOGO_WHITE:HEROES_LOGO_DARK} alt="Heroes" style={{width:28,height:28,objectFit:"contain",flexShrink:0}}/>
-              <div>
-                <div style={{fontSize:9,color:P.green,letterSpacing:1,fontWeight:700}}>HEROES</div>
-                <div style={{display:"flex",alignItems:"baseline",gap:3}}>
-                  <span style={{fontSize:20,fontWeight:900,color:P.green,lineHeight:1}}>{hT}</span>
-                  {holeHeroes>0&&<span style={{fontSize:9,fontWeight:700,color:P.green,background:P.green+"20",padding:"1px 4px",borderRadius:6}}>+{holeHeroes}</span>}
-                </div>
-              </div>
-            </div>
-            <div style={{textAlign:"center",flexShrink:0}}>
-              <div style={{fontSize:9,color:P.muted,letterSpacing:1,fontWeight:700,display:"flex",alignItems:"center",gap:2,justifyContent:"center"}}>NET <button onClick={()=>setShowMentalNetInfo(true)} {...pp()} style={{width:12,height:12,borderRadius:"50%",border:`1px solid ${P.border}`,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:7,color:P.muted,cursor:"pointer",flexShrink:0,background:"transparent",padding:0,lineHeight:1}}>?</button></div>
-              <div style={{fontSize:24,fontWeight:900,lineHeight:1,color:total.net>0?P.green:total.net<0?P.red:P.gold,transition:"all 0.2s"}}>{total.net>0?"+":""}{total.net}</div>
-              {rd!==null&&<div style={{fontSize:9,fontWeight:700,color:rd<0?P.green:rd>0?P.red:P.gold}}>{rd>0?"+":""}{rd===0?"E":rd}</div>}
-            </div>
-            <div style={{display:"flex",alignItems:"center",gap:5,flex:1,justifyContent:"flex-end"}}>
-              <div style={{textAlign:"right"}}>
-                <div style={{fontSize:9,color:P.red,letterSpacing:1,fontWeight:700}}>BANDITS</div>
-                <div style={{display:"flex",alignItems:"baseline",gap:3,justifyContent:"flex-end"}}>
-                  {holeBandits>0&&<span style={{fontSize:9,fontWeight:700,color:P.red,background:P.red+"20",padding:"1px 4px",borderRadius:6}}>+{holeBandits}</span>}
-                  <span style={{fontSize:20,fontWeight:900,color:P.red,lineHeight:1}}>{bT}</span>
-                </div>
-              </div>
-              <img src={darkMode?BANDIT_LOGO_WHITE:BANDIT_LOGO_DARK} alt="Bandits" style={{width:28,height:28,objectFit:"contain",flexShrink:0}}/>
-            </div>
-          </div>
-          );
-        })()}
-        {!matchupOpen&&(
-          <div style={{padding:"5px 14px",borderRadius:10,background:P.card,border:`1.5px solid ${total.net>0?P.green+"44":total.net<0?P.red+"44":P.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-            <span style={{fontSize:12,fontWeight:700,color:P.green}}>{hT>0?`${hT} Heroes`:""}</span>
-            <span style={{fontSize:18,fontWeight:900,color:total.net>0?P.green:total.net<0?P.red:P.gold}}>{total.net>0?"+":""}{total.net}</span>
-            <span style={{fontSize:12,fontWeight:700,color:P.red}}>{bT>0?`${bT} Bandits`:""}</span>
-          </div>
-        )}
-        </div>
-
-        </div>{/* end matchup ref wrapper */}
-
-        {/* Step 6 ref: Hole Note + Nav — fixed at bottom */}
-        <div ref={tipRefs.nav} style={{flexShrink:0,borderTop:`1px solid ${P.border}`,background:P.bg}}>
-        {/* Hole Note — above finish button */}
-        <div style={{padding:"4px 10px 2px"}}>
-          <button onClick={()=>setHoleNoteOpen(!holeNoteOpen)} style={{width:"100%",padding:"5px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.card,color:P.white,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",transition:"transform 0.1s ease"}} {...pp()}>
+        {/* Hole Note — above intentions */}
+        <div style={{margin:"0 10px 4px",flexShrink:0}}>
+          <button onClick={()=>setHoleNoteOpen(!holeNoteOpen)} style={{width:"100%",padding:"6px 12px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.card,color:P.white,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",transition:"transform 0.1s ease"}} {...pp()}>
             <span style={{display:"flex",alignItems:"center",gap:5}}><Icons.Note color={scores[currentHole].holeNote?P.accent:P.muted} size={13}/> {scores[currentHole].holeNote?"Hole Note ✓":"Add Hole Note"}</span>
             <span style={{fontSize:10,color:P.muted,transition:"transform 0.2s",transform:holeNoteOpen?"rotate(180deg)":"rotate(0)"}}>▼</span>
           </button>
@@ -2785,13 +2723,79 @@ export default function App() {
             style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:13,outline:"none",resize:"none",lineHeight:1.4}}
           /></div>}
         </div>
-        {/* Finish button */}
-        <div style={{padding:"2px 10px 4px",display:"flex",justifyContent:"flex-end"}}>
-          {currentHole>=8&&currentHole<17&&<button onClick={completeRound} aria-label="Finish round" style={{padding:"8px 14px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green+"12",color:P.green,fontSize:11,fontWeight:700,cursor:"pointer",flexShrink:0}}>Finish ✓</button>}
-          {currentHole===17&&<button onClick={completeRound} style={{padding:"10px 14px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green,color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",flexShrink:0}} {...pp()}>Finish ✓</button>}
+
+        {/* Carry-forward intention reminder */}
+        {carryForward&&currentHole===0&&(
+          <div style={{margin:"0 12px 4px",padding:"5px 10px",borderRadius:9,background:"#ca8a0410",border:"1px solid #ca8a0430",display:"flex",alignItems:"center",gap:8}}>
+            <Icons.Note color="#ca8a04" size={12}/>
+            <div style={{minWidth:0}}><div style={{fontSize:8,fontWeight:800,letterSpacing:1.5,color:"#ca8a04"}}>YOUR INTENTION TODAY</div><div style={{fontSize:11,color:P.white,fontStyle:"italic",lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{carryForward}</div></div>
+          </div>
+        )}
+
+        {/* Mental Net Bar — merged with matchup toggle */}
+        <div ref={tipRefs.mentalBar}>
+        {matchupOpen&&(()=>{
+          const scoredHoles=scores.slice(0,currentHole+1).filter(h=>h.strokeScore&&h.par);
+          const rs=scoredHoles.reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0);
+          const rp=scoredHoles.reduce((s,h)=>s+(parseInt(h.par)||0),0);
+          const rd=scoredHoles.length>0?rs-rp:null;
+          const holeHeroes=hH?Object.values(hH).filter(v=>v>0).length:0;
+          const holeBandits=hB?Object.values(hB).filter(v=>v>0).length:0;
+          return (
+          <div style={{margin:"0 12px 4px",padding:"6px 10px",borderRadius:12,background:total.net>0?P.green+"12":total.net<0?P.red+"12":P.card,border:`1.5px solid ${total.net>0?P.green+"44":total.net<0?P.red+"44":P.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",gap:6,transition:"all 0.3s ease"}}>
+            {/* Heroes side */}
+            <div style={{display:"flex",alignItems:"center",gap:5,flex:1}}>
+              <img src={darkMode?HEROES_LOGO_WHITE:HEROES_LOGO_DARK} alt="Heroes" style={{width:32,height:32,objectFit:"contain",flexShrink:0}}/>
+              <div>
+                <div style={{fontSize:10,color:P.green,letterSpacing:1,fontWeight:700}}>HEROES</div>
+                <div style={{display:"flex",alignItems:"baseline",gap:3}}>
+                  <span style={{fontSize:22,fontWeight:900,color:P.green,lineHeight:1}}>{hT}</span>
+                  {holeHeroes>0&&<span style={{fontSize:9,fontWeight:700,color:P.green,background:P.green+"20",padding:"1px 4px",borderRadius:6}}>+{holeHeroes}</span>}
+                </div>
+              </div>
+            </div>
+            {/* Mental Net center */}
+            <div style={{textAlign:"center",flexShrink:0}}>
+              <div style={{fontSize:9,color:P.muted,letterSpacing:1,fontWeight:700,display:"flex",alignItems:"center",gap:2,justifyContent:"center"}}>NET <button onClick={()=>setShowMentalNetInfo(true)} {...pp()} style={{width:12,height:12,borderRadius:"50%",border:`1px solid ${P.border}`,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:7,color:P.muted,cursor:"pointer",flexShrink:0,background:"transparent",padding:0,lineHeight:1}}>?</button></div>
+              <div style={{fontSize:26,fontWeight:900,lineHeight:1,color:total.net>0?P.green:total.net<0?P.red:P.gold,transition:"all 0.2s"}}>{total.net>0?"+":""}{total.net}</div>
+              {rd!==null&&<div style={{fontSize:9,fontWeight:700,color:rd<0?P.green:rd>0?P.red:P.gold}}>{rd>0?"+":""}{rd===0?"E":rd}</div>}
+            </div>
+            {/* Bandits side */}
+            <div style={{display:"flex",alignItems:"center",gap:5,flex:1,justifyContent:"flex-end"}}>
+              <div style={{textAlign:"right"}}>
+                <div style={{fontSize:10,color:P.red,letterSpacing:1,fontWeight:700}}>BANDITS</div>
+                <div style={{display:"flex",alignItems:"baseline",gap:3,justifyContent:"flex-end"}}>
+                  {holeBandits>0&&<span style={{fontSize:9,fontWeight:700,color:P.red,background:P.red+"20",padding:"1px 4px",borderRadius:6}}>+{holeBandits}</span>}
+                  <span style={{fontSize:22,fontWeight:900,color:P.red,lineHeight:1}}>{bT}</span>
+                </div>
+              </div>
+              <img src={darkMode?BANDIT_LOGO_WHITE:BANDIT_LOGO_DARK} alt="Bandits" style={{width:32,height:32,objectFit:"contain",flexShrink:0}}/>
+            </div>
+          </div>
+          );
+        })()}
+        {/* Collapsed mental net when matchup is closed */}
+        {!matchupOpen&&(
+          <div style={{margin:"0 12px 4px",padding:"6px 14px",borderRadius:10,background:P.card,border:`1.5px solid ${total.net>0?P.green+"44":total.net<0?P.red+"44":P.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <span style={{fontSize:12,fontWeight:700,color:P.green}}>{hT>0?`${hT} Heroes`:""}</span>
+            <span style={{fontSize:18,fontWeight:900,color:total.net>0?P.green:total.net<0?P.red:P.gold}}>{total.net>0?"+":""}{total.net}</span>
+            <span style={{fontSize:12,fontWeight:700,color:P.red}}>{bT>0?`${bT} Bandits`:""}</span>
+          </div>
+        )}
+        </div>{/* end mentalBar ref wrapper */}
+
+        </div>{/* end matchup ref wrapper — scrollable area ends here */}
+
+        {/* Step 6 ref: Nav — fixed at bottom */}
+        <div ref={tipRefs.nav} style={{flexShrink:0,borderTop:`1px solid ${P.border}`,background:P.bg}}>
+        {/* Finish row */}
+        <div style={{padding:"4px 10px 2px",display:"flex",gap:5,alignItems:"center"}}>
+          <div style={{flex:1}}/>
+          {currentHole>=8&&currentHole<17&&<button onClick={completeRound} aria-label="Finish round" style={{padding:"10px 10px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green+"12",color:P.green,fontSize:11,fontWeight:700,cursor:"pointer",transition:"transform 0.1s ease",flexShrink:0}}>Finish ✓</button>}
+          {currentHole===17&&<button onClick={completeRound} style={{padding:"10px 14px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green,color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",transition:"transform 0.1s ease",flexShrink:0}} {...pp()}>Finish ✓</button>}
         </div>
-        <div style={{height:"calc(4px + env(safe-area-inset-bottom, 0px))"}}/>
-        </div>
+        <div style={{height:"calc(6px + env(safe-area-inset-bottom, 0px))"}}/>
+        </div>{/* end nav ref wrapper */}
 
 
         <style>{`
