@@ -4551,18 +4551,13 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
       <div style={{flex:1,overflowY:"auto",padding:"4px 16px 32px",position:"relative",zIndex:1}}>
 
         {/* Profile card */}
-        <div style={{background:P.card,borderRadius:16,padding:"16px",marginBottom:14,border:`1.5px solid ${P.border}`,display:"flex",alignItems:"center",gap:14}}>
-          <div style={{width:52,height:52,borderRadius:16,background:P.cardAlt,border:`1.5px solid ${P.border}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-            <Icons.User color={P.muted} size={22}/>
+        <div style={{background:P.card,borderRadius:16,padding:"16px",marginBottom:14,border:`1.5px solid ${P.border}`}}>
+          <div style={{fontSize:15,fontWeight:800,color:P.white,marginBottom:3}}>Your Game</div>
+          <div style={{fontSize:12,color:P.muted,fontWeight:500}}>
+            {roundCount} round{roundCount!==1?"s":""} saved
+            {avgNet!==null&&<span style={{color:parseFloat(avgNet)>=0?P.green:P.red,fontWeight:700}}> · avg {parseFloat(avgNet)>0?"+":""}{avgNet}</span>}
           </div>
-          <div style={{flex:1}}>
-            <div style={{fontSize:15,fontWeight:800,color:P.white,marginBottom:3}}>Your Game</div>
-            <div style={{fontSize:12,color:P.muted,fontWeight:500}}>
-              {roundCount} round{roundCount!==1?"s":""} saved
-              {avgNet!==null&&<span style={{color:parseFloat(avgNet)>=0?P.green:P.red,fontWeight:700}}> · avg {parseFloat(avgNet)>0?"+":""}{avgNet}</span>}
-            </div>
-            {settings.handicap&&<div style={{fontSize:11,color:P.muted,fontWeight:600,marginTop:2}}>Handicap {settings.handicap}</div>}
-          </div>
+          {settings.handicap&&<div style={{fontSize:11,color:P.muted,fontWeight:600,marginTop:2}}>Handicap {settings.handicap}</div>}
         </div>
 
         <Section title="Account">
