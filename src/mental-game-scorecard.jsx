@@ -3089,7 +3089,7 @@ function AvatarSVG({id, initial, size=38}) {
     mountain: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#0a2a3a"/><clipPath id="mc"><circle cx="0" cy="0" r="38"/></clipPath><g clipPath="url(#mc)"><rect x="-38" y="-38" width="76" height="76" fill="#0a2a3a"/><polygon points="-38,22 0,-28 38,22" fill="#1a4a5a"/><polygon points="-8,-18 0,-28 8,-18" fill="#dde8f0"/><polygon points="-38,38 -12,-8 22,38" fill="#1e3d2a"/><rect x="-38" y="24" width="76" height="14" fill="#1a4f30"/></g></svg>,
     sunrise: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#1a2a4a"/><clipPath id="sc"><circle cx="0" cy="0" r="38"/></clipPath><g clipPath="url(#sc)"><rect x="-38" y="5" width="76" height="33" fill="#0f1e38"/><ellipse cx="0" cy="5" rx="38" ry="10" fill="#1a3a5a"/><circle cx="0" cy="5" r="18" fill="#c9a84c"/><g stroke="#c9a84c" strokeWidth="2" strokeLinecap="round" opacity="0.7"><line x1="-22" y1="5" x2="-30" y2="5"/><line x1="22" y1="5" x2="30" y2="5"/><line x1="-16" y1="-13" x2="-21" y2="-18"/><line x1="16" y1="-13" x2="21" y2="-18"/><line x1="0" y1="-22" x2="0" y2="-30"/></g></g></svg>,
     navigator: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#1a2a1a"/><circle cx="0" cy="0" r="30" fill="none" stroke="#c9a84c" strokeWidth="1.5"/><circle cx="0" cy="0" r="4" fill="#c9a84c"/><polygon points="0,-26 4,-6 0,-2 -4,-6" fill="#dc2626"/><polygon points="0,26 4,6 0,2 -4,6" fill="#e8e0cc"/><polygon points="26,0 6,4 2,0 6,-4" fill="#e8e0cc"/><polygon points="-26,0 -6,4 -2,0 -6,-4" fill="#e8e0cc"/><g stroke="#c9a84c" strokeWidth="1" opacity="0.5"><line x1="0" y1="-30" x2="0" y2="-26"/><line x1="0" y1="26" x2="0" y2="30"/><line x1="26" y1="0" x2="30" y2="0"/><line x1="-30" y1="0" x2="-26" y2="0"/></g></svg>,
-    zen: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#0e1520"/><ellipse cx="0" cy="0" rx="14" ry="8" fill="#3a5a8a" transform="rotate(0)"/><ellipse cx="0" cy="0" rx="14" ry="8" fill="#3a5a8a" transform="rotate(45)"/><ellipse cx="0" cy="0" rx="14" ry="8" fill="#3a5a8a" transform="rotate(90)"/><ellipse cx="0" cy="0" rx="14" ry="8" fill="#3a5a8a" transform="rotate(135)"/><ellipse cx="0" cy="-16" rx="6" ry="10" fill="#5a80b8" transform="rotate(22.5)"/><ellipse cx="0" cy="-16" rx="6" ry="10" fill="#5a80b8" transform="rotate(67.5)"/><ellipse cx="0" cy="-16" rx="6" ry="10" fill="#5a80b8" transform="rotate(112.5)"/><ellipse cx="0" cy="-16" rx="6" ry="10" fill="#5a80b8" transform="rotate(157.5)"/><circle cx="0" cy="0" r="9" fill="#c9a84c"/><circle cx="0" cy="0" r="5" fill="#e8c870"/></svg>,
+    zen: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#0e1520"/><g transform="rotate(0)"><ellipse cx="0" cy="-16" rx="7" ry="13" fill="#2a4a7a"/></g><g transform="rotate(40)"><ellipse cx="0" cy="-16" rx="7" ry="13" fill="#2a4a7a"/></g><g transform="rotate(80)"><ellipse cx="0" cy="-16" rx="7" ry="13" fill="#2a4a7a"/></g><g transform="rotate(120)"><ellipse cx="0" cy="-16" rx="7" ry="13" fill="#2a4a7a"/></g><g transform="rotate(160)"><ellipse cx="0" cy="-16" rx="7" ry="13" fill="#2a4a7a"/></g><g transform="rotate(200)"><ellipse cx="0" cy="-16" rx="7" ry="13" fill="#2a4a7a"/></g><g transform="rotate(240)"><ellipse cx="0" cy="-16" rx="7" ry="13" fill="#2a4a7a"/></g><g transform="rotate(280)"><ellipse cx="0" cy="-16" rx="7" ry="13" fill="#2a4a7a"/></g><g transform="rotate(320)"><ellipse cx="0" cy="-16" rx="7" ry="13" fill="#3a6a9a"/></g><circle cx="0" cy="0" r="11" fill="#c9a84c"/><circle cx="0" cy="0" r="6" fill="#e8c870"/><circle cx="0" cy="0" r="3" fill="#fff8e0"/></svg>,
     fire: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#0e1008"/><clipPath id="fc"><circle cx="0" cy="0" r="38"/></clipPath><g clipPath="url(#fc)"><ellipse cx="0" cy="28" rx="30" ry="8" fill="#1a1206"/><rect x="-22" y="16" width="44" height="8" rx="4" fill="#3a1e08" transform="rotate(-15 0 20)"/><rect x="-22" y="16" width="44" height="8" rx="4" fill="#4a2610" transform="rotate(15 0 20)"/><circle cx="-18" cy="22" r="4" fill="#c84000" opacity="0.8"/><circle cx="18" cy="22" r="4" fill="#c84000" opacity="0.8"/><path d="M-10,20 C-18,8 -14,-8 -6,-18 C-8,-6 -4,4 -2,12Z" fill="#c93a00"/><path d="M10,20 C18,8 14,-8 6,-18 C8,-6 4,4 2,12Z" fill="#c93a00"/><path d="M0,20 C-12,10 -10,-6 0,-22 C10,-6 12,10 0,20Z" fill="#e86820"/><path d="M0,18 C-6,10 -4,0 0,-14 C4,0 6,10 0,18Z" fill="#ffc040"/><ellipse cx="0" cy="-4" rx="3" ry="6" fill="#fff8c0" opacity="0.9"/><circle cx="-14" cy="4" r="1.5" fill="#ff8020" opacity="0.8"/><circle cx="16" cy="0" r="1.5" fill="#ff8020" opacity="0.7"/></g></svg>,
     monogram: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#1a1a2e"/><circle cx="0" cy="0" r="32" fill="none" stroke="#c9a84c" strokeWidth="1.5"/><circle cx="0" cy="0" r="34" fill="none" stroke="#c9a84c" strokeWidth="0.5" opacity="0.4"/><text x="0" y="12" fontFamily="system-ui,sans-serif" fontSize="30" fontWeight="500" textAnchor="middle" fill="#c9a84c">{initial}</text></svg>,
   };
@@ -3117,11 +3117,10 @@ function AvatarPicker({P, onClose, onSelect, current, initial}) {
           <div style={{fontSize:16,fontWeight:800,color:P.white}}>Choose Avatar</div>
           <button onClick={onClose} style={{background:"transparent",border:"none",color:P.muted,fontSize:18,cursor:"pointer",lineHeight:1,padding:4}}>×</button>
         </div>
-        <div style={{padding:"16px",display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:"16px 8px"}}>
+        <div style={{padding:"16px",display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:"12px 8px"}}>
           {options.map(o=>(
-            <button key={o.id} onClick={()=>{onSelect(o.id);onClose();}} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,background:"transparent",border:"none",cursor:"pointer",padding:"6px 4px",borderRadius:10,outline:current===o.id?`2px solid #c9a84c`:"none",outlineOffset:2}} {...pp()}>
-              <AvatarSVG id={o.id} initial={initial} size={44}/>
-              <span style={{fontSize:9,color:current===o.id?"#c9a84c":P.muted,fontWeight:current===o.id?700:500,textAlign:"center",lineHeight:1.2}}>{o.label}</span>
+            <button key={o.id} onClick={()=>{onSelect(o.id);onClose();}} style={{display:"flex",alignItems:"center",justifyContent:"center",background:"transparent",border:"none",cursor:"pointer",padding:"4px",borderRadius:12,outline:current===o.id?`2.5px solid #c9a84c`:"2.5px solid transparent",outlineOffset:2}} {...pp()}>
+              <AvatarSVG id={o.id} initial={initial} size={48}/>
             </button>
           ))}
         </div>
@@ -4691,12 +4690,19 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
             if (clerkUser?.isSignedIn) {
               const u = clerkUser.user;
               const name = [u?.firstName, u?.lastName].filter(Boolean).join(" ");
+              const avatarId = (()=>{try{return localStorage.getItem("mgp_avatar")||"monogram";}catch{return "monogram";}})();
+              const initial = (u?.firstName||"?")[0].toUpperCase();
               return (
                 <>
-                  {name&&<Row label="Name" sub="From your account"><span style={{fontSize:12,color:P.muted,fontWeight:500,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{name}</span></Row>}
-                  <Row label="Email" sub="Your account email">
-                    <span style={{fontSize:12,color:P.muted,fontWeight:500,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u?.primaryEmailAddress?.emailAddress||"—"}</span>
-                  </Row>
+                  <div style={{padding:"12px 0 8px",display:"flex",alignItems:"center",gap:12,borderBottom:`1px solid ${P.border}`,marginBottom:4}}>
+                    <div style={{width:48,height:48,borderRadius:"50%",overflow:"hidden",border:`2px solid ${P.border}`,flexShrink:0}}>
+                      {u?.imageUrl ? <img src={u.imageUrl} style={{width:48,height:48,objectFit:"cover"}} alt={name}/> : <AvatarSVG id={avatarId} initial={initial} size={48}/>}
+                    </div>
+                    <div>
+                      {name&&<div style={{fontSize:14,fontWeight:700,color:P.white}}>{name}</div>}
+                      <div style={{fontSize:12,color:P.muted,marginTop:1}}>{u?.primaryEmailAddress?.emailAddress||"—"}</div>
+                    </div>
+                  </div>
                   <Row label="Cloud Sync" sub="Rounds backed up automatically" last>
                     <span style={{fontSize:12,fontWeight:700,color:P.green}}>On</span>
                   </Row>
