@@ -2267,6 +2267,23 @@ export default function App() {
     if(trialExpired) { setShowProfileGate(true); return; }
     const roundHasData=scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts); if(roundHasData){setShowOpenRoundModal(true);return;} setScores(initScores());setCurrentHole(0);setCourseName(settings?.favCourse||"");setRoundDate(new Date().toISOString().split("T")[0]);setPostRoundNotes("");setHoleNoteOpen(settings?.holeNoteDefault!==false);setCourseData(null);setSelectedTee(settings?.favTee||null);try{const cf=localStorage.getItem("mgp_carry_forward");if(cf)setCarryForward(cf);}catch{}try{localStorage.removeItem("mgp_checklist_date");sessionStorage.removeItem("mgp_preround_checked");}catch{}setPreroundKey(k=>k+1);setView(settings.preroundChecklist!==false?"preround":"play"); }
 
+  function resetAndStartNew() {
+    setScores(initScores());setCurrentHole(0);setCourseName(settings?.favCourse||"");setRoundDate(new Date().toISOString().split("T")[0]);setPostRoundNotes("");setHoleNoteOpen(settings?.holeNoteDefault!==false);setCourseData(null);setSelectedTee(settings?.favTee||null);
+    try{const cf=localStorage.getItem("mgp_carry_forward");if(cf)setCarryForward(cf);}catch{}
+    try{localStorage.removeItem("mgp_checklist_date");sessionStorage.removeItem("mgp_preround_checked");}catch{}
+    setPreroundKey(k=>k+1);setShowOpenRoundModal(false);
+    setView(settings.preroundChecklist!==false?"preround":"play");
+  }
+
+  function saveDraftAndStartNew() {
+    saveRound();
+    resetAndStartNew();
+  }
+
+  function discardAndStartNew() {
+    resetAndStartNew();
+  }
+
   const nav=(v)=>()=>setView(v);
   function ToastLayer() {
     return <div style={{position:"fixed",bottom:100,left:"50%",transform:"translateX(-50%)",zIndex:9999,display:"flex",flexDirection:"column",gap:6,alignItems:"center",pointerEvents:"none"}}>
