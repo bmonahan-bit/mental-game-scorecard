@@ -4466,14 +4466,6 @@ function CourseSelectModal({onConfirm, onSkip, settings, P, S}) {
             </div>
           )}
 
-          {/* Selected summary */}
-          {displayName&&(
-            <div style={{padding:"10px 12px",borderRadius:10,border:`1.5px solid ${P.green}44`,background:P.green+"0a",flexShrink:0}}>
-              <div style={{fontSize:10,color:P.green,fontWeight:700,letterSpacing:1,marginBottom:3}}>SELECTED</div>
-              <div style={{fontSize:13,fontWeight:800,color:P.white,lineHeight:1.4}}>{displayName}</div>
-              {selectedTee&&<div style={{fontSize:12,color:P.accent,fontWeight:600,marginTop:2}}>{selectedTee} tees</div>}
-            </div>
-          )}
         </div>
 
         {/* Confirm */}
