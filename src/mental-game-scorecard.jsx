@@ -7472,7 +7472,7 @@ function TransformView({onBack,S,P}) {
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
 
             {/* Book */}
-            <button onClick={()=>openUrl("https://a.co/d/0j8TEXmJ")} {...pp()} style={{width:"100%",padding:"12px 14px",borderRadius:12,background:"linear-gradient(135deg,#1a2b4a,#2563eb)",display:"flex",alignItems:"center",gap:12,textAlign:"left",border:"none",cursor:"pointer",boxSizing:"border-box"}}>
+            <button onClick={()=>openUrl("https://mentalgolfbook.com/")} {...pp()} style={{width:"100%",padding:"12px 14px",borderRadius:12,background:"linear-gradient(135deg,#1a2b4a,#2563eb)",display:"flex",alignItems:"center",gap:12,textAlign:"left",border:"none",cursor:"pointer",boxSizing:"border-box"}}>
               <img src="https://m.media-amazon.com/images/I/71Q2HxFnTRL._SY160.jpg" alt="The Most Important Game" style={{width:40,height:58,objectFit:"cover",borderRadius:6,flexShrink:0,boxShadow:"0 2px 8px rgba(0,0,0,0.4)"}} onError={e=>{e.target.style.display="none";}}/>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:1,marginBottom:2,textTransform:"uppercase"}}>The Book</div>
@@ -8120,7 +8120,7 @@ function OnboardingFlow({onFinish,onPrivacy,P,S}){
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
 
           {/* Book */}
-          <button onClick={()=>openUrl("https://a.co/d/0j8TEXmJ")} {...pp()} style={{width:"100%",padding:"12px 14px",borderRadius:12,border:`1.5px solid ${P.border}`,background:P.cardAlt,cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
+          <button onClick={()=>openUrl("https://mentalgolfbook.com/")} {...pp()} style={{width:"100%",padding:"12px 14px",borderRadius:12,border:`1.5px solid ${P.border}`,background:P.cardAlt,cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
             <img src="https://m.media-amazon.com/images/I/71Q2HxFnTRL._SY160.jpg" alt="The Most Important Game" style={{width:44,height:64,objectFit:"cover",borderRadius:6,flexShrink:0,boxShadow:"0 2px 8px rgba(0,0,0,0.3)"}} onError={e=>{e.target.style.display="none";}}/>
             <div style={{flex:1}}>
               <div style={{fontSize:11,fontWeight:700,color:P.muted,letterSpacing:1,marginBottom:2,textTransform:"uppercase"}}>The Book</div>
