@@ -2968,17 +2968,11 @@ function AvatarSVG({id, initial, size=38}) {
 
 function AvatarPicker({P, onClose, onSelect, current, initial}) {
   const pp = pressProps;
+  const clerkUser = window.__useUser ? window.__useUser() : null;
+  const clerkPhoto = clerkUser?.user?.imageUrl;
   const options = [
-    {id:"monogram",label:"Monogram"},
-    {id:"golfer",label:"Golfer"},
-    {id:"course",label:"Course"},
-    {id:"champion",label:"Champion"},
-    {id:"ball",label:"Ball"},
-    {id:"mountain",label:"Mountain"},
-    {id:"sunrise",label:"Sunrise"},
-    {id:"navigator",label:"Navigator"},
-    {id:"zen",label:"Zen"},
-    {id:"fire",label:"Fire"},
+    {id:"monogram"},{id:"golfer"},{id:"course"},{id:"champion"},{id:"ball"},
+    {id:"mountain"},{id:"sunrise"},{id:"navigator"},{id:"zen"},{id:"fire"},
   ];
   return (
     <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:50001,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 20px"}}>
@@ -2987,6 +2981,32 @@ function AvatarPicker({P, onClose, onSelect, current, initial}) {
           <div style={{fontSize:16,fontWeight:800,color:P.white}}>Choose Avatar</div>
           <button onClick={onClose} style={{background:"transparent",border:"none",color:P.muted,fontSize:18,cursor:"pointer",lineHeight:1,padding:4}}>×</button>
         </div>
+        {/* Account photo row — shown if they have a Clerk/Google photo */}
+        {clerkPhoto&&(
+          <div style={{padding:"10px 16px",borderBottom:`1px solid ${P.border}`}}>
+            <button onClick={()=>{onSelect("clerk_photo");onClose();}} style={{display:"flex",alignItems:"center",gap:10,width:"100%",background:current==="clerk_photo"?P.accent+"12":"transparent",border:`1.5px solid ${current==="clerk_photo"?P.accent:P.border}`,borderRadius:12,padding:"8px 12px",cursor:"pointer",textAlign:"left"}} {...pp()}>
+              <img src={clerkPhoto} style={{width:38,height:38,borderRadius:"50%",objectFit:"cover",flexShrink:0}}/>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:700,color:P.white}}>Account Photo</div>
+                <div style={{fontSize:11,color:P.muted}}>Your Google or uploaded photo</div>
+              </div>
+              {current==="clerk_photo"&&<div style={{width:8,height:8,borderRadius:"50%",background:P.accent,flexShrink:0}}/>}
+            </button>
+          </div>
+        )}
+        {/* Upload / change photo via Clerk */}
+        <div style={{padding:"10px 16px",borderBottom:`1px solid ${P.border}`}}>
+          <button onClick={()=>{onClose();if(window.__clerkOpenUserProfile)window.__clerkOpenUserProfile();}} style={{display:"flex",alignItems:"center",gap:10,width:"100%",background:"transparent",border:`1.5px solid ${P.border}`,borderRadius:12,padding:"8px 12px",cursor:"pointer",textAlign:"left"}} {...pp()}>
+            <div style={{width:38,height:38,borderRadius:"50%",background:P.cardAlt,border:`1.5px solid ${P.border}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <Icons.Note color={P.muted} size={16}/>
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:13,fontWeight:700,color:P.white}}>Upload a Photo</div>
+              <div style={{fontSize:11,color:P.muted}}>Add a custom photo to your account</div>
+            </div>
+          </button>
+        </div>
+        {/* Preset avatars */}
         <div style={{padding:"16px",display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:"12px 8px"}}>
           {options.map(o=>(
             <button key={o.id} onClick={()=>{onSelect(o.id);onClose();}} style={{display:"flex",alignItems:"center",justifyContent:"center",background:"transparent",border:"none",cursor:"pointer",padding:"4px",borderRadius:12,outline:current===o.id?`2.5px solid #c9a84c`:"2.5px solid transparent",outlineOffset:2}} {...pp()}>
@@ -3008,7 +3028,8 @@ function UserDropdown({firstName, overlay1, overlay2, textHigh, textMid, P, onSe
   const initial = (firstName||"?")[0].toUpperCase();
   // Only use Clerk photo if user hasn't picked a custom avatar
   const hasCustomAvatar = avatarId && avatarId !== "monogram";
-  const imageUrl = (!hasCustomAvatar && clerkUser?.user?.imageUrl) ? clerkUser.user.imageUrl : null;
+  const useClerkPhoto = avatarId === "clerk_photo" || (!hasCustomAvatar && clerkUser?.user?.imageUrl);
+  const imageUrl = useClerkPhoto ? clerkUser?.user?.imageUrl : null;
 
   function saveAvatar(id) {
     setAvatarId(id);
@@ -4565,7 +4586,7 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
               const avatarId = (()=>{try{return localStorage.getItem("mgp_avatar")||"monogram";}catch{return "monogram";}})();
               const initial = (u?.firstName||"?")[0].toUpperCase();
               const hasCustomAvatar = avatarId && avatarId !== "monogram";
-              const showClerkPhoto = !hasCustomAvatar && u?.imageUrl;
+              const showClerkPhoto = avatarId === "clerk_photo" || (!hasCustomAvatar && u?.imageUrl);
               const [showAvatarPicker, setShowAvatarPicker] = React.useState(false);
               return (
                 <>
