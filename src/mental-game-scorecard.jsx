@@ -5108,12 +5108,13 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
     if(!rounds.length)return null;
     const hT=Object.fromEntries(HEROES.map(h=>[h,0])),bT=Object.fromEntries(BANDITS.map(b=>[b,0]));
     rounds.forEach(r=>{if(!r.scores)return;r.scores.forEach(hole=>{HEROES.forEach(h=>{hT[h]+=hole.heroes[h]||0;});BANDITS.forEach(b=>{bT[b]+=hole.bandits[b]||0;});});});
-    const trend=[...rounds].reverse().map(r=>{
+    const trendAll=[...rounds].reverse().map(r=>{
       const holesPlayed = r.scores ? r.scores.filter(h=>h.strokeScore&&h.par).length : 0;
       const psrHoles = r.scores ? r.scores.filter(h=>h.routine&&(h.strokeScore||h.par)).length : 0;
       const psrPct = holesPlayed>=1 ? Math.round((psrHoles/holesPlayed)*100) : null;
       return {label:r.date?.slice(5)||"?",net:r.net,stroke:r.totalStroke||null,par:r.totalPar||null,scoreToPar:r.totalStroke&&r.totalPar?r.totalStroke-r.totalPar:null,checklistDone:r.preRoundMeta?.checklistDone,psrPct};
     });
+    const trend = trendAll.slice(-12); // show last 12, older rounds accessible via history
     const topHero=HEROES.reduce((a,b)=>hT[a]>hT[b]?a:b),topBandit=BANDITS.reduce((a,b)=>bT[a]>bT[b]?a:b);
     const avgNet=rounds.reduce((s,r)=>s+(r.net||0),0)/rounds.length;
     const ws=rounds.filter(r=>r.totalStroke>0);const avgStroke=ws.length?ws.reduce((s,r)=>s+r.totalStroke,0)/ws.length:null;const bestStroke=ws.length?Math.min(...ws.map(r=>r.totalStroke)):null;
@@ -5357,7 +5358,7 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
           </div>
 
           {/* ── TREND CHART ── */}
-          {stats.trend.length>1&&<div style={{marginBottom:12}}><ComboTrendChart P={P} trend={stats.trend} rounds={rounds} onSelectRound={onSelectRound}/></div>}
+          {stats.trend.length>1&&<div style={{marginBottom:12}}><ComboTrendChart P={P} trend={stats.trend} rounds={rounds} onSelectRound={onSelectRound} totalRounds={rounds.length}/></div>}
 
           {/* ── RECOVERY RATE ── */}
           {stats.recoveryRate!==null&&(
@@ -6457,7 +6458,7 @@ function BChart({P,title,items,totals,color}) { const max=Math.max(1,...Object.v
 // ═══════════════════════════════════════
 // COMBO TREND CHART (bars = net, line = score)
 // ═══════════════════════════════════════
-function ComboTrendChart({P, trend, rounds, onSelectRound}) {
+function ComboTrendChart({P, trend, rounds, onSelectRound, totalRounds}) {
   const n = trend.length;
   const svgW = 320;
   const colW = svgW / n;
@@ -6611,7 +6612,9 @@ function ComboTrendChart({P, trend, rounds, onSelectRound}) {
           </div>
         ))}
       </div>
-      <div style={{fontSize:10,color:P.muted,marginTop:5,textAlign:"center",fontWeight:500,opacity:0.7}}>Tap any bar to see round breakdown</div>
+      <div style={{fontSize:10,color:P.muted,marginTop:5,textAlign:"center",fontWeight:500,opacity:0.7}}>
+        {totalRounds>12?`Showing last 12 of ${totalRounds} rounds · see History for all`:"Tap any bar to see round breakdown"}
+      </div>
     </div>
   );
 }
