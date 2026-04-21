@@ -5420,25 +5420,24 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
             </div>
           )}
 
-          {/* ── YOUR GAME PATTERN ── */}
+          {/* ── TOP HEROES / BANDITS ── */}
           <div style={{background:P.card,borderRadius:14,padding:"12px 14px",border:`1.5px solid ${P.border}`,marginBottom:12}}>
-            <div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1.5,marginBottom:10}}>YOUR GAME PATTERN</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               <div>
-                <div style={{fontSize:9,color:P.green,fontWeight:700,letterSpacing:1,marginBottom:6}}>TOP HEROES</div>
+                <div style={{fontSize:9,color:P.green,fontWeight:700,letterSpacing:1,marginBottom:8}}>TOP HEROES</div>
                 {stats.top2Heroes.map((h,i)=>(
-                  <div key={h} style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:i===0?6:0}}>
+                  <div key={h} style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:i===0?8:0}}>
                     <div style={{fontSize:i===0?14:12,fontWeight:i===0?900:700,color:i===0?P.green:P.muted}}>{h}</div>
-                    <div style={{fontSize:10,color:i===0?P.green:P.muted,fontWeight:700}}>{stats.hT[h]}×</div>
+                    <div style={{fontSize:i===0?12:10,color:i===0?P.green:P.muted,fontWeight:700,marginLeft:8}}>{stats.hT[h]}×</div>
                   </div>
                 ))}
               </div>
               <div>
-                <div style={{fontSize:9,color:P.red,fontWeight:700,letterSpacing:1,marginBottom:6}}>TOP BANDITS</div>
+                <div style={{fontSize:9,color:P.red,fontWeight:700,letterSpacing:1,marginBottom:8}}>TOP BANDITS</div>
                 {stats.top2Bandits.map((b,i)=>(
-                  <div key={b} style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:i===0?6:0}}>
+                  <div key={b} style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:i===0?8:0}}>
                     <div style={{fontSize:i===0?14:12,fontWeight:i===0?900:700,color:i===0?P.red:P.muted}}>{b}</div>
-                    <div style={{fontSize:10,color:i===0?P.red:P.muted,fontWeight:700}}>{stats.bT[b]}×</div>
+                    <div style={{fontSize:i===0?12:10,color:i===0?P.red:P.muted,fontWeight:700,marginLeft:8}}>{stats.bT[b]}×</div>
                   </div>
                 ))}
               </div>
@@ -5498,10 +5497,19 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
             <Section title="Front 9 vs Back 9">
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                 {[{label:"Front 9",d:stats.front9},{label:"Back 9",d:stats.back9}].map(({label,d})=>(
-                  <div key={label} style={{borderRadius:12,padding:"12px 14px",background:P.cardAlt,border:`1.5px solid ${P.border}`}}>
-                    <div style={{fontSize:10,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:4}}>{label.toUpperCase()}</div>
-                    <div style={{fontSize:26,fontWeight:900,color:d.net>0?P.green:d.net<0?P.red:P.gold,lineHeight:1}}>{d.net>0?"+":""}{d.net}</div>
-                    <div style={{fontSize:11,color:P.muted,marginTop:4,fontWeight:600}}><span style={{color:P.green}}>{d.heroes}H</span> · <span style={{color:P.red}}>{d.bandits}B</span></div>
+                  <div key={label} style={{borderRadius:12,padding:"14px",background:P.cardAlt,border:`1.5px solid ${P.border}`}}>
+                    <div style={{fontSize:10,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:6}}>{label.toUpperCase()}</div>
+                    <div style={{fontSize:32,fontWeight:900,color:d.net>0?P.green:d.net<0?P.red:P.gold,lineHeight:1,marginBottom:8}}>{d.net>0?"+":""}{d.net}</div>
+                    <div style={{display:"flex",gap:10}}>
+                      <div style={{textAlign:"center"}}>
+                        <div style={{fontSize:20,fontWeight:900,color:P.green,lineHeight:1}}>{d.heroes}</div>
+                        <div style={{fontSize:9,color:P.muted,fontWeight:600,marginTop:2}}>Heroes</div>
+                      </div>
+                      <div style={{textAlign:"center"}}>
+                        <div style={{fontSize:20,fontWeight:900,color:P.red,lineHeight:1}}>{d.bandits}</div>
+                        <div style={{fontSize:9,color:P.muted,fontWeight:600,marginTop:2}}>Bandits</div>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
