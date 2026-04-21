@@ -4407,16 +4407,11 @@ function CourseSelectModal({onConfirm, onSkip, settings, P, S}) {
   const displayName = selectedName || query;
 
   return (
-    <div onClick={onSkip} style={{position:"fixed",inset:0,zIndex:9998,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"flex-end",justifyContent:"center",padding:"0"}}>
-      <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,background:P.bg,borderRadius:"20px 20px 0 0",border:`1.5px solid ${P.border}`,borderBottom:"none",boxShadow:"0 -8px 40px rgba(0,0,0,0.4)",maxHeight:"85vh",display:"flex",flexDirection:"column"}}>
-
-        {/* Handle bar */}
-        <div style={{display:"flex",justifyContent:"center",padding:"10px 0 4px"}}>
-          <div style={{width:36,height:4,borderRadius:2,background:P.border}}/>
-        </div>
+    <div onClick={onSkip} style={{position:"fixed",inset:0,zIndex:9998,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 16px"}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:400,background:P.bg,borderRadius:20,border:`1.5px solid ${P.border}`,boxShadow:"0 24px 60px rgba(0,0,0,0.4)",maxHeight:"80vh",display:"flex",flexDirection:"column"}}>
 
         {/* Header */}
-        <div style={{padding:"4px 16px 12px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+        <div style={{padding:"16px 16px 12px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,borderBottom:`1px solid ${P.border}`}}>
           <div>
             <div style={{fontSize:17,fontWeight:900,color:P.white}}>Select Course</div>
             <div style={{fontSize:12,color:P.muted,marginTop:1}}>Search or use your favourite</div>
