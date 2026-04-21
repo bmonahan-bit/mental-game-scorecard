@@ -2994,18 +2994,6 @@ function AvatarPicker({P, onClose, onSelect, current, initial}) {
             </button>
           </div>
         )}
-        {/* Upload / change photo via Clerk */}
-        <div style={{padding:"10px 16px",borderBottom:`1px solid ${P.border}`}}>
-          <button onClick={()=>{onClose();if(window.__clerkOpenUserProfile)window.__clerkOpenUserProfile();}} style={{display:"flex",alignItems:"center",gap:10,width:"100%",background:"transparent",border:`1.5px solid ${P.border}`,borderRadius:12,padding:"8px 12px",cursor:"pointer",textAlign:"left"}} {...pp()}>
-            <div style={{width:38,height:38,borderRadius:"50%",background:P.cardAlt,border:`1.5px solid ${P.border}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <Icons.Note color={P.muted} size={16}/>
-            </div>
-            <div style={{flex:1}}>
-              <div style={{fontSize:13,fontWeight:700,color:P.white}}>Upload a Photo</div>
-              <div style={{fontSize:11,color:P.muted}}>Add a custom photo to your account</div>
-            </div>
-          </button>
-        </div>
         {/* Preset avatars */}
         <div style={{padding:"16px",display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:"12px 8px"}}>
           {options.map(o=>(
