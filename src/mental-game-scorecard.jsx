@@ -1790,6 +1790,8 @@ export default function App() {
   const [showFlame, setShowFlame] = useState(false);
   const [showStarburst, setShowStarburst] = useState(false);
   const [showResetPrompt, setShowResetPrompt] = useState(false);
+  const [mindsetCard, setMindsetCard] = useState(null);
+  const [showTurnCheckIn, setShowTurnCheckIn] = useState(false);
   const [newMilestone, setNewMilestone] = useState(null);
   const [toasts, setToasts] = useState([]);
   function showToast(msg, type="info", duration=2800) {
@@ -2005,6 +2007,28 @@ export default function App() {
         else if (streak >= 5) setShowConfetti(true);
         else if (streak >= 4) setShowFlame(true);
         else setShowBalloons(true);
+      }
+    }
+
+    // ── Turn check-in (hole 9 → 10) ──
+    if (currentHole === 8 && inGameCaddie) {
+      setShowTurnCheckIn(true);
+      return;
+    }
+
+    // ── Scheduled mindset cards (holes 1, 4, 7, 10, 13, 16) ──
+    if (inGameCaddie && [0,3,6,9,12,15].includes(currentHole)) {
+      const MINDSET_CATS = ["Awareness", "Presence", "Possibility Thinking"];
+      const catName = MINDSET_CATS[Math.floor(Math.random() * MINDSET_CATS.length)];
+      const cat = CADDIE_CATEGORIES.find(c => c.name === catName);
+      if (cat) {
+        const used = usedMessages[catName] || new Set();
+        let available = cat.messages.map((_,i) => i).filter(i => !used.has(i));
+        if (available.length === 0) available = cat.messages.map((_,i) => i);
+        const idx = available.sort(() => Math.random() - 0.5)[0];
+        setUsedMessages(prev => ({ ...prev, [catName]: new Set([...(prev[catName]||new Set()), idx]) }));
+        setMindsetCard({ catName, cat, message: cat.messages[idx], nextHole: nextHole });
+        return;
       }
     }
 
@@ -2583,6 +2607,57 @@ export default function App() {
           </div>
           </div>
         )}
+
+        {/* Mindset Card (scheduled holes 1/4/7/10/13/16) */}
+        {mindsetCard&&(
+          <div onClick={()=>{setMindsetCard(null);goToHole(mindsetCard.nextHole);}} style={{position:"fixed",inset:0,zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.65)",backdropFilter:"blur(8px)",animation:"fadeIn 0.25s ease-out"}}>
+            <div onClick={e=>e.stopPropagation()} style={{background:P.card,borderRadius:20,padding:"24px 22px",width:"88%",maxWidth:360,border:`2px solid ${mindsetCard.cat.color}33`,boxShadow:`0 20px 48px rgba(0,0,0,0.3)`,animation:"cardFlip 0.4s ease-out",textAlign:"center"}}>
+              <div style={{fontSize:10,color:mindsetCard.cat.color,fontWeight:800,letterSpacing:2,marginBottom:6,textTransform:"uppercase"}}>Mindset Check</div>
+              <div style={{fontSize:16,fontWeight:900,color:P.white,marginBottom:4}}>{mindsetCard.catName}</div>
+              <div style={{fontSize:12,color:P.muted,marginBottom:14,fontStyle:"italic"}}>{mindsetCard.cat.subtitle}</div>
+              <div style={{background:P.cardAlt,borderRadius:14,padding:"18px 16px",marginBottom:18,border:`1px solid ${P.border}`}}>
+                <div style={{fontSize:15,lineHeight:1.6,color:P.white,fontWeight:500,fontStyle:"italic"}}>"{mindsetCard.message}"</div>
+              </div>
+              <button onClick={()=>{setMindsetCard(null);goToHole(mindsetCard.nextHole);}} {...pp()} style={{width:"100%",padding:"12px",borderRadius:12,border:`1.5px solid ${mindsetCard.cat.color}`,background:mindsetCard.cat.color+"15",color:mindsetCard.cat.color,fontSize:15,fontWeight:800,cursor:"pointer"}}>Got it →</button>
+            </div>
+          </div>
+        )}
+
+        {/* Turn Check-In (hole 9 → 10) */}
+        {showTurnCheckIn&&(()=>{
+          const front = scores.slice(0,9);
+          const fNet = front.reduce((s,h)=>s+(Object.values(h.heroes).reduce((a,v)=>a+v,0)-Object.values(h.bandits).reduce((a,v)=>a+v,0)),0);
+          const fHeroes = front.reduce((s,h)=>s+Object.values(h.heroes).reduce((a,v)=>a+v,0),0);
+          const fBandits = front.reduce((s,h)=>s+Object.values(h.bandits).reduce((a,v)=>a+v,0),0);
+          const msg = fNet>=3?"You're playing with the Heroes. Stay in it — the back 9 is yours.":fNet<=-3?"The Bandits have been loud. The back 9 is a clean slate — choose your mindset now.":"Solid front 9. Stay present hole by hole — W.I.N.";
+          const color = fNet>0?P.green:fNet<0?P.red:P.gold;
+          return (
+            <div onClick={()=>{setShowTurnCheckIn(false);goToHole(9);}} style={{position:"fixed",inset:0,zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.65)",backdropFilter:"blur(8px)",animation:"fadeIn 0.25s ease-out"}}>
+              <div onClick={e=>e.stopPropagation()} style={{background:P.card,borderRadius:20,padding:"24px 22px",width:"88%",maxWidth:360,border:`2px solid ${color}33`,boxShadow:"0 20px 48px rgba(0,0,0,0.3)",animation:"cardFlip 0.4s ease-out",textAlign:"center"}}>
+                <div style={{fontSize:10,color:P.muted,fontWeight:800,letterSpacing:2,marginBottom:6}}>THE TURN</div>
+                <div style={{fontSize:17,fontWeight:900,color:P.white,marginBottom:14}}>Halfway There</div>
+                <div style={{display:"flex",justifyContent:"center",gap:20,marginBottom:14}}>
+                  <div style={{textAlign:"center"}}>
+                    <div style={{fontSize:24,fontWeight:900,color:P.green}}>{fHeroes}</div>
+                    <div style={{fontSize:10,color:P.muted,fontWeight:600}}>Heroes</div>
+                  </div>
+                  <div style={{textAlign:"center"}}>
+                    <div style={{fontSize:28,fontWeight:900,color,lineHeight:1}}>{fNet>0?"+":""}{fNet}</div>
+                    <div style={{fontSize:10,color:P.muted,fontWeight:600}}>Net</div>
+                  </div>
+                  <div style={{textAlign:"center"}}>
+                    <div style={{fontSize:24,fontWeight:900,color:P.red}}>{fBandits}</div>
+                    <div style={{fontSize:10,color:P.muted,fontWeight:600}}>Bandits</div>
+                  </div>
+                </div>
+                <div style={{background:P.cardAlt,borderRadius:14,padding:"14px 16px",marginBottom:18,border:`1px solid ${P.border}`}}>
+                  <div style={{fontSize:14,lineHeight:1.6,color:P.white,fontWeight:500,fontStyle:"italic"}}>"{msg}"</div>
+                </div>
+                <button onClick={()=>{setShowTurnCheckIn(false);goToHole(9);}} {...pp()} style={{width:"100%",padding:"12px",borderRadius:12,border:`1.5px solid ${color}`,background:color+"15",color,fontSize:15,fontWeight:800,cursor:"pointer"}}>Back 9 →</button>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Caddie Card Overlay */}
         {caddieCard && (
