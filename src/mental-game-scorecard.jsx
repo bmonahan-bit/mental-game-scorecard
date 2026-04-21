@@ -6580,14 +6580,27 @@ function ComboTrendChart({P, trend, rounds, onSelectRound}) {
 
       {/* ── PSR% ── */}
       {hasPsr&&(
-        <Section title="PRE-SHOT ROUTINE %" color="#7c3aed" h={PSR_H}>
-          <svg style={{position:"absolute",inset:0,width:"100%",height:PSR_H,overflow:"visible"}} viewBox={`0 0 ${svgW} ${PSR_H}`} preserveAspectRatio="none">
-            {psrPoints.length>=2&&<polyline points={psrPoly} fill="none" stroke="#7c3aed" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" opacity="0.9" strokeDasharray="5 3"/>}
-            {psrPoints.map(p=>(
-              <circle key={p.i} cx={p.x} cy={p.y} r="3" fill="#7c3aed" stroke={P.card} strokeWidth="1.5" opacity="0.9"/>
+        <>
+          <Section title="PRE-SHOT ROUTINE %" color="#7c3aed" h={PSR_H}>
+            <svg style={{position:"absolute",inset:0,width:"100%",height:PSR_H,overflow:"visible"}} viewBox={`0 0 ${svgW} ${PSR_H}`} preserveAspectRatio="none">
+              {psrPoints.length>=2&&<polyline points={psrPoly} fill="none" stroke="#7c3aed" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" opacity="0.9" strokeDasharray="5 3"/>}
+              {psrPoints.map(p=>(
+                <circle key={p.i} cx={p.x} cy={p.y} r="3" fill="#7c3aed" stroke={P.card} strokeWidth="1.5" opacity="0.9"/>
+              ))}
+            </svg>
+          </Section>
+          {/* PSR values directly under chart */}
+          <div style={{display:"flex",gap:2,marginTop:-6,marginBottom:8}}>
+            {trend.map((t,i)=>(
+              <div key={i} style={{flex:1,textAlign:"center"}}>
+                {t.psrPct!=null
+                  ? <div style={{fontSize:9,fontWeight:700,color:"#7c3aed"}}>{t.psrPct}%</div>
+                  : <div style={{fontSize:9,color:"transparent"}}>—</div>
+                }
+              </div>
             ))}
-          </svg>
-        </Section>
+          </div>
+        </>
       )}
 
       {/* ── Date labels ── */}
@@ -6595,7 +6608,6 @@ function ComboTrendChart({P, trend, rounds, onSelectRound}) {
         {trend.map((t,i)=>(
           <div key={i} style={{flex:1,textAlign:"center"}}>
             <div style={{fontSize:9,color:P.muted,fontWeight:500}}>{t.label}</div>
-            {t.psrPct!=null&&<div style={{fontSize:8,color:"#7c3aed",fontWeight:700}}>{t.psrPct}%</div>}
           </div>
         ))}
       </div>
