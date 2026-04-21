@@ -5301,9 +5301,9 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
           {(stats.improving||stats.bestStreak>=2||stats.checklistCorr)&&(
           <div style={{display:"flex",gap:6,marginBottom:8}}>
             {stats.improving&&(
-              <div style={{flex:1,background:P.card,borderRadius:10,padding:"6px 10px",border:`1.5px solid ${P.border}`,display:"flex",alignItems:"center",gap:6}}>
+              <div style={{flex:1,background:P.card,borderRadius:10,padding:"6px 10px",border:`1.5px solid ${P.border}`,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
                 {stats.improving==="up"?<Icons.TrendUp color={P.green} size={14}/>:stats.improving==="down"?<Icons.TrendUp color={P.red} size={14}/>:<Icons.Chart color={P.gold} size={14}/>}
-                <div>
+                <div style={{textAlign:"center"}}>
                   <div style={{fontSize:11,fontWeight:800,color:stats.improving==="up"?P.green:stats.improving==="down"?P.red:P.gold,lineHeight:1.2}}>{stats.improving==="up"?"Trending Up ↑":stats.improving==="down"?"Needs Work ↓":"Steady"}</div>
                   <div style={{fontSize:9,color:P.muted,fontWeight:500}}>vs earlier rounds</div>
                 </div>
@@ -6458,149 +6458,143 @@ function BChart({P,title,items,totals,color}) { const max=Math.max(1,...Object.v
 // COMBO TREND CHART (bars = net, line = score)
 // ═══════════════════════════════════════
 function ComboTrendChart({P, trend, rounds, onSelectRound}) {
-  const PSR_AREA = 34;
-  const SCORE_AREA = 40;
-  const GAP = 6;
-
-  const maxNet = Math.max(1, ...trend.map(t => Math.abs(t.net)));
-  // Dynamic bar area — at least 30px per half, scale with maxNet
-  const BAR_HALF = Math.max(30, maxNet * 5);
-  const BAR_AREA = BAR_HALF * 2 + 20;
-  const TOTAL_H = BAR_AREA + GAP + SCORE_AREA + GAP + PSR_AREA;
-
-  const hasPsr = trend.some(t => t.psrPct != null);
-  const hasScore = trend.some(t => t.scoreToPar != null);
-
-  // Score-to-par range for its own axis
-  const scoreVals = trend.filter(t => t.scoreToPar != null).map(t => t.scoreToPar);
-  const minScore = scoreVals.length ? Math.min(...scoreVals) : -5;
-  const maxScore = scoreVals.length ? Math.max(...scoreVals) : 20;
-  const scoreRange = Math.max(maxScore - minScore, 5);
-
   const n = trend.length;
   const svgW = 320;
   const colW = svgW / n;
 
-  const scoreTop = BAR_AREA + GAP;
-  const psrTop = BAR_AREA + GAP + SCORE_AREA + GAP;
+  // ── Net bars ──
+  const maxNet = Math.max(1, ...trend.map(t => Math.abs(t.net)));
+  const BAR_HALF = Math.max(32, maxNet * 4);
+  const BAR_H = BAR_HALF * 2 + 24; // 12px label top + 12px label bottom
 
-  // Score line in its own band
+  // ── Score line ──
+  const hasScore = trend.some(t => t.scoreToPar != null);
+  const SCORE_H = 52;
+  const scoreVals = trend.filter(t => t.scoreToPar != null).map(t => t.scoreToPar);
+  const minS = scoreVals.length ? Math.min(...scoreVals) - 2 : -5;
+  const maxS = scoreVals.length ? Math.max(...scoreVals) + 2 : 20;
+  const scoreRange = Math.max(maxS - minS, 5);
   const scorePoints = trend.map((t, i) => {
     if (t.scoreToPar == null) return null;
     const x = colW * i + colW / 2;
-    const y = scoreTop + 4 + ((t.scoreToPar - minScore) / scoreRange) * (SCORE_AREA - 12);
-    return { x, y: Math.max(scoreTop+2, Math.min(scoreTop+SCORE_AREA-2, y)), t, i };
+    const y = 6 + ((t.scoreToPar - minS) / scoreRange) * (SCORE_H - 14);
+    return { x, y, t, i };
   }).filter(Boolean);
   const scorePoly = scorePoints.map(p => `${p.x},${p.y}`).join(' ');
+  const zeroY = 6 + ((0 - minS) / scoreRange) * (SCORE_H - 14);
 
-  // PSR line in its own band
+  // ── PSR ──
+  const hasPsr = trend.some(t => t.psrPct != null);
+  const PSR_H = 40;
   const psrPoints = trend.map((t, i) => {
     if (t.psrPct == null) return null;
     const x = colW * i + colW / 2;
-    const y = psrTop + 4 + ((100 - t.psrPct) / 100) * (PSR_AREA - 10);
+    const y = 6 + ((100 - t.psrPct) / 100) * (PSR_H - 14);
     return { x, y, t, i };
   }).filter(Boolean);
   const psrPoly = psrPoints.map(p => `${p.x},${p.y}`).join(' ');
 
+  function Section({title, color, children, h}) {
+    return (
+      <div style={{marginBottom:10}}>
+        <div style={{fontSize:9,fontWeight:700,color,letterSpacing:1,marginBottom:4,opacity:0.8}}>{title}</div>
+        <div style={{position:"relative",height:h,background:P.cardAlt,borderRadius:8,overflow:"hidden"}}>
+          {children}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{background:P.card,borderRadius:12,padding:"10px 10px 6px",border:`1.5px solid ${P.border}`,marginBottom:8}}>
-      {/* Legend */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-        <div style={{fontSize:10,color:P.muted,fontWeight:700,letterSpacing:1}}>MENTAL NET + SCORE + PSR%</div>
-        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-          <div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:10,height:10,borderRadius:2,background:P.green}}/><span style={{fontSize:9,color:P.muted}}>+Net</span></div>
-          <div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:10,height:10,borderRadius:2,background:P.red}}/><span style={{fontSize:9,color:P.muted}}>-Net</span></div>
-          {hasScore&&<div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:14,height:2,background:P.gold,borderRadius:1}}/><span style={{fontSize:9,color:P.muted}}>Score</span></div>}
-          {hasPsr&&<div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:14,height:2,background:"#7c3aed",borderRadius:1}}/><span style={{fontSize:9,color:P.muted}}>PSR%</span></div>}
+    <div style={{background:P.card,borderRadius:14,padding:"12px 12px 8px",border:`1.5px solid ${P.border}`,marginBottom:8}}>
+      {/* ── Legend ── */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+        <div style={{fontSize:10,color:P.muted,fontWeight:700,letterSpacing:1}}>ROUND TRENDS</div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:8,height:8,borderRadius:2,background:P.green}}/><span style={{fontSize:9,color:P.muted}}>+Net</span></div>
+          <div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:8,height:8,borderRadius:2,background:P.red}}/><span style={{fontSize:9,color:P.muted}}>-Net</span></div>
+          {hasScore&&<div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:12,height:2,background:P.gold,borderRadius:1}}/><span style={{fontSize:9,color:P.muted}}>Score±</span></div>}
+          {hasPsr&&<div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:12,height:2,background:"#7c3aed",borderRadius:1,borderTop:"1px dashed #7c3aed"}}/><span style={{fontSize:9,color:P.muted}}>PSR%</span></div>}
         </div>
       </div>
 
-      <div style={{position:"relative",height:TOTAL_H}}>
-
-        {/* ── BAR CHART ── */}
-        <div style={{position:"absolute",top:0,left:0,right:0,height:BAR_AREA,display:"flex",gap:2,alignItems:"stretch"}}>
+      {/* ── Mental Net Bars ── */}
+      <Section title="MENTAL NET" color={P.green} h={BAR_H}>
+        {/* Zero line */}
+        <div style={{position:"absolute",top:"50%",left:0,right:0,height:1,background:P.border,zIndex:1}}/>
+        {/* Bars */}
+        <div style={{position:"absolute",inset:0,display:"flex",gap:2,padding:"0 2px"}}>
           {trend.map((t, i) => {
-            const barH = Math.max(4, (Math.abs(t.net) / maxNet) * (BAR_HALF - 4));
+            const barH = Math.max(3, (Math.abs(t.net) / maxNet) * (BAR_HALF - 4));
             const pos = t.net >= 0;
             const round = [...rounds].reverse()[i] || null;
             return (
-              <div key={i} style={{flex:1,display:"flex",flexDirection:"column",cursor:round?"pointer":"default"}} onClick={()=>round&&onSelectRound(round)} {...pp()}>
-                <div style={{height:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:700,color:pos?P.green:P.red}}>
-                  {t.net!==0?(t.net>0?"+":"")+t.net:""}
+              <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",cursor:round?"pointer":"default",position:"relative"}} onClick={()=>round&&onSelectRound(round)} {...pp()}>
+                {/* Label */}
+                <div style={{height:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:700,color:pos?P.green:P.red,lineHeight:1}}>
+                  {t.net!==0?(t.net>0?"+":"")+t.net:"0"}
                 </div>
-                <div style={{flex:1,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-                  {pos&&<div style={{width:"70%",height:barH,borderRadius:"3px 3px 0 0",background:P.green,opacity:0.85}}/>}
+                {/* Upper half */}
+                <div style={{flex:1,display:"flex",alignItems:"flex-end",justifyContent:"center",width:"100%"}}>
+                  {pos&&<div style={{width:"65%",height:barH,borderRadius:"3px 3px 0 0",background:P.green,opacity:0.85}}/>}
                 </div>
-                <div style={{height:1,background:P.border,flexShrink:0}}/>
-                <div style={{flex:1,display:"flex",alignItems:"flex-start",justifyContent:"center"}}>
-                  {!pos&&<div style={{width:"70%",height:barH,borderRadius:"0 0 3px 3px",background:P.red,opacity:0.85}}/>}
+                {/* Baseline */}
+                <div style={{height:1,background:P.border,width:"100%",flexShrink:0}}/>
+                {/* Lower half */}
+                <div style={{flex:1,display:"flex",alignItems:"flex-start",justifyContent:"center",width:"100%"}}>
+                  {!pos&&<div style={{width:"65%",height:barH,borderRadius:"0 0 3px 3px",background:P.red,opacity:0.85}}/>}
                 </div>
-                <div style={{height:10}}/>
+                <div style={{height:12}}/>
               </div>
             );
           })}
         </div>
+      </Section>
 
-        {/* ── SCORE BAND ── */}
-        {hasScore&&<>
-          <div style={{position:"absolute",top:scoreTop,left:0,right:0,height:1,background:P.border,opacity:0.4}}/>
-          <div style={{position:"absolute",top:scoreTop+2,left:0,fontSize:8,color:P.gold,fontWeight:700,opacity:0.8}}>SCORE</div>
-          <div style={{position:"absolute",top:scoreTop+2,right:0,fontSize:8,color:P.muted,opacity:0.6}}>
-            {minScore>0?"+":""}{minScore} → {maxScore>0?"+":""}{maxScore}
-          </div>
-          {/* Zero line within score band */}
-          {minScore<0&&maxScore>0&&(()=>{
-            const zeroY = scoreTop + 4 + ((0 - minScore) / scoreRange) * (SCORE_AREA - 12);
-            return <div style={{position:"absolute",top:zeroY,left:0,right:0,height:1,background:P.gold,opacity:0.2}}/>;
-          })()}
-        </>}
+      {/* ── Score to Par ── */}
+      {hasScore&&(
+        <Section title="SCORE TO PAR" color={P.gold} h={SCORE_H}>
+          <svg style={{position:"absolute",inset:0,width:"100%",height:SCORE_H,overflow:"visible"}} viewBox={`0 0 ${svgW} ${SCORE_H}`} preserveAspectRatio="none">
+            {/* Zero line (even par) */}
+            {minS<=0&&maxS>=0&&<line x1="0" y1={zeroY} x2={svgW} y2={zeroY} stroke={P.border} strokeWidth="1" strokeDasharray="3 3" opacity="0.8"/>}
+            {/* Score line */}
+            {scorePoints.length>=2&&<polyline points={scorePoly} fill="none" stroke={P.gold} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" opacity="0.9"/>}
+            {scorePoints.map(p=>(
+              <circle key={p.i} cx={p.x} cy={p.y} r="3.5" fill={p.t.scoreToPar<=0?P.green:P.red} stroke={P.card} strokeWidth="1.5"/>
+            ))}
+          </svg>
+          {/* E label on zero line */}
+          {minS<=0&&maxS>=0&&<div style={{position:"absolute",left:2,top:zeroY-7,fontSize:7,color:P.muted,fontWeight:700,opacity:0.6}}>E</div>}
+        </Section>
+      )}
 
-        {/* ── PSR BAND ── */}
-        {hasPsr&&<>
-          <div style={{position:"absolute",top:psrTop,left:0,right:0,height:1,background:P.border,opacity:0.4}}/>
-          <div style={{position:"absolute",top:psrTop+2,left:0,fontSize:8,color:"#7c3aed",fontWeight:700,opacity:0.8}}>PSR%</div>
-        </>}
+      {/* ── PSR% ── */}
+      {hasPsr&&(
+        <Section title="PRE-SHOT ROUTINE %" color="#7c3aed" h={PSR_H}>
+          <svg style={{position:"absolute",inset:0,width:"100%",height:PSR_H,overflow:"visible"}} viewBox={`0 0 ${svgW} ${PSR_H}`} preserveAspectRatio="none">
+            {psrPoints.length>=2&&<polyline points={psrPoly} fill="none" stroke="#7c3aed" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" opacity="0.9" strokeDasharray="5 3"/>}
+            {psrPoints.map(p=>(
+              <circle key={p.i} cx={p.x} cy={p.y} r="3" fill="#7c3aed" stroke={P.card} strokeWidth="1.5" opacity="0.9"/>
+            ))}
+          </svg>
+        </Section>
+      )}
 
-        {/* ── SVG LINES ── */}
-        <svg style={{position:"absolute",top:0,left:0,width:"100%",height:TOTAL_H,overflow:"visible",pointerEvents:"none"}} viewBox={`0 0 ${svgW} ${TOTAL_H}`} preserveAspectRatio="none">
-          {scorePoints.length>=2&&(
-            <>
-              <polyline points={scorePoly} fill="none" stroke={P.gold} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" opacity="0.9"/>
-              {scorePoints.map(p=>(
-                <circle key={p.i} cx={p.x} cy={p.y} r="3" fill={P.gold} stroke={P.card} strokeWidth="1.5"/>
-              ))}
-            </>
-          )}
-          {psrPoints.length>=2&&(
-            <>
-              <polyline points={psrPoly} fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" opacity="0.9" strokeDasharray="4 2"/>
-              {psrPoints.map(p=>(
-                <circle key={p.i} cx={p.x} cy={p.y} r="2.5" fill="#7c3aed" stroke={P.card} strokeWidth="1.5" opacity="0.9"/>
-              ))}
-            </>
-          )}
-        </svg>
-      </div>
-
-      {/* Date + value labels */}
-      <div style={{display:"flex",gap:2,marginTop:4}}>
+      {/* ── Date labels ── */}
+      <div style={{display:"flex",gap:2}}>
         {trend.map((t,i)=>(
           <div key={i} style={{flex:1,textAlign:"center"}}>
-            <div style={{fontSize:9,color:P.muted,fontWeight:500,lineHeight:1.2}}>{t.label}</div>
-            {t.scoreToPar!=null&&<div style={{fontSize:9,color:P.gold,fontWeight:700}}>{t.scoreToPar>0?"+":""}{t.scoreToPar}</div>}
-            {t.psrPct!=null&&<div style={{fontSize:9,color:"#7c3aed",fontWeight:700}}>{t.psrPct}%</div>}
-            <div style={{display:"flex",justifyContent:"center",marginTop:2}}>
-              {t.checklistDone===true&&<div style={{width:5,height:5,borderRadius:"50%",background:P.green,opacity:0.8}}/>}
-              {t.checklistDone===false&&<div style={{width:5,height:5,borderRadius:"50%",background:P.border}}/>}
-              {t.checklistDone===undefined&&<div style={{width:5,height:5}}/>}
-            </div>
+            <div style={{fontSize:9,color:P.muted,fontWeight:500}}>{t.label}</div>
+            {t.scoreToPar!=null&&<div style={{fontSize:8,color:P.gold,fontWeight:700}}>{t.scoreToPar>0?"+":""}{t.scoreToPar}</div>}
+            {t.psrPct!=null&&<div style={{fontSize:8,color:"#7c3aed",fontWeight:700}}>{t.psrPct}%</div>}
           </div>
         ))}
       </div>
-      <div style={{fontSize:10,color:P.muted,marginTop:4,textAlign:"center",fontWeight:500}}>Tap any bar to see round breakdown</div>
+      <div style={{fontSize:10,color:P.muted,marginTop:5,textAlign:"center",fontWeight:500,opacity:0.7}}>Tap any bar to see round breakdown</div>
     </div>
   );
 }
+
 
 // ROUND DETAIL VIEW (from dashboard tap)
 // ═══════════════════════════════════════
