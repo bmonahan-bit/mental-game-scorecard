@@ -2271,15 +2271,53 @@ export default function App() {
   }
 
   function resetAndStartNew(courseOverride) {
-    setScores(initScores());setCurrentHole(0);
-    setCourseName(courseOverride?.courseName||settings?.favCourse||"");
+    const freshScores = initScores();
+    const tee = courseOverride?.selectedTee || settings?.favTee || null;
+    const name = courseOverride?.courseName || settings?.favCourse || "";
+    setScores(freshScores);
+    setCurrentHole(0);
+    setCourseName(name);
     setRoundDate(new Date().toISOString().split("T")[0]);
-    setPostRoundNotes("");setHoleNoteOpen(settings?.holeNoteDefault!==false);
-    if(courseOverride?.courseData){setCourseData(courseOverride.courseData);}else{setCourseData(null);}
-    setSelectedTee(courseOverride?.selectedTee||settings?.favTee||null);
+    setPostRoundNotes("");
+    setHoleNoteOpen(settings?.holeNoteDefault!==false);
+    setSelectedTee(tee);
+    setShowOpenRoundModal(false);
     try{const cf=localStorage.getItem("mgp_carry_forward");if(cf)setCarryForward(cf);}catch{}
     try{localStorage.removeItem("mgp_checklist_date");sessionStorage.removeItem("mgp_preround_checked");}catch{}
-    setPreroundKey(k=>k+1);setShowOpenRoundModal(false);
+    setPreroundKey(k=>k+1);
+
+    // If courseData passed directly, load it
+    if(courseOverride?.courseData) {
+      const cd = courseOverride.courseData;
+      const male=(cd.tees?.male||[]).map(t=>({...t,gender:"Male"}));
+      const female=(cd.tees?.female||[]).map(t=>({...t,gender:"Female"}));
+      cd._tees=[...male,...female];
+      setCourseData(cd);
+      onCourseLoaded(cd, tee);
+    } else if(name) {
+      // Fetch course data for the favorite
+      setCourseData(null);
+      (async()=>{
+        try{
+          const r1=await fetch(`${GOLF_API_BASE}/search?search_query=${encodeURIComponent(name)}`,{headers:{Authorization:`Key ${GOLF_API_KEY}`}});
+          const d1=await r1.json();
+          const match=(d1.courses||[]).find(c=>c.club_name===name||(c.club_name+(c.course_name&&c.course_name!==c.club_name?` — ${c.course_name}`:""))===name)||d1.courses?.[0];
+          if(!match) return;
+          const r2=await fetch(`${GOLF_API_BASE}/courses/${match.id}`,{headers:{Authorization:`Key ${GOLF_API_KEY}`}});
+          const d2=await r2.json();
+          const full=d2.course;
+          if(!full) return;
+          const male=(full.tees?.male||[]).map(t=>({...t,gender:"Male"}));
+          const female=(full.tees?.female||[]).map(t=>({...t,gender:"Female"}));
+          full._tees=[...male,...female];
+          setCourseData(full);
+          onCourseLoaded(full, tee);
+        }catch(e){console.warn('course load failed',e);}
+      })();
+    } else {
+      setCourseData(null);
+    }
+
     setView(settings.preroundChecklist!==false?"preround":"play");
   }
 
