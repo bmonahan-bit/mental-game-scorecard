@@ -2493,7 +2493,7 @@ export default function App() {
   // paywall disabled
   if (view==="home") return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><CommunityPromptModal/><ProfileGateModal/><CoursePromptModal/><OpenRoundModal/><HomeScreen onNav={(v)=>{if(v==="upgrade")return;navTo(v);}} onContinueRound={()=>{const firstEmpty=scores.findIndex(h=>!h.strokeScore&&!Object.values(h.heroes).some(v=>v>0)&&!Object.values(h.bandits).some(v=>v>0));setCurrentHole(Math.max(0,firstEmpty));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} isPro={isPro} roundsRemaining={roundsRemaining} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ if(window.__clerkSignOut) window.__clerkSignOut(); else window.location.href="/"; }} /></ThemeCtx.Provider>;
   if (view==="checklist") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist key={preroundKey} onBack={nav("home")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",new Date().toISOString().split("T")[0]);const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setPreRoundMeta(p=>({...p,checklistDone:true}));setView("play");}} onSkip={()=>{setPreRoundMeta(p=>({...p,checklistDone:false}));setView("play");}} S={S} lastIntention={carryForward} preRoundMeta={preRoundMeta} setPreRoundMeta={setPreRoundMeta} settings={settings} updateSetting={updateSetting} /></ThemeCtx.Provider>;
-  if (view==="courseselect") return <ThemeCtx.Provider value={P}><ToastLayer/><div style={{height:"100%",background:P.bg}}><CourseSelectScreen P={P} S={S} settings={settings} onSkip={()=>resetAndStartNew()} onConfirm={(data)=>resetAndStartNew(data)}/></div></ThemeCtx.Provider>;
+  if (view==="courseselect") return <ThemeCtx.Provider value={P}><ToastLayer/><div style={{height:"100%",background:P.bg,position:"relative"}}><HomeScreen onNav={()=>{}} onContinueRound={()=>{}} roundInProgress={false} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} isPro={isPro} roundsRemaining={roundsRemaining} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ if(window.__clerkSignOut) window.__clerkSignOut(); else window.location.href="/"; }}/><CourseSelectModal P={P} S={S} settings={settings} onSkip={()=>resetAndStartNew()} onConfirm={(data)=>resetAndStartNew(data)}/></div></ThemeCtx.Provider>;
   if (view==="preround") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist key={preroundKey} onBack={nav("home")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",new Date().toISOString().split("T")[0]);const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setPreRoundMeta(p=>({...p,checklistDone:true}));setView("play");}} onSkip={()=>{setPreRoundMeta(p=>({...p,checklistDone:false}));setView("play");}} S={S} lastIntention={carryForward} preRoundMeta={preRoundMeta} setPreRoundMeta={setPreRoundMeta} settings={settings} updateSetting={updateSetting} /></ThemeCtx.Provider>;
   if (view==="tiger5") return <ThemeCtx.Provider value={P}><ToastLayer/><Tiger5View onBack={()=>setView(prevView||"home")} S={S}/></ThemeCtx.Provider>;
   if (view==="caddie") return <ThemeCtx.Provider value={P}><ToastLayer/><InnerCaddieView onBack={nav(prevView)} S={S} /></ThemeCtx.Provider>;
@@ -4346,23 +4346,20 @@ function FavCourseSearch({settings, updateSetting, P}) {
   );
 }
 
-function CourseSelectScreen({onConfirm, onSkip, settings, P, S}) {
+function CourseSelectModal({onConfirm, onSkip, settings, P, S}) {
   const pp = pressProps;
-  const [query, setQuery] = React.useState(settings.favCourse||"");
+  const [query, setQuery] = React.useState("");
   const [results, setResults] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
-  const [selectedCourse, setSelectedCourse] = React.useState(null);
   const [tees, setTees] = React.useState(settings.favTeeOptions||[]);
   const [selectedTee, setSelectedTee] = React.useState(settings.favTee||null);
+  const [selectedName, setSelectedName] = React.useState("");
   const [courseData, setCourseData] = React.useState(null);
   const debRef = React.useRef(null);
+  const inputRef = React.useRef(null);
 
-  // Auto-load favourite course tees on mount
-  React.useEffect(()=>{
-    if(settings.favCourse) setQuery(settings.favCourse);
-    if(settings.favTeeOptions?.length) setTees(settings.favTeeOptions);
-    if(settings.favTee) setSelectedTee(settings.favTee);
-  },[]);
+  // Focus input on open
+  React.useEffect(()=>{ setTimeout(()=>inputRef.current?.focus(),100); },[]);
 
   React.useEffect(()=>{
     clearTimeout(debRef.current);
@@ -4372,14 +4369,15 @@ function CourseSelectScreen({onConfirm, onSkip, settings, P, S}) {
       try{
         const res=await fetch(`${GOLF_API_BASE}/search?search_query=${encodeURIComponent(query)}`,{headers:{Authorization:`Key ${GOLF_API_KEY}`}});
         const d=await res.json();
-        setResults((d.courses||[]).slice(0,8));
+        setResults((d.courses||[]).slice(0,6));
       }catch{}finally{setLoading(false);}
     },350);
   },[query]);
 
   async function selectCourse(course) {
-    setQuery(course.club_name);
-    setSelectedCourse(course);
+    const name=course.club_name+(course.course_name&&course.course_name!==course.club_name?` — ${course.course_name}`:"");
+    setSelectedName(name);
+    setQuery(name);
     setResults([]);
     try{
       const res=await fetch(`${GOLF_API_BASE}/courses/${course.id}`,{headers:{Authorization:`Key ${GOLF_API_KEY}`}});
@@ -4390,98 +4388,116 @@ function CourseSelectScreen({onConfirm, onSkip, settings, P, S}) {
         const female=(full.tees?.female||[]).map(t=>({...t,gender:"Female"}));
         const flat=[...male,...female];
         setCourseData(full);
-        setTees(flat.map(t=>t.tee_name+(t.gender==="Female"?" (W)":"")));
-        if(!selectedTee&&flat.length>0) setSelectedTee(flat[0].tee_name+(flat[0].gender==="Female"?" (W)":""));
+        const teeNames=flat.map(t=>t.tee_name+(t.gender==="Female"?" (W)":""));
+        setTees(teeNames);
+        if(!selectedTee&&teeNames.length>0) setSelectedTee(teeNames[0]);
       }
     }catch{}
   }
 
-  function handleConfirm() {
-    onConfirm({courseName:query, selectedTee, courseData});
+  function useFav() {
+    setQuery(settings.favCourse);
+    setSelectedName(settings.favCourse);
+    setTees(settings.favTeeOptions||[]);
+    setSelectedTee(settings.favTee||null);
+    setCourseData(null);
+    setResults([]);
   }
 
+  const displayName = selectedName || query;
+
   return (
-    <div style={{display:"flex",flexDirection:"column",height:"100%",background:P.bg}}>
-      {/* Header */}
-      <div style={{padding:"16px 16px 0",display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
-        <button onClick={onSkip} style={{...S.iconBtn}} {...pp()}><Icons.Chev color={P.muted} size={16} style={{transform:"rotate(180deg)"}}/></button>
-        <div>
-          <div style={{fontSize:18,fontWeight:900,color:P.white}}>Select Course</div>
-          <div style={{fontSize:12,color:P.muted}}>Search or use your favourite</div>
-        </div>
-        <button onClick={onSkip} style={{marginLeft:"auto",padding:"6px 14px",borderRadius:8,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,fontWeight:700,cursor:"pointer"}} {...pp()}>Skip</button>
-      </div>
+    <div onClick={onSkip} style={{position:"fixed",inset:0,zIndex:9998,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"flex-end",justifyContent:"center",padding:"0"}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,background:P.bg,borderRadius:"20px 20px 0 0",border:`1.5px solid ${P.border}`,borderBottom:"none",boxShadow:"0 -8px 40px rgba(0,0,0,0.4)",maxHeight:"85vh",display:"flex",flexDirection:"column"}}>
 
-      <div style={{flex:1,overflowY:"auto",padding:16,display:"flex",flexDirection:"column",gap:12}}>
-
-        {/* Favourite badge */}
-        {settings.favCourse&&(
-          <button onClick={()=>{setQuery(settings.favCourse);setSelectedTee(settings.favTee||null);setTees(settings.favTeeOptions||[]);}} style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",borderRadius:12,border:`1.5px solid ${P.gold}44`,background:P.gold+"10",cursor:"pointer",width:"100%",textAlign:"left"}} {...pp()}>
-            <div style={{width:36,height:36,borderRadius:10,background:P.gold+"20",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <Icons.Flag color={P.gold} size={16}/>
-            </div>
-            <div>
-              <div style={{fontSize:11,fontWeight:700,color:P.gold,letterSpacing:1,marginBottom:2}}>FAVOURITE</div>
-              <div style={{fontSize:14,fontWeight:800,color:P.white}}>{settings.favCourse}</div>
-              {settings.favTee&&<div style={{fontSize:11,color:P.muted,marginTop:1}}>{settings.favTee} tees</div>}
-            </div>
-          </button>
-        )}
-
-        {/* Search */}
-        <div style={{position:"relative"}}>
-          <input
-            value={query}
-            onChange={e=>setQuery(e.target.value)}
-            placeholder="Search for a course..."
-            style={{width:"100%",padding:"12px 14px",borderRadius:12,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",boxSizing:"border-box"}}
-          />
-          {loading&&<div style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",width:14,height:14,borderRadius:"50%",border:`2px solid ${P.border}`,borderTopColor:P.accent,animation:"spin 0.7s linear infinite"}}/>}
+        {/* Handle bar */}
+        <div style={{display:"flex",justifyContent:"center",padding:"10px 0 4px"}}>
+          <div style={{width:36,height:4,borderRadius:2,background:P.border}}/>
         </div>
 
-        {/* Results */}
-        {results.length>0&&(
-          <div style={{borderRadius:12,border:`1.5px solid ${P.border}`,overflow:"hidden",background:P.card}}>
-            {results.map((r,i)=>(
-              <button key={r.id} onClick={()=>selectCourse(r)} style={{width:"100%",padding:"12px 14px",background:"transparent",border:"none",borderBottom:i<results.length-1?`1px solid ${P.border}`:"none",cursor:"pointer",textAlign:"left",display:"block"}} {...pp()}>
-                <div style={{fontSize:13,fontWeight:700,color:P.white}}>{r.club_name}{r.course_name&&r.course_name!==r.club_name?` — ${r.course_name}`:""}</div>
-                <div style={{fontSize:11,color:P.muted,marginTop:2}}>{[r.location?.city,r.location?.state].filter(Boolean).join(", ")}</div>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Tee selection */}
-        {tees.length>0&&(
+        {/* Header */}
+        <div style={{padding:"4px 16px 12px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
           <div>
-            <div style={{fontSize:11,fontWeight:700,color:P.muted,letterSpacing:1,marginBottom:8}}>SELECT TEE</div>
-            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-              {tees.map(t=>{
-                const sel=selectedTee===t;
-                return(
-                  <button key={t} onClick={()=>setSelectedTee(t)} style={{padding:"8px 16px",borderRadius:20,border:`1.5px solid ${sel?P.accent:P.border}`,background:sel?P.accent+"18":"transparent",color:sel?P.accent:P.muted,fontSize:13,fontWeight:700,cursor:"pointer"}} {...pp()}>{t}</button>
-                );
-              })}
+            <div style={{fontSize:17,fontWeight:900,color:P.white}}>Select Course</div>
+            <div style={{fontSize:12,color:P.muted,marginTop:1}}>Search or use your favourite</div>
+          </div>
+          <button onClick={onSkip} style={{padding:"6px 14px",borderRadius:8,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,fontWeight:700,cursor:"pointer"}} {...pp()}>Skip</button>
+        </div>
+
+        <div style={{flex:1,overflowY:"auto",padding:"0 16px 8px",display:"flex",flexDirection:"column",gap:10}}>
+
+          {/* Favourite shortcut */}
+          {settings.favCourse&&(
+            <button onClick={useFav} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:12,border:`1.5px solid ${P.gold}55`,background:P.gold+"12",cursor:"pointer",width:"100%",textAlign:"left",flexShrink:0}} {...pp()}>
+              <div style={{width:32,height:32,borderRadius:9,background:P.gold+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <Icons.Flag color={P.gold} size={14}/>
+              </div>
+              <div style={{minWidth:0,flex:1}}>
+                <div style={{fontSize:10,fontWeight:700,color:P.gold,letterSpacing:1}}>FAVOURITE</div>
+                <div style={{fontSize:13,fontWeight:800,color:P.white,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{settings.favCourse}</div>
+                {settings.favTee&&<div style={{fontSize:11,color:P.muted}}>{settings.favTee} tees</div>}
+              </div>
+              <div style={{fontSize:11,color:P.gold,fontWeight:700,flexShrink:0}}>Use →</div>
+            </button>
+          )}
+
+          {/* Search input */}
+          <div style={{position:"relative",flexShrink:0}}>
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={e=>{setQuery(e.target.value);setSelectedName("");}}
+              placeholder="Search for a course..."
+              style={{width:"100%",padding:"11px 36px 11px 12px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",boxSizing:"border-box"}}
+            />
+            {loading
+              ? <div style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",width:14,height:14,borderRadius:"50%",border:`2px solid ${P.border}`,borderTopColor:P.accent,animation:"spin 0.7s linear infinite"}}/>
+              : query&&<button onClick={()=>{setQuery("");setSelectedName("");setResults([]);setCourseData(null);setTees([]);}} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",color:P.muted,fontSize:16,cursor:"pointer",lineHeight:1,padding:2}}>×</button>
+            }
+          </div>
+
+          {/* Search results */}
+          {results.length>0&&(
+            <div style={{borderRadius:10,border:`1.5px solid ${P.border}`,overflow:"hidden",background:P.card,flexShrink:0}}>
+              {results.map((r,i)=>(
+                <button key={r.id} onClick={()=>selectCourse(r)} style={{width:"100%",padding:"10px 12px",background:"transparent",border:"none",borderBottom:i<results.length-1?`1px solid ${P.border}`:"none",cursor:"pointer",textAlign:"left",display:"block"}} {...pp()}>
+                  <div style={{fontSize:13,fontWeight:700,color:P.white,lineHeight:1.3}}>{r.club_name}{r.course_name&&r.course_name!==r.club_name?` — ${r.course_name}`:""}</div>
+                  <div style={{fontSize:11,color:P.muted,marginTop:2}}>{[r.location?.city,r.location?.state].filter(Boolean).join(", ")}</div>
+                </button>
+              ))}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Current selection summary */}
-        {query&&(
-          <div style={{padding:"12px 14px",borderRadius:12,border:`1.5px solid ${P.border}`,background:P.card}}>
-            <div style={{fontSize:11,color:P.muted,fontWeight:600,marginBottom:4}}>SELECTED</div>
-            <div style={{fontSize:14,fontWeight:800,color:P.white}}>{query}</div>
-            {selectedTee&&<div style={{fontSize:12,color:P.accent,fontWeight:600,marginTop:2}}>{selectedTee} tees</div>}
-          </div>
-        )}
-      </div>
+          {/* Tee selection */}
+          {tees.length>0&&(
+            <div style={{flexShrink:0}}>
+              <div style={{fontSize:10,fontWeight:700,color:P.muted,letterSpacing:1,marginBottom:6}}>SELECT TEE</div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {tees.map(t=>{
+                  const sel=selectedTee===t;
+                  return <button key={t} onClick={()=>setSelectedTee(t)} style={{padding:"7px 14px",borderRadius:20,border:`1.5px solid ${sel?P.accent:P.border}`,background:sel?P.accent+"18":"transparent",color:sel?P.accent:P.muted,fontSize:12,fontWeight:700,cursor:"pointer"}} {...pp()}>{t}</button>;
+                })}
+              </div>
+            </div>
+          )}
 
-      {/* Confirm button */}
-      <div style={{padding:"12px 16px",flexShrink:0,borderTop:`1px solid ${P.border}`,background:P.bg}}>
-        <button onClick={handleConfirm} style={{width:"100%",padding:"14px",borderRadius:14,border:"none",background:query?"linear-gradient(135deg,#16a34a,#22c55e)":"transparent",border:query?"none":`1.5px solid ${P.border}`,color:query?"#fff":P.muted,fontSize:15,fontWeight:800,cursor:"pointer"}} {...pp()}>
-          {query?"Confirm Course →":"Skip →"}
-        </button>
-        <div style={{height:"calc(4px + env(safe-area-inset-bottom,0px))"}}/>
+          {/* Selected summary */}
+          {displayName&&(
+            <div style={{padding:"10px 12px",borderRadius:10,border:`1.5px solid ${P.green}44`,background:P.green+"0a",flexShrink:0}}>
+              <div style={{fontSize:10,color:P.green,fontWeight:700,letterSpacing:1,marginBottom:3}}>SELECTED</div>
+              <div style={{fontSize:13,fontWeight:800,color:P.white,lineHeight:1.4}}>{displayName}</div>
+              {selectedTee&&<div style={{fontSize:12,color:P.accent,fontWeight:600,marginTop:2}}>{selectedTee} tees</div>}
+            </div>
+          )}
+        </div>
+
+        {/* Confirm */}
+        <div style={{padding:"10px 16px",flexShrink:0,borderTop:`1px solid ${P.border}`}}>
+          <button onClick={()=>onConfirm({courseName:displayName,selectedTee,courseData})} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:displayName?"linear-gradient(135deg,#16a34a,#22c55e)":`1.5px solid ${P.border}`,backgroundColor:displayName?undefined:P.card,color:displayName?"#fff":P.muted,fontSize:14,fontWeight:800,cursor:"pointer"}} {...pp()}>
+            {displayName?"Confirm →":"Skip →"}
+          </button>
+          <div style={{height:"calc(8px + env(safe-area-inset-bottom,0px))"}}/>
+        </div>
       </div>
     </div>
   );
