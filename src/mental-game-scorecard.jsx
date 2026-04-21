@@ -4232,7 +4232,6 @@ function FavCourseSearch({settings, updateSetting, P}) {
   const [open, setOpen] = React.useState(false);
   const [tees, setTees] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
-  const [dropRect, setDropRect] = React.useState(null);
   const inputRef = React.useRef(null);
   const debRef = React.useRef(null);
 
@@ -4246,14 +4245,7 @@ function FavCourseSearch({settings, updateSetting, P}) {
         const d=await res.json();
         const courses=d.courses||[];
         setResults(courses.slice(0,8));
-        if(courses.length>0){
-          setOpen(true);
-          // Measure input position for fixed dropdown
-          if(inputRef.current){
-            const r=inputRef.current.getBoundingClientRect();
-            setDropRect({top:r.bottom+4,left:r.left,width:r.width});
-          }
-        }
+        if(courses.length>0) setOpen(true);
       }catch{}
       finally{setLoading(false);}
     },350);
@@ -4261,20 +4253,19 @@ function FavCourseSearch({settings, updateSetting, P}) {
 
   React.useEffect(()=>{
     if(!open) return;
-    const close = (e)=>{
-      // Don't close if clicking inside the dropdown
-      const dropdown = document.getElementById('fav-course-dropdown');
-      if(dropdown && dropdown.contains(e.target)) return;
+    const close=(e)=>{
+      const dropdown=document.getElementById('fav-course-dropdown');
+      if(dropdown&&dropdown.contains(e.target)) return;
       setOpen(false);
     };
-    window.addEventListener('pointerdown', close, {capture:true});
-    return ()=>window.removeEventListener('pointerdown', close, {capture:true});
+    window.addEventListener('pointerdown',close,{capture:true});
+    return ()=>window.removeEventListener('pointerdown',close,{capture:true});
   },[open]);
 
   async function selectCourse(course) {
-    const name = course.club_name;
-    setQuery(name);
-    updateSetting("favCourse", name);
+    const fullName=course.club_name+(course.course_name&&course.course_name!==course.club_name?` — ${course.course_name}`:"");
+    setQuery(fullName);
+    updateSetting("favCourse", fullName);
     setOpen(false);
     setResults([]);
     try{
@@ -4286,13 +4277,11 @@ function FavCourseSearch({settings, updateSetting, P}) {
         const female=(full.tees?.female||[]).map(t=>({...t,gender:"Female"}));
         const flat=[...male,...female];
         setTees(flat);
-        // Save tee names to settings for persistence
         updateSetting("favTeeOptions", flat.map(t=>t.tee_name+(t.gender==="Female"?" (W)":"")));
       }
     }catch{}
   }
 
-  // Use saved tee options if available
   const teeOptions = tees.length>0
     ? tees.map(t=>t.tee_name+(t.gender==="Female"?" (W)":""))
     : (settings.favTeeOptions||[]);
@@ -4308,17 +4297,18 @@ function FavCourseSearch({settings, updateSetting, P}) {
           value={query}
           onChange={e=>setQuery(e.target.value)}
           onBlur={()=>setTimeout(()=>setOpen(false),150)}
-          placeholder="Search course..." onKeyDown={e=>e.key==="Escape"&&setOpen(false)}
-          style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:13,outline:"none"}}
+          placeholder="Search course..."
+          onKeyDown={e=>e.key==="Escape"&&setOpen(false)}
+          style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:13,outline:"none",boxSizing:"border-box"}}
         />
         {loading&&<div style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",width:12,height:12,borderRadius:"50%",border:`2px solid ${P.border}`,borderTopColor:P.accent,animation:"spin 0.7s linear infinite"}}/>}
-        {/* Fixed-position dropdown to escape overflow:hidden parents */}
-        {open&&results.length>0&&dropRect&&(
-          <div id="fav-course-dropdown" style={{position:"fixed",top:dropRect.top,left:dropRect.left,width:dropRect.width,background:P.card,borderRadius:10,border:`1.5px solid ${P.border}`,zIndex:9999,maxHeight:220,overflowY:"auto",boxShadow:"0 8px 32px rgba(0,0,0,0.35)"}}>
+        {/* Dropdown always below input */}
+        {open&&results.length>0&&(
+          <div id="fav-course-dropdown" style={{position:"absolute",top:"100%",left:0,right:0,marginTop:4,background:P.card,borderRadius:10,border:`1.5px solid ${P.border}`,zIndex:9999,maxHeight:220,overflowY:"auto",boxShadow:"0 8px 32px rgba(0,0,0,0.35)"}}>
             {results.map(r=>(
-              <div key={r.id} onPointerDown={e=>{e.preventDefault();selectCourse(r);}} style={{padding:"10px 14px",cursor:"pointer",borderBottom:`1px solid ${P.border}`,fontSize:13,color:P.white,fontWeight:600,userSelect:"none"}}>
-                {r.club_name}{r.course_name&&r.course_name!==r.club_name?` — ${r.course_name}`:""}
-                <div style={{fontSize:10,color:P.muted,fontWeight:400,marginTop:1}}>{[r.location?.city,r.location?.state].filter(Boolean).join(", ")}</div>
+              <div key={r.id} onPointerDown={e=>{e.preventDefault();selectCourse(r);}} style={{padding:"10px 14px",cursor:"pointer",borderBottom:`1px solid ${P.border}`,userSelect:"none"}}>
+                <div style={{fontSize:13,color:P.white,fontWeight:600,lineHeight:1.3}}>{r.club_name}{r.course_name&&r.course_name!==r.club_name?` — ${r.course_name}`:""}</div>
+                <div style={{fontSize:10,color:P.muted,fontWeight:400,marginTop:2}}>{[r.location?.city,r.location?.state].filter(Boolean).join(", ")}</div>
               </div>
             ))}
           </div>
@@ -4414,21 +4404,21 @@ function CourseSelectModal({onConfirm, onSkip, settings, P, S}) {
         <div style={{padding:"16px 16px 12px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,borderBottom:`1px solid ${P.border}`}}>
           <div>
             <div style={{fontSize:17,fontWeight:900,color:P.white}}>Select Course</div>
-            <div style={{fontSize:12,color:P.muted,marginTop:1}}>Search or use your favourite</div>
+            <div style={{fontSize:12,color:P.muted,marginTop:1,fontWeight:500}}>Search or use your favorite</div>
           </div>
           <button onClick={onSkip} style={{padding:"6px 14px",borderRadius:8,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,fontWeight:700,cursor:"pointer"}} {...pp()}>Skip</button>
         </div>
 
         <div style={{flex:1,overflowY:"auto",padding:"0 16px 8px",display:"flex",flexDirection:"column",gap:10}}>
 
-          {/* Favourite shortcut */}
+          {/* Favorite shortcut */}
           {settings.favCourse&&(
             <button onClick={useFav} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:12,border:`1.5px solid ${P.gold}55`,background:P.gold+"12",cursor:"pointer",width:"100%",textAlign:"left",flexShrink:0}} {...pp()}>
               <div style={{width:32,height:32,borderRadius:9,background:P.gold+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                 <Icons.Flag color={P.gold} size={14}/>
               </div>
               <div style={{minWidth:0,flex:1}}>
-                <div style={{fontSize:10,fontWeight:700,color:P.gold,letterSpacing:1}}>FAVOURITE</div>
+                <div style={{fontSize:10,fontWeight:700,color:P.gold,letterSpacing:1}}>FAVORITE</div>
                 <div style={{fontSize:13,fontWeight:800,color:P.white,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{settings.favCourse}</div>
                 {settings.favTee&&<div style={{fontSize:11,color:P.muted}}>{settings.favTee} tees</div>}
               </div>
@@ -4650,8 +4640,8 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
           </Row>
         </Section>
 
-        {/* Favourite Course */}
-        <Section title="Favourite Course">
+        {/* Favorite Course */}
+        <Section title="Favorite Course">
           <div style={{padding:"4px 0 8px"}}>
             <FavCourseSearch settings={settings} updateSetting={updateSetting} P={P}/>
           </div>
