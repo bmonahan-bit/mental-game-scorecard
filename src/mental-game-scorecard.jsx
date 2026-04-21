@@ -6458,77 +6458,123 @@ function BChart({P,title,items,totals,color}) { const max=Math.max(1,...Object.v
 // COMBO TREND CHART (bars = net, line = score)
 // ═══════════════════════════════════════
 function ComboTrendChart({P, trend, rounds, onSelectRound}) {
-  const BAR_AREA = 80;
-  const PSR_AREA = 36;
-  const PADDING = 4;
-  const TOTAL_H = BAR_AREA + PSR_AREA + PADDING;
+  const PSR_AREA = 34;
+  const SCORE_AREA = 40;
+  const GAP = 6;
 
   const maxNet = Math.max(1, ...trend.map(t => Math.abs(t.net)));
+  // Dynamic bar area — at least 30px per half, scale with maxNet
+  const BAR_HALF = Math.max(30, maxNet * 5);
+  const BAR_AREA = BAR_HALF * 2 + 20;
+  const TOTAL_H = BAR_AREA + GAP + SCORE_AREA + GAP + PSR_AREA;
+
+  const hasPsr = trend.some(t => t.psrPct != null);
+  const hasScore = trend.some(t => t.scoreToPar != null);
+
+  // Score-to-par range for its own axis
+  const scoreVals = trend.filter(t => t.scoreToPar != null).map(t => t.scoreToPar);
+  const minScore = scoreVals.length ? Math.min(...scoreVals) : -5;
+  const maxScore = scoreVals.length ? Math.max(...scoreVals) : 20;
+  const scoreRange = Math.max(maxScore - minScore, 5);
 
   const n = trend.length;
   const svgW = 320;
   const colW = svgW / n;
 
-  // PSR% line — plotted in its own lane below bars
-  const psrPoints = trend.map((t, i) => {
-    if (t.psrPct === null || t.psrPct === undefined) return null;
+  const scoreTop = BAR_AREA + GAP;
+  const psrTop = BAR_AREA + GAP + SCORE_AREA + GAP;
+
+  // Score line in its own band
+  const scorePoints = trend.map((t, i) => {
+    if (t.scoreToPar == null) return null;
     const x = colW * i + colW / 2;
-    const y = BAR_AREA + PADDING + 4 + ((100 - t.psrPct) / 100) * (PSR_AREA - 10);
+    const y = scoreTop + 4 + ((t.scoreToPar - minScore) / scoreRange) * (SCORE_AREA - 12);
+    return { x, y: Math.max(scoreTop+2, Math.min(scoreTop+SCORE_AREA-2, y)), t, i };
+  }).filter(Boolean);
+  const scorePoly = scorePoints.map(p => `${p.x},${p.y}`).join(' ');
+
+  // PSR line in its own band
+  const psrPoints = trend.map((t, i) => {
+    if (t.psrPct == null) return null;
+    const x = colW * i + colW / 2;
+    const y = psrTop + 4 + ((100 - t.psrPct) / 100) * (PSR_AREA - 10);
     return { x, y, t, i };
   }).filter(Boolean);
-  const psrPolyline = psrPoints.map(p => `${p.x},${p.y}`).join(' ');
+  const psrPoly = psrPoints.map(p => `${p.x},${p.y}`).join(' ');
 
   return (
     <div style={{background:P.card,borderRadius:12,padding:"10px 10px 6px",border:`1.5px solid ${P.border}`,marginBottom:8}}>
+      {/* Legend */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-        <div style={{fontSize:10,color:P.muted,fontWeight:700,letterSpacing:1}}>MENTAL NET + PSR%</div>
+        <div style={{fontSize:10,color:P.muted,fontWeight:700,letterSpacing:1}}>MENTAL NET + SCORE + PSR%</div>
         <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
           <div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:10,height:10,borderRadius:2,background:P.green}}/><span style={{fontSize:9,color:P.muted}}>+Net</span></div>
           <div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:10,height:10,borderRadius:2,background:P.red}}/><span style={{fontSize:9,color:P.muted}}>-Net</span></div>
-          <div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:14,height:2,background:"#7c3aed",borderRadius:1}}/><span style={{fontSize:9,color:P.muted}}>PSR%</span></div>
+          {hasScore&&<div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:14,height:2,background:P.gold,borderRadius:1}}/><span style={{fontSize:9,color:P.muted}}>Score</span></div>}
+          {hasPsr&&<div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:14,height:2,background:"#7c3aed",borderRadius:1}}/><span style={{fontSize:9,color:P.muted}}>PSR%</span></div>}
         </div>
       </div>
 
       <div style={{position:"relative",height:TOTAL_H}}>
-        {/* Bar chart area */}
+
+        {/* ── BAR CHART ── */}
         <div style={{position:"absolute",top:0,left:0,right:0,height:BAR_AREA,display:"flex",gap:2,alignItems:"stretch"}}>
           {trend.map((t, i) => {
-            const barH = Math.max(4, (Math.abs(t.net) / maxNet) * (BAR_AREA/2 - 10));
+            const barH = Math.max(4, (Math.abs(t.net) / maxNet) * (BAR_HALF - 4));
             const pos = t.net >= 0;
-            const roundsChron = [...rounds].reverse();
-            const round = roundsChron[i] || null;
+            const round = [...rounds].reverse()[i] || null;
             return (
-              <div key={i} style={{flex:1,display:"flex",flexDirection:"column",cursor:round?"pointer":"default",position:"relative"}} onClick={()=>round&&onSelectRound(round)} {...pp()}>
-                {/* Net label */}
-                <div style={{height:16,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,color:pos?P.green:P.red}}>
+              <div key={i} style={{flex:1,display:"flex",flexDirection:"column",cursor:round?"pointer":"default"}} onClick={()=>round&&onSelectRound(round)} {...pp()}>
+                <div style={{height:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:700,color:pos?P.green:P.red}}>
                   {t.net!==0?(t.net>0?"+":"")+t.net:""}
                 </div>
-                {/* Positive bar */}
                 <div style={{flex:1,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-                  {pos&&<div style={{width:"75%",height:barH,borderRadius:"3px 3px 0 0",background:P.green,opacity:0.9}}/>}
+                  {pos&&<div style={{width:"70%",height:barH,borderRadius:"3px 3px 0 0",background:P.green,opacity:0.85}}/>}
                 </div>
-                {/* Baseline */}
                 <div style={{height:1,background:P.border,flexShrink:0}}/>
-                {/* Negative bar */}
                 <div style={{flex:1,display:"flex",alignItems:"flex-start",justifyContent:"center"}}>
-                  {!pos&&<div style={{width:"75%",height:barH,borderRadius:"0 0 3px 3px",background:P.red,opacity:0.9}}/>}
+                  {!pos&&<div style={{width:"70%",height:barH,borderRadius:"0 0 3px 3px",background:P.red,opacity:0.85}}/>}
                 </div>
-                <div style={{height:16}}/>
+                <div style={{height:10}}/>
               </div>
             );
           })}
         </div>
 
-        {/* PSR divider */}
-        <div style={{position:"absolute",top:BAR_AREA+PADDING,left:0,right:0,height:1,background:P.border,opacity:0.5}}/>
-        <div style={{position:"absolute",top:BAR_AREA+PADDING+2,left:0,fontSize:8,color:"#7c3aed",fontWeight:700,letterSpacing:0.5,opacity:0.7}}>PSR%</div>
+        {/* ── SCORE BAND ── */}
+        {hasScore&&<>
+          <div style={{position:"absolute",top:scoreTop,left:0,right:0,height:1,background:P.border,opacity:0.4}}/>
+          <div style={{position:"absolute",top:scoreTop+2,left:0,fontSize:8,color:P.gold,fontWeight:700,opacity:0.8}}>SCORE</div>
+          <div style={{position:"absolute",top:scoreTop+2,right:0,fontSize:8,color:P.muted,opacity:0.6}}>
+            {minScore>0?"+":""}{minScore} → {maxScore>0?"+":""}{maxScore}
+          </div>
+          {/* Zero line within score band */}
+          {minScore<0&&maxScore>0&&(()=>{
+            const zeroY = scoreTop + 4 + ((0 - minScore) / scoreRange) * (SCORE_AREA - 12);
+            return <div style={{position:"absolute",top:zeroY,left:0,right:0,height:1,background:P.gold,opacity:0.2}}/>;
+          })()}
+        </>}
 
-        {/* SVG overlay — PSR line only */}
+        {/* ── PSR BAND ── */}
+        {hasPsr&&<>
+          <div style={{position:"absolute",top:psrTop,left:0,right:0,height:1,background:P.border,opacity:0.4}}/>
+          <div style={{position:"absolute",top:psrTop+2,left:0,fontSize:8,color:"#7c3aed",fontWeight:700,opacity:0.8}}>PSR%</div>
+        </>}
+
+        {/* ── SVG LINES ── */}
         <svg style={{position:"absolute",top:0,left:0,width:"100%",height:TOTAL_H,overflow:"visible",pointerEvents:"none"}} viewBox={`0 0 ${svgW} ${TOTAL_H}`} preserveAspectRatio="none">
-          {psrPoints.length >= 2 && (
+          {scorePoints.length>=2&&(
             <>
-              <polyline points={psrPolyline} fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" opacity="0.9" strokeDasharray="4 2"/>
-              {psrPoints.map(p => (
+              <polyline points={scorePoly} fill="none" stroke={P.gold} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" opacity="0.9"/>
+              {scorePoints.map(p=>(
+                <circle key={p.i} cx={p.x} cy={p.y} r="3" fill={P.gold} stroke={P.card} strokeWidth="1.5"/>
+              ))}
+            </>
+          )}
+          {psrPoints.length>=2&&(
+            <>
+              <polyline points={psrPoly} fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" opacity="0.9" strokeDasharray="4 2"/>
+              {psrPoints.map(p=>(
                 <circle key={p.i} cx={p.x} cy={p.y} r="2.5" fill="#7c3aed" stroke={P.card} strokeWidth="1.5" opacity="0.9"/>
               ))}
             </>
@@ -6536,13 +6582,13 @@ function ComboTrendChart({P, trend, rounds, onSelectRound}) {
         </svg>
       </div>
 
-      {/* Date / score / PSR labels */}
+      {/* Date + value labels */}
       <div style={{display:"flex",gap:2,marginTop:4}}>
         {trend.map((t,i)=>(
           <div key={i} style={{flex:1,textAlign:"center"}}>
             <div style={{fontSize:9,color:P.muted,fontWeight:500,lineHeight:1.2}}>{t.label}</div>
-            {t.stroke&&<div style={{fontSize:9,color:P.gold,fontWeight:700}}>{t.stroke}</div>}
-            {t.psrPct!==null&&t.psrPct!==undefined&&<div style={{fontSize:9,color:"#7c3aed",fontWeight:700}}>{t.psrPct}%</div>}
+            {t.scoreToPar!=null&&<div style={{fontSize:9,color:P.gold,fontWeight:700}}>{t.scoreToPar>0?"+":""}{t.scoreToPar}</div>}
+            {t.psrPct!=null&&<div style={{fontSize:9,color:"#7c3aed",fontWeight:700}}>{t.psrPct}%</div>}
             <div style={{display:"flex",justifyContent:"center",marginTop:2}}>
               {t.checklistDone===true&&<div style={{width:5,height:5,borderRadius:"50%",background:P.green,opacity:0.8}}/>}
               {t.checklistDone===false&&<div style={{width:5,height:5,borderRadius:"50%",background:P.border}}/>}
@@ -6556,8 +6602,6 @@ function ComboTrendChart({P, trend, rounds, onSelectRound}) {
   );
 }
 
-
-// ═══════════════════════════════════════
 // ROUND DETAIL VIEW (from dashboard tap)
 // ═══════════════════════════════════════
 function RoundDetailView({round, onBack, onShare, S}) {
