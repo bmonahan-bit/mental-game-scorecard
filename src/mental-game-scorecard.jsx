@@ -3079,29 +3079,100 @@ export default function App() {
 // ═══════════════════════════════════════
 // HOME
 // ═══════════════════════════════════════
+function AvatarSVG({id, initial, size=38}) {
+  const s = size, h = s/2;
+  const avatars = {
+    golfer: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#1a3a2a"/><ellipse cx="0" cy="18" rx="14" ry="10" fill="#c9a84c"/><circle cx="0" cy="-2" r="11" fill="#c9a84c"/><ellipse cx="0" cy="-12" rx="13" ry="5" fill="#2d6a4f"/><rect x="-3" y="-17" width="16" height="5" rx="2" fill="#2d6a4f"/><line x1="12" y1="8" x2="24" y2="30" stroke="#c9a84c" strokeWidth="2.5" strokeLinecap="round"/><ellipse cx="25" cy="32" rx="4" ry="3" fill="#c9a84c"/></svg>,
+    course: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#0f4c35"/><clipPath id="cc"><circle cx="0" cy="0" r="38"/></clipPath><g clipPath="url(#cc)"><ellipse cx="0" cy="28" rx="50" ry="22" fill="#1a6b47"/><ellipse cx="6" cy="24" rx="18" ry="8" fill="#22804f" opacity="0.6"/><ellipse cx="2" cy="18" rx="5" ry="2.5" fill="#0a2e1e"/><line x1="2" y1="18" x2="2" y2="-26" stroke="#e8e0cc" strokeWidth="2.5" strokeLinecap="round"/><polygon points="2,-26 26,-16 2,-8" fill="#dc2626"/></g></svg>,
+    champion: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#2a1f00"/><path d="M-13,-16 Q-15,8 -6,18 L6,18 Q15,8 13,-16 Z" fill="#c9a84c"/><rect x="-15" y="-18" width="30" height="5" rx="2" fill="#e8b84c"/><path d="M-13,-8 Q-22,-8 -22,4 Q-22,10 -13,10" fill="none" stroke="#c9a84c" strokeWidth="3" strokeLinecap="round"/><path d="M13,-8 Q22,-8 22,4 Q22,10 13,10" fill="none" stroke="#c9a84c" strokeWidth="3" strokeLinecap="round"/><rect x="-3" y="18" width="6" height="8" fill="#c9a84c"/><rect x="-10" y="26" width="20" height="5" rx="2" fill="#e8b84c"/><text x="0" y="10" fontSize="13" textAnchor="middle" fill="#fffbe6">★</text></svg>,
+    ball: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#1e3a5f"/><circle cx="0" cy="0" r="26" fill="#f5f5f0"/><circle cx="0" cy="0" r="26" fill="none" stroke="#d8d8d0" strokeWidth="0.5"/><circle cx="-9" cy="-8" r="3" fill="#e2e2da"/><circle cx="7" cy="-10" r="3" fill="#e2e2da"/><circle cx="1" cy="4" r="3" fill="#e2e2da"/><circle cx="-12" cy="7" r="3" fill="#e2e2da"/><circle cx="11" cy="6" r="3" fill="#e2e2da"/><circle cx="-4" cy="-18" r="3" fill="#e2e2da"/><circle cx="16" cy="-3" r="3" fill="#e2e2da"/><circle cx="-17" cy="-2" r="3" fill="#e2e2da"/><rect x="-4" y="22" width="8" height="18" rx="2" fill="#d4a84c"/><ellipse cx="0" cy="22" rx="8" ry="4" fill="#e8c068"/></svg>,
+    mountain: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#0a2a3a"/><clipPath id="mc"><circle cx="0" cy="0" r="38"/></clipPath><g clipPath="url(#mc)"><rect x="-38" y="-38" width="76" height="76" fill="#0a2a3a"/><polygon points="-38,22 0,-28 38,22" fill="#1a4a5a"/><polygon points="-8,-18 0,-28 8,-18" fill="#dde8f0"/><polygon points="-38,38 -12,-8 22,38" fill="#1e3d2a"/><rect x="-38" y="24" width="76" height="14" fill="#1a4f30"/></g></svg>,
+    sunrise: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#1a2a4a"/><clipPath id="sc"><circle cx="0" cy="0" r="38"/></clipPath><g clipPath="url(#sc)"><rect x="-38" y="5" width="76" height="33" fill="#0f1e38"/><ellipse cx="0" cy="5" rx="38" ry="10" fill="#1a3a5a"/><circle cx="0" cy="5" r="18" fill="#c9a84c"/><g stroke="#c9a84c" strokeWidth="2" strokeLinecap="round" opacity="0.7"><line x1="-22" y1="5" x2="-30" y2="5"/><line x1="22" y1="5" x2="30" y2="5"/><line x1="-16" y1="-13" x2="-21" y2="-18"/><line x1="16" y1="-13" x2="21" y2="-18"/><line x1="0" y1="-22" x2="0" y2="-30"/></g></g></svg>,
+    navigator: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#1a2a1a"/><circle cx="0" cy="0" r="30" fill="none" stroke="#c9a84c" strokeWidth="1.5"/><circle cx="0" cy="0" r="4" fill="#c9a84c"/><polygon points="0,-26 4,-6 0,-2 -4,-6" fill="#dc2626"/><polygon points="0,26 4,6 0,2 -4,6" fill="#e8e0cc"/><polygon points="26,0 6,4 2,0 6,-4" fill="#e8e0cc"/><polygon points="-26,0 -6,4 -2,0 -6,-4" fill="#e8e0cc"/><g stroke="#c9a84c" strokeWidth="1" opacity="0.5"><line x1="0" y1="-30" x2="0" y2="-26"/><line x1="0" y1="26" x2="0" y2="30"/><line x1="26" y1="0" x2="30" y2="0"/><line x1="-30" y1="0" x2="-26" y2="0"/></g></svg>,
+    zen: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#0e1520"/><ellipse cx="0" cy="0" rx="14" ry="8" fill="#3a5a8a" transform="rotate(0)"/><ellipse cx="0" cy="0" rx="14" ry="8" fill="#3a5a8a" transform="rotate(45)"/><ellipse cx="0" cy="0" rx="14" ry="8" fill="#3a5a8a" transform="rotate(90)"/><ellipse cx="0" cy="0" rx="14" ry="8" fill="#3a5a8a" transform="rotate(135)"/><ellipse cx="0" cy="-16" rx="6" ry="10" fill="#5a80b8" transform="rotate(22.5)"/><ellipse cx="0" cy="-16" rx="6" ry="10" fill="#5a80b8" transform="rotate(67.5)"/><ellipse cx="0" cy="-16" rx="6" ry="10" fill="#5a80b8" transform="rotate(112.5)"/><ellipse cx="0" cy="-16" rx="6" ry="10" fill="#5a80b8" transform="rotate(157.5)"/><circle cx="0" cy="0" r="9" fill="#c9a84c"/><circle cx="0" cy="0" r="5" fill="#e8c870"/></svg>,
+    fire: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#0e1008"/><clipPath id="fc"><circle cx="0" cy="0" r="38"/></clipPath><g clipPath="url(#fc)"><ellipse cx="0" cy="28" rx="30" ry="8" fill="#1a1206"/><rect x="-22" y="16" width="44" height="8" rx="4" fill="#3a1e08" transform="rotate(-15 0 20)"/><rect x="-22" y="16" width="44" height="8" rx="4" fill="#4a2610" transform="rotate(15 0 20)"/><circle cx="-18" cy="22" r="4" fill="#c84000" opacity="0.8"/><circle cx="18" cy="22" r="4" fill="#c84000" opacity="0.8"/><path d="M-10,20 C-18,8 -14,-8 -6,-18 C-8,-6 -4,4 -2,12Z" fill="#c93a00"/><path d="M10,20 C18,8 14,-8 6,-18 C8,-6 4,4 2,12Z" fill="#c93a00"/><path d="M0,20 C-12,10 -10,-6 0,-22 C10,-6 12,10 0,20Z" fill="#e86820"/><path d="M0,18 C-6,10 -4,0 0,-14 C4,0 6,10 0,18Z" fill="#ffc040"/><ellipse cx="0" cy="-4" rx="3" ry="6" fill="#fff8c0" opacity="0.9"/><circle cx="-14" cy="4" r="1.5" fill="#ff8020" opacity="0.8"/><circle cx="16" cy="0" r="1.5" fill="#ff8020" opacity="0.7"/></g></svg>,
+    monogram: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#1a1a2e"/><circle cx="0" cy="0" r="32" fill="none" stroke="#c9a84c" strokeWidth="1.5"/><circle cx="0" cy="0" r="34" fill="none" stroke="#c9a84c" strokeWidth="0.5" opacity="0.4"/><text x="0" y="12" fontFamily="system-ui,sans-serif" fontSize="30" fontWeight="500" textAnchor="middle" fill="#c9a84c">{initial}</text></svg>,
+  };
+  return avatars[id] || avatars.monogram;
+}
+
+function AvatarPicker({P, onClose, onSelect, current, initial}) {
+  const pp = pressProps;
+  const options = [
+    {id:"monogram",label:"Monogram"},
+    {id:"golfer",label:"Golfer"},
+    {id:"course",label:"Course"},
+    {id:"champion",label:"Champion"},
+    {id:"ball",label:"Ball"},
+    {id:"mountain",label:"Mountain"},
+    {id:"sunrise",label:"Sunrise"},
+    {id:"navigator",label:"Navigator"},
+    {id:"zen",label:"Zen"},
+    {id:"fire",label:"Fire"},
+  ];
+  return (
+    <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:50001,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 20px"}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:340,background:P.bg,borderRadius:20,border:`1.5px solid ${P.border}`,boxShadow:"0 24px 60px rgba(0,0,0,0.5)",overflow:"hidden"}}>
+        <div style={{padding:"16px 16px 12px",borderBottom:`1px solid ${P.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div style={{fontSize:16,fontWeight:800,color:P.white}}>Choose Avatar</div>
+          <button onClick={onClose} style={{background:"transparent",border:"none",color:P.muted,fontSize:18,cursor:"pointer",lineHeight:1,padding:4}}>×</button>
+        </div>
+        <div style={{padding:"16px",display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:"16px 8px"}}>
+          {options.map(o=>(
+            <button key={o.id} onClick={()=>{onSelect(o.id);onClose();}} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,background:"transparent",border:"none",cursor:"pointer",padding:"6px 4px",borderRadius:10,outline:current===o.id?`2px solid #c9a84c`:"none",outlineOffset:2}} {...pp()}>
+              <AvatarSVG id={o.id} initial={initial} size={44}/>
+              <span style={{fontSize:9,color:current===o.id?"#c9a84c":P.muted,fontWeight:current===o.id?700:500,textAlign:"center",lineHeight:1.2}}>{o.label}</span>
+            </button>
+          ))}
+        </div>
+        <div style={{height:"calc(8px + env(safe-area-inset-bottom,0px))"}}/>
+      </div>
+    </div>
+  );
+}
+
 function UserDropdown({firstName, overlay1, overlay2, textHigh, textMid, P, onSettings, onSignOut}) {
   const [open, setOpen] = React.useState(false);
+  const [showPicker, setShowPicker] = React.useState(false);
+  const [avatarId, setAvatarId] = React.useState(()=>{try{return localStorage.getItem("mgp_avatar")||"monogram";}catch{return "monogram";}});
+  const clerkUser = window.__useUser ? window.__useUser() : null;
+  const imageUrl = clerkUser?.user?.imageUrl;
+  const initial = (firstName||"?")[0].toUpperCase();
+
+  function saveAvatar(id) {
+    setAvatarId(id);
+    try{localStorage.setItem("mgp_avatar",id);}catch{}
+  }
+
+  const avatarEl = imageUrl
+    ? <img src={imageUrl} alt={firstName||"User"} style={{width:28,height:28,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:`1.5px solid ${overlay2}`}}/>
+    : <div style={{width:28,height:28,borderRadius:"50%",overflow:"hidden",flexShrink:0,border:`1.5px solid ${overlay2}`}}><AvatarSVG id={avatarId} initial={initial} size={28}/></div>;
+
+  const avatarLg = imageUrl
+    ? <img src={imageUrl} alt={firstName} style={{width:40,height:40,borderRadius:"50%",objectFit:"cover",border:`2px solid ${P.border}`}}/>
+    : <div style={{width:40,height:40,borderRadius:"50%",overflow:"hidden",border:`2px solid ${P.border}`,flexShrink:0}}><AvatarSVG id={avatarId} initial={initial} size={40}/></div>;
 
   return (
     <div style={{position:"relative"}}>
-      <button onClick={()=>setOpen(o=>!o)} style={{display:"flex",alignItems:"center",gap:8,background:overlay1,border:`1px solid ${overlay2}`,borderRadius:10,padding:"6px 12px",cursor:"pointer"}}>
-        <div style={{width:24,height:24,borderRadius:"50%",background:overlay2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:textHigh}}>{(firstName||"?")[0].toUpperCase()}</div>
+      {showPicker&&<AvatarPicker P={P} onClose={()=>setShowPicker(false)} onSelect={saveAvatar} current={avatarId} initial={initial}/>}
+      <button onClick={()=>setOpen(o=>!o)} style={{display:"flex",alignItems:"center",gap:8,background:overlay1,border:`1px solid ${overlay2}`,borderRadius:10,padding:"5px 10px 5px 5px",cursor:"pointer"}}>
+        {avatarEl}
         <span style={{fontSize:12,color:textMid,fontWeight:500}}>{firstName||"Account"}</span>
         <Icons.Chev color={textMid} size={12}/>
       </button>
       {open&&(
         <>
           <div onClick={()=>setOpen(false)} style={{position:"fixed",inset:0,zIndex:49999}}/>
-          <div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:50000,background:P.card,border:`1.5px solid ${P.border}`,borderRadius:12,minWidth:160,boxShadow:"0 8px 24px rgba(0,0,0,0.4)",padding:"4px"}}>
-            <button onClick={()=>{setOpen(false); if(window.__clerkOpenUserProfile) window.__clerkOpenUserProfile();}} style={{display:"block",width:"100%",padding:"12px 14px",background:"transparent",border:"none",color:P.white,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>
-              My Profile
-            </button>
-            <button onClick={()=>{setOpen(false); onSettings&&onSettings();}} style={{display:"block",width:"100%",padding:"12px 14px",background:"transparent",border:"none",color:P.white,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>
-              Settings
-            </button>
-            <button onClick={()=>{setOpen(false); if(window.__clerkSignOut) window.__clerkSignOut();}} style={{display:"block",width:"100%",padding:"12px 14px",background:"transparent",border:"none",color:P.red,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>
-              Sign Out
-            </button>
+          <div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:50000,background:P.card,border:`1.5px solid ${P.border}`,borderRadius:12,minWidth:190,boxShadow:"0 8px 24px rgba(0,0,0,0.4)",padding:"4px",overflow:"hidden"}}>
+            <div style={{padding:"12px 14px 10px",display:"flex",alignItems:"center",gap:10,borderBottom:`1px solid ${P.border}`,marginBottom:4}}>
+              {avatarLg}
+              <div>
+                <div style={{fontSize:13,fontWeight:700,color:P.white}}>{firstName||"Account"}</div>
+                <button onClick={()=>{setOpen(false);setShowPicker(true);}} style={{background:"transparent",border:"none",color:P.accent,fontSize:11,fontWeight:600,cursor:"pointer",padding:0,marginTop:1}}>Change avatar →</button>
+              </div>
+            </div>
+            <button onClick={()=>{setOpen(false);onSettings&&onSettings();}} style={{display:"block",width:"100%",padding:"11px 14px",background:"transparent",border:"none",color:P.white,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>Settings</button>
+            <button onClick={()=>{setOpen(false);if(window.__clerkSignOut)window.__clerkSignOut();}} style={{display:"block",width:"100%",padding:"11px 14px",background:"transparent",border:"none",color:P.red,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>Sign Out</button>
           </div>
         </>
       )}
@@ -3916,7 +3987,7 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
                   <td style={{...S.cell,color:h.routine?P.green:P.muted,fontWeight:700,padding:"12px 6px"}}>{h.routine?"✓":"—"}</td>
                 </tr>,
                 i===8&&<tr key="out" style={{background:P.accent+"18",borderTop:`2px solid ${P.border}`,borderBottom:`2px solid ${P.border}`}}>
-                  <td style={{...S.cell,fontWeight:800,fontSize:11,color:P.accent}}>OUT</td>
+                  <td style={{...S.cell,fontWeight:800,fontSize:11,color:P.white}}>OUT</td>
                   <td style={{...S.cell,color:P.green,fontWeight:700}}>{front.heroes}</td>
                   <td style={{...S.cell,color:P.red,fontWeight:700}}>{front.bandits}</td>
                   <td style={{...S.cell,fontWeight:800,color:front.net>0?P.green:front.net<0?P.red:P.gold}}>{front.net>0?"+":""}{front.net}</td>
@@ -3930,7 +4001,7 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
               ];
             })}
             <tr style={{background:P.cardAlt,borderTop:`1.5px solid ${P.border}`}}>
-              <td style={{...S.cell,fontWeight:800,fontSize:11,color:P.muted}}>IN</td>
+              <td style={{...S.cell,fontWeight:800,fontSize:11,color:P.white}}>IN</td>
               <td style={{...S.cell,color:P.green,fontWeight:700}}>{back.heroes}</td>
               <td style={{...S.cell,color:P.red,fontWeight:700}}>{back.bandits}</td>
               <td style={{...S.cell,fontWeight:800,color:back.net>0?P.green:back.net<0?P.red:P.gold}}>{back.net>0?"+":""}{back.net}</td>
@@ -3942,7 +4013,7 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
               <td style={{...S.cell,fontWeight:700,color:P.green,padding:"12px 6px"}}>{bPsr}/9</td>
             </tr>
             <tr style={{background:P.accent+"10",borderTop:`2px solid ${P.accent}44`}}>
-              <td style={{...S.cell,fontWeight:800,fontSize:11,color:P.accent}}>TOT</td>
+              <td style={{...S.cell,fontWeight:800,fontSize:11,color:P.white}}>TOT</td>
               <td style={{...S.cell,color:P.green,fontWeight:800}}>{total.heroes}</td>
               <td style={{...S.cell,color:P.red,fontWeight:800}}>{total.bandits}</td>
               <td style={{...S.cell,fontWeight:900,fontSize:15,color:total.net>0?P.green:total.net<0?P.red:P.gold}}>{total.net>0?"+":""}{total.net}</td>
@@ -4158,7 +4229,7 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                           );
                         })}
                         <tr style={{background:P.cardAlt,borderTop:`1.5px solid ${P.border}`}}>
-                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:11,color:P.muted}}>OUT</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:11,color:P.white}}>OUT</td>
                           <td style={{padding:"6px 4px",textAlign:"center",color:P.green,fontWeight:700,fontSize:14}}>{hFront.heroes}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",color:P.red,fontWeight:700,fontSize:14}}>{hFront.bandits}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:14,color:hFront.net>0?P.green:hFront.net<0?P.red:P.gold}}>{hFront.net>0?"+":""}{hFront.net}</td>
@@ -4169,7 +4240,7 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                                                     <td style={{padding:"6px 5px",textAlign:"center",fontWeight:700,color:P.accent,fontSize:14}}>{hFgir}/9</td>
                         </tr>
                         <tr style={{background:P.cardAlt,borderTop:`1px solid ${P.border}`}}>
-                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:11,color:P.muted}}>IN</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:11,color:P.white}}>IN</td>
                           <td style={{padding:"6px 4px",textAlign:"center",color:P.green,fontWeight:700,fontSize:14}}>{hBack.heroes}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",color:P.red,fontWeight:700,fontSize:14}}>{hBack.bandits}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:14,color:hBack.net>0?P.green:hBack.net<0?P.red:P.gold}}>{hBack.net>0?"+":""}{hBack.net}</td>
@@ -4180,7 +4251,7 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                                                     <td style={{padding:"6px 5px",textAlign:"center",fontWeight:700,color:P.accent,fontSize:14}}>{hBgir}/9</td>
                         </tr>
                         <tr style={{background:P.accent+"10",borderTop:`2px solid ${P.accent}44`}}>
-                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:11,color:P.accent}}>TOT</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:11,color:P.white}}>TOT</td>
                           <td style={{padding:"6px 4px",textAlign:"center",color:P.green,fontWeight:800,fontSize:14}}>{hTotal.heroes}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",color:P.red,fontWeight:800,fontSize:14}}>{hTotal.bandits}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",fontWeight:900,fontSize:15,color:hTotal.net>0?P.green:hTotal.net<0?P.red:P.gold}}>{hTotal.net>0?"+":""}{hTotal.net}</td>
@@ -6355,7 +6426,7 @@ function RoundStatsView({round,onHome,onShare,S}) {
                     <td style={{...cell,color:h.routine?P.green:P.muted,fontWeight:700}}>{h.routine?"✓":"—"}</td>
                   </tr>,
                   i===8&&<tr key="out" style={{background:P.accent+"18",borderTop:`2px solid ${P.border}`,borderBottom:`2px solid ${P.border}`}}>
-                    <td style={{...cell,fontWeight:800,fontSize:11,color:P.accent}}>OUT</td>
+                    <td style={{...cell,fontWeight:800,fontSize:11,color:P.white}}>OUT</td>
                     <td style={{...cell,color:P.green,fontWeight:700}}>{frontStats.heroes}</td>
                     <td style={{...cell,color:P.red,fontWeight:700}}>{frontStats.bandits}</td>
                     <td style={{...cell,fontWeight:800,color:frontStats.net>0?P.green:frontStats.net<0?P.red:P.gold}}>{frontStats.net>0?"+":""}{frontStats.net}</td>
@@ -6369,7 +6440,7 @@ function RoundStatsView({round,onHome,onShare,S}) {
                 ];
               })}
               <tr style={{background:P.cardAlt,borderTop:`1.5px solid ${P.border}`}}>
-                <td style={{...cell,fontWeight:800,fontSize:11,color:P.muted}}>IN</td>
+                <td style={{...cell,fontWeight:800,fontSize:11,color:P.white}}>IN</td>
                 <td style={{...cell,color:P.green,fontWeight:700}}>{backStats.heroes}</td>
                 <td style={{...cell,color:P.red,fontWeight:700}}>{backStats.bandits}</td>
                 <td style={{...cell,fontWeight:800,color:backStats.net>0?P.green:backStats.net<0?P.red:P.gold}}>{backStats.net>0?"+":""}{backStats.net}</td>
@@ -6381,7 +6452,7 @@ function RoundStatsView({round,onHome,onShare,S}) {
                 <td style={{...cell,fontWeight:700,color:P.green,padding:"12px 6px"}}>{bPsr}/9</td>
               </tr>
               <tr style={{background:P.accent+"18",borderTop:`2px solid ${P.accent}44`}}>
-                <td style={{...cell,fontWeight:800,fontSize:11,color:P.accent}}>TOT</td>
+                <td style={{...cell,fontWeight:800,fontSize:11,color:P.white}}>TOT</td>
                 <td style={{...cell,color:P.green,fontWeight:800}}>{round.heroes}</td>
                 <td style={{...cell,color:P.red,fontWeight:800}}>{round.bandits}</td>
                 <td style={{...cell,fontWeight:900,fontSize:15,color:round.net>0?P.green:round.net<0?P.red:P.gold}}>{round.net>0?"+":""}{round.net}</td>
