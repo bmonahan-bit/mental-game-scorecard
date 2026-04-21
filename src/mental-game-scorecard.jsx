@@ -6470,7 +6470,7 @@ function ComboTrendChart({P, trend, rounds, onSelectRound, totalRounds}) {
 
   // ── Score line ──
   const hasScore = trend.some(t => t.scoreToPar != null);
-  const SCORE_H = 52;
+  const SCORE_H = 80;
   const scoreVals = trend.filter(t => t.scoreToPar != null).map(t => t.scoreToPar);
   const minS = scoreVals.length ? Math.min(...scoreVals) - 2 : -5;
   const maxS = scoreVals.length ? Math.max(...scoreVals) + 2 : 20;
@@ -6486,7 +6486,7 @@ function ComboTrendChart({P, trend, rounds, onSelectRound, totalRounds}) {
 
   // ── PSR ──
   const hasPsr = trend.some(t => t.psrPct != null);
-  const PSR_H = 40;
+  const PSR_H = 70;
   const psrPoints = trend.map((t, i) => {
     if (t.psrPct == null) return null;
     const x = colW * i + colW / 2;
