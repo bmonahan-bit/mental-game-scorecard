@@ -1855,7 +1855,7 @@ export default function App() {
   const [postRoundNotes, setPostRoundNotes] = useState("");
   const [carryForward, setCarryForward] = useState(()=>{try{return localStorage.getItem("mgp_carry_forward")||"";}catch{return "";}});
   const [preRoundMeta, setPreRoundMeta] = useState({ sleep:3, energy:3, partners:"friends" });
-  const [holeNoteOpen, setHoleNoteOpen] = useState(settings?.holeNoteDefault!==false);
+  const [holeNoteOpen, setHoleNoteOpen] = useState(()=>{try{const s=JSON.parse(localStorage.getItem("mgp_settings")||"{}");return s.holeNoteDefault!==false;}catch{return true;}});
   const [matchupOpen, setMatchupOpen] = useState(true);
   const [holeGridOpen, setHoleGridOpen] = useState(true);
   const [tipStep, setTipStep] = useState(()=>{try{const s=localStorage.getItem("mgp_tip_step");return s?parseInt(s):0;}catch{return 0;}});
