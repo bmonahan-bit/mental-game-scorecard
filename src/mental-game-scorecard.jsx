@@ -1911,6 +1911,7 @@ export default function App() {
   const [showHelp, setShowHelp] = useState(false);
   const [showMentalNetInfo, setShowMentalNetInfo] = useState(false);
   const [showPSRInfo, setShowPSRInfo] = useState(false);
+  const [showIntentionModal, setShowIntentionModal] = useState(false);
   const [streakBanner, setStreakBanner] = useState(null); // {count}
   const [showConfetti, setShowConfetti] = useState(false);
   const [showFireworks, setShowFireworks] = useState(false);
@@ -2961,16 +2962,7 @@ export default function App() {
           /></div>}
         </div>
 
-        {/* Carry-forward intention reminder */}
-        {carryForward&&currentHole===0&&(
-          <div style={{margin:"0 10px 6px",padding:"8px 12px",borderRadius:9,background:"#ca8a0410",border:"1px solid #ca8a0430",display:"flex",alignItems:"center",gap:10}}>
-            <Icons.Note color="#ca8a04" size={14}/>
-            <div style={{minWidth:0}}>
-              <div style={{fontSize:10,fontWeight:800,letterSpacing:1.5,color:"#ca8a04",marginBottom:2}}>YOUR INTENTION TODAY</div>
-              <div style={{fontSize:13,color:P.white,fontStyle:"italic",lineHeight:1.4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{carryForward}</div>
-            </div>
-          </div>
-        )}
+        
 
         {/* Mental Net Bar — merged with matchup toggle */}
         <div ref={tipRefs.mentalBar} style={{marginTop:2}}>
@@ -3026,15 +3018,46 @@ export default function App() {
 
         </div>{/* end matchup ref wrapper — scrollable area ends here */}
 
-        {/* Finish button — only shown on holes 9+ */}
-        {(currentHole>=8)&&(
-          <div ref={tipRefs.nav} style={{flexShrink:0,borderTop:`1px solid ${P.border}`,background:P.bg,padding:"4px 10px 2px",display:"flex",justifyContent:"flex-end"}}>
-            {currentHole<17&&<button onClick={completeRound} aria-label="Finish round" style={{padding:"10px 10px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green+"12",color:P.green,fontSize:11,fontWeight:700,cursor:"pointer",flexShrink:0}}>Finish ✓</button>}
-            {currentHole===17&&<button onClick={completeRound} style={{padding:"10px 14px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green,color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",flexShrink:0}} {...pp()}>Finish ✓</button>}
+        {/* Bottom row: next arrow + finish */}
+        <div style={{flexShrink:0,borderTop:`1px solid ${P.border}`,background:P.bg,padding:"6px 12px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+          {/* Intention pill — shown throughout round */}
+          {carryForward?(
+            <button onClick={()=>setShowIntentionModal(true)} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 10px",borderRadius:8,border:"1px solid #ca8a0440",background:"#ca8a0410",cursor:"pointer",flexShrink:0,maxWidth:160}} {...pp()}>
+              <Icons.Note color="#ca8a04" size={11}/>
+              <span style={{fontSize:11,fontWeight:700,color:"#ca8a04",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>Intention</span>
+            </button>
+          ):<div style={{flex:1}}/>}
+
+          <div style={{flex:1}}/>
+
+          {/* Finish button (holes 9+) */}
+          {currentHole>=8&&currentHole<17&&(
+            <button onClick={completeRound} style={{padding:"8px 12px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green+"12",color:P.green,fontSize:11,fontWeight:700,cursor:"pointer",flexShrink:0}}>Finish ✓</button>
+          )}
+          {currentHole===17&&(
+            <button onClick={completeRound} style={{padding:"10px 16px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green,color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",flexShrink:0}} {...pp()}>Finish ✓</button>
+          )}
+
+          {/* Next arrow */}
+          {currentHole<17&&(
+            <button onClick={advanceHole} style={{width:44,height:44,borderRadius:12,border:`1.5px solid ${P.border}`,background:P.card,color:P.white,fontSize:20,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent"}} {...pp()}>→</button>
+          )}
+        </div>
+        <div style={{height:"calc(4px + env(safe-area-inset-bottom, 0px))"}}/>
+
+        {/* Intention modal */}
+        {showIntentionModal&&(
+          <div onClick={()=>setShowIntentionModal(false)} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}>
+            <div onClick={e=>e.stopPropagation()} style={{background:P.card,borderRadius:20,padding:"24px 20px",width:"100%",maxWidth:360,border:`1.5px solid #ca8a0444`}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                <Icons.Note color="#ca8a04" size={16}/>
+                <div style={{fontSize:13,fontWeight:800,letterSpacing:1,color:"#ca8a04"}}>YOUR INTENTION TODAY</div>
+              </div>
+              <div style={{fontSize:16,color:P.white,fontStyle:"italic",lineHeight:1.6,fontWeight:500}}>"{carryForward}"</div>
+              <button onClick={()=>setShowIntentionModal(false)} style={{width:"100%",marginTop:20,padding:"12px",borderRadius:12,border:"none",background:P.cardAlt,color:P.muted,fontSize:14,fontWeight:700,cursor:"pointer"}}>Close</button>
+            </div>
           </div>
         )}
-        <div style={{height:"calc(6px + env(safe-area-inset-bottom, 0px))"}}/>
-
 
 
         <style>{`
