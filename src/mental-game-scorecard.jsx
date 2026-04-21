@@ -43,52 +43,6 @@ function logError(error, context) {
 
 // ── Push notifications ───────────────────────────────────────
 // Schedules local re-engagement notifications based on mental game data
-async function schedulePushNotifications(rounds, settings) {
-  if (!("Notification" in window) || Notification.permission !== "granted") return;
-  if (!settings?.notifications) return;
-
-  // Find top bandit across recent rounds (last 5)
-  const recent = rounds.slice(0, 5);
-  const banditCounts = {};
-  recent.forEach(r => {
-    if (!r.scores) return;
-    r.scores.forEach(h => Object.keys(h.bandits || {}).forEach(k => {
-      if (h.bandits[k]) banditCounts[k] = (banditCounts[k] || 0) + 1;
-    }));
-  });
-  const topBandit = Object.keys(banditCounts).sort((a, b) => banditCounts[b] - banditCounts[a])[0];
-
-  // Personalized messages based on top bandit
-  const messages = {
-    Fear:        { title: "Conquer Fear today", body: "Love is your weapon against Fear. Head out and practice staying present on every shot." },
-    Frustration: { title: "Channel Acceptance", body: "Your last rounds showed Frustration creeping in. Acceptance turns every bad shot into feedback." },
-    Doubt:       { title: "Commitment is waiting", body: "Doubt has been showing up in your game. Today, commit fully to every shot — no second-guessing." },
-    Shame:       { title: "Vulnerability is strength", body: "Golf humbles everyone. Show up anyway — Vulnerability is what separates good golfers from great ones." },
-    Quit:        { title: "Grit wins today", body: "You have Grit in you. Your last rounds showed the Quit bandit — go out and beat it back today." },
-  };
-
-  const msg = topBandit ? messages[topBandit] : {
-    title: "Time to play some golf",
-    body: "Track your mental game today — Heroes and Bandits are waiting.",
-  };
-
-  // Only show if user hasn't played in 4+ days
-  const lastRoundDate = rounds[0]?.date;
-  if (lastRoundDate) {
-    const daysSince = Math.floor((Date.now() - new Date(lastRoundDate).getTime()) / 86400000);
-    if (daysSince < 4) return;
-  }
-
-  try {
-    new Notification(msg.title, {
-      body: msg.body,
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
-      tag: "mgp-reengagement",
-    });
-  } catch {}
-}
-
 // ── Input sanitisation ──────────────────────────────────────
 // Strips HTML tags and dangerous characters to prevent XSS
 function sanitiseText(val, maxLen = 200, trim = true) {
@@ -256,22 +210,6 @@ function ShareBtn({P, onShare}) {
   );
 }
 
-function LiveClock({ P }) {
-  const [time, setTime] = React.useState(()=>new Date());
-  React.useEffect(()=>{
-    const t = setInterval(()=>setTime(new Date()), 1000);
-    return()=>clearInterval(t);
-  },[]);
-  const h = time.getHours()%12||12;
-  const m = String(time.getMinutes()).padStart(2,"0");
-  const ampm = time.getHours()>=12?"PM":"AM";
-  return (
-    <div style={{display:"flex",alignItems:"center",gap:3,flexShrink:0}}>
-      <span style={{fontSize:13,fontWeight:800,color:P.white,letterSpacing:0.5}}>{h}:{m}</span>
-      <span style={{fontSize:9,fontWeight:700,color:P.muted}}>{ampm}</span>
-    </div>
-  );
-}
 
 function BalloonCanvas({ active, onDone }) {
   const canvasRef = useRef(null);
@@ -826,73 +764,6 @@ function CourseSearchBar({ P, S, courseName, setCourseName, onCourseLoaded, sele
 }
 
 // ─── WEATHER HOOK ───
-function useWeather(courseData) {
-  const [weather, setWeather] = useState(null);
-  const [loadingWeather, setLoadingWeather] = useState(false);
-
-  useEffect(() => {
-    if (!courseData) { setWeather(null); return; }
-    // Try to get coords from course data — GolfCourseAPI returns location.latitude/longitude
-    const lat = courseData.location?.latitude ?? courseData.latitude ?? courseData.lat;
-    const lon = courseData.location?.longitude ?? courseData.longitude ?? courseData.lng ?? courseData.lon;
-    if (!lat || !lon) { setWeather(null); return; }
-
-    setLoadingWeather(true);
-    // Open-Meteo: free, no key, returns current weather
-    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode,windspeed_10m,winddirection_10m&wind_speed_unit=mph&temperature_unit=fahrenheit&forecast_days=1`)
-      .then(r => r.json())
-      .then(d => {
-        const c = d.current;
-        if (!c) return;
-        setWeather({
-          temp: Math.round(c.temperature_2m),
-          wind: Math.round(c.windspeed_10m),
-          windDir: windDirLabel(c.winddirection_10m),
-          code: c.weathercode,
-        });
-      })
-      .catch(() => setWeather(null))
-      .finally(() => setLoadingWeather(false));
-  }, [courseData?.id ?? courseData?.club_name]);
-
-  return { weather, loadingWeather };
-}
-
-function windDirLabel(deg) {
-  if (deg == null) return "";
-  const dirs = ["N","NE","E","SE","S","SW","W","NW"];
-  return dirs[Math.round(deg / 45) % 8];
-}
-
-function weatherIcon(code) {
-  if (code == null) return "Sunny";
-  if (code === 0) return "Sunny";
-  if (code <= 2) return "P.Cloudy";
-  if (code <= 3) return "Cloudy";
-  if (code <= 49) return "Foggy";
-  if (code <= 59) return "Showers";
-  if (code <= 69) return "Rain";
-  if (code <= 79) return "Snow";
-  if (code <= 84) return "Sleet";
-  if (code <= 99) return "Storm";
-  return "Sunny";
-}
-function weatherLabel(code) {
-  if (code == null) return "";
-  if (code === 0) return "Clear";
-  if (code <= 3) return "Cloudy";
-  if (code <= 49) return "Foggy";
-  if (code <= 59) return "Drizzle";
-  if (code <= 69) return "Rain";
-  if (code <= 79) return "Snow";
-  if (code <= 84) return "Showers";
-  if (code <= 99) return "Thunder";
-  return "";
-}
-
-
-
-
 const CADDIE_CATEGORIES = [
   { name: "Love", subtitle: "conquers Fear", IconKey: "Heart", color: "#dc2626", messages: ["Remind yourself how much you LOVE and appreciate hitting that first tee shot.","Feel excitement and passion for the opportunity in this moment.","Connect to the gratitude you have for being at the course, playing with your friends.","Smile — it's called 'playing' golf.","Channeling Love will allow you to experience golf with objectivity, joy, and passion."] },
   { name: "Acceptance", subtitle: "eliminates Frustration", IconKey: "Hands", color: "#ca8a04", messages: ["See the outcomes of your shots as feedback, not failure.","Be curious — not critical. Try: 'Hmmm... that was interesting.'","Drop your expectations. You don't need them.","Stop arguing with reality.","Objectivity leads to discovery."] },
@@ -1940,7 +1811,6 @@ export default function App() {
   const [showCoursePrompt, setShowCoursePrompt] = useState(false);
   const [coursePromptCallback, setCoursePromptCallback] = useState(null);
   const [communityProfile, setCommunityProfile] = useState(null); // legacy — replaced by Clerk
-  const { weather, loadingWeather } = useWeather(courseData);
   // ─── SETTINGS ───
   const [settings, setSettings] = useState({
     favCourse: "", favTee: "", handicap: "", units: "imperial",
@@ -3135,8 +3005,10 @@ function UserDropdown({firstName, overlay1, overlay2, textHigh, textMid, P, onSe
   const [showPicker, setShowPicker] = React.useState(false);
   const [avatarId, setAvatarId] = React.useState(()=>{try{return localStorage.getItem("mgp_avatar")||"monogram";}catch{return "monogram";}});
   const clerkUser = window.__useUser ? window.__useUser() : null;
-  const imageUrl = clerkUser?.user?.imageUrl;
   const initial = (firstName||"?")[0].toUpperCase();
+  // Only use Clerk photo if user hasn't picked a custom avatar
+  const hasCustomAvatar = avatarId && avatarId !== "monogram";
+  const imageUrl = (!hasCustomAvatar && clerkUser?.user?.imageUrl) ? clerkUser.user.imageUrl : null;
 
   function saveAvatar(id) {
     setAvatarId(id);
@@ -4692,15 +4564,20 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
               const name = [u?.firstName, u?.lastName].filter(Boolean).join(" ");
               const avatarId = (()=>{try{return localStorage.getItem("mgp_avatar")||"monogram";}catch{return "monogram";}})();
               const initial = (u?.firstName||"?")[0].toUpperCase();
+              const hasCustomAvatar = avatarId && avatarId !== "monogram";
+              const showClerkPhoto = !hasCustomAvatar && u?.imageUrl;
+              const [showAvatarPicker, setShowAvatarPicker] = React.useState(false);
               return (
                 <>
-                  <div style={{padding:"12px 0 8px",display:"flex",alignItems:"center",gap:12,borderBottom:`1px solid ${P.border}`,marginBottom:4}}>
-                    <div style={{width:48,height:48,borderRadius:"50%",overflow:"hidden",border:`2px solid ${P.border}`,flexShrink:0}}>
-                      {u?.imageUrl ? <img src={u.imageUrl} style={{width:48,height:48,objectFit:"cover"}} alt={name}/> : <AvatarSVG id={avatarId} initial={initial} size={48}/>}
+                  {showAvatarPicker&&<AvatarPicker P={P} onClose={()=>setShowAvatarPicker(false)} onSelect={(id)=>{try{localStorage.setItem("mgp_avatar",id);}catch{}setShowAvatarPicker(false);window.dispatchEvent(new Event("mgp_avatar_changed"));}} current={avatarId} initial={initial}/>}
+                  <div style={{padding:"12px 0 12px",display:"flex",alignItems:"center",gap:12,borderBottom:`1px solid ${P.border}`,marginBottom:4}}>
+                    <div style={{width:52,height:52,borderRadius:"50%",overflow:"hidden",border:`2px solid ${P.border}`,flexShrink:0,cursor:"pointer"}} onClick={()=>setShowAvatarPicker(true)}>
+                      {showClerkPhoto ? <img src={u.imageUrl} style={{width:52,height:52,objectFit:"cover"}} alt={name}/> : <AvatarSVG id={avatarId} initial={initial} size={52}/>}
                     </div>
-                    <div>
+                    <div style={{flex:1,minWidth:0}}>
                       {name&&<div style={{fontSize:14,fontWeight:700,color:P.white}}>{name}</div>}
                       <div style={{fontSize:12,color:P.muted,marginTop:1}}>{u?.primaryEmailAddress?.emailAddress||"—"}</div>
+                      <button onClick={()=>setShowAvatarPicker(true)} style={{background:"transparent",border:"none",color:P.accent,fontSize:11,fontWeight:600,cursor:"pointer",padding:0,marginTop:3}}>Change avatar →</button>
                     </div>
                   </div>
                   <Row label="Cloud Sync" sub="Rounds backed up automatically" last>
