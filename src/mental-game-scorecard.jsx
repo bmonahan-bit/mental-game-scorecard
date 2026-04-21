@@ -7509,14 +7509,14 @@ function TransformView({onBack,S,P}) {
               <span style={{fontSize:14,color:"rgba(255,255,255,0.7)",flexShrink:0}}>→</span>
             </button>
 
-            {/* Course */}
-            <button onClick={()=>openUrl("https://mentalgolfbook.com/get-the-book-237591")} {...pp()} style={{width:"100%",padding:"12px 14px",borderRadius:12,background:"linear-gradient(135deg,#1a3a5c,#2563eb)",display:"flex",alignItems:"center",justifyContent:"space-between",border:"none",cursor:"pointer",boxSizing:"border-box"}}>
+            {/* Course - hidden for now */}
+            {false && <button onClick={()=>openUrl("https://mentalgolfbook.com/")} {...pp()} style={{width:"100%",padding:"12px 14px",borderRadius:12,background:"linear-gradient(135deg,#1a3a5c,#2563eb)",display:"flex",alignItems:"center",justifyContent:"space-between",border:"none",cursor:"pointer",boxSizing:"border-box"}}>
               <div style={{minWidth:0,textAlign:"left"}}>
                 <div style={{fontSize:13,fontWeight:800,color:"#fff"}}>Rethinking Golf</div>
                 <div style={{fontSize:11,color:"rgba(255,255,255,0.7)",marginTop:2}}>Online Course</div>
               </div>
               <span style={{fontSize:14,color:"rgba(255,255,255,0.7)",flexShrink:0,marginLeft:8}}>→</span>
-            </button>
+            </button>}
 
             {/* 1-on-1 Coaching */}
             <button onClick={()=>openUrl("https://www.paulmonahan.com/golf-coach/")} {...pp()} style={{width:"100%",padding:"13px 16px",borderRadius:12,background:"linear-gradient(135deg,#1a2b4a,#2563eb)",border:"none",color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -7528,7 +7528,7 @@ function TransformView({onBack,S,P}) {
             </button>
 
             {/* Mastermind */}
-            <button onClick={()=>openUrl("https://www.skool.com/paul-monahan-golf-academy-8319/about?ref=78dccfa86ba543cd895a3255f2dab29f")} {...pp()} style={{width:"100%",padding:"13px 16px",borderRadius:12,background:"linear-gradient(135deg,#1a2b4a,#2563eb)",border:"none",color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",boxSizing:"border-box"}}>
+            <button onClick={()=>openUrl("https://mentalgolfbook.com/mastermind-join?utm_source=email&utm_medium=email+marketing&contact_id=1dCK93hN9O4r9zdCWrzJ")} {...pp()} style={{width:"100%",padding:"13px 16px",borderRadius:12,background:"linear-gradient(135deg,#1a2b4a,#2563eb)",border:"none",color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",boxSizing:"border-box"}}>
               <div style={{textAlign:"left"}}>
                 <div style={{fontSize:14,fontWeight:800,color:"#fff"}}>Join the Mastermind</div>
                 <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",marginTop:2}}>Golf Academy Community</div>
@@ -8157,14 +8157,14 @@ function OnboardingFlow({onFinish,onPrivacy,P,S}){
             <span style={{fontSize:16,color:P.muted,opacity:0.5}}>→</span>
           </button>
 
-          {/* Course */}
-          <button onClick={()=>{ openUrl("https://paulmonahan.com"); }} style={{width:"100%",padding:"13px 16px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#1a3a5c,#2563eb)",color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          {/* Course - hidden for now */}
+          {false && <button onClick={()=>{ openUrl("https://paulmonahan.com"); }} style={{width:"100%",padding:"13px 16px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#1a3a5c,#2563eb)",color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <span style={{fontSize:13}}>Rethinking Golf — Online Course</span>
             <span style={{fontSize:16,opacity:0.8}}>→</span>
-          </button>
+          </button>}
 
           {/* Mastermind */}
-          <button onClick={()=>openUrl("https://www.skool.com/paul-monahan-golf-academy-8319/about?ref=78dccfa86ba543cd895a3255f2dab29f")} {...pp()} style={{width:"100%",padding:"13px 16px",borderRadius:12,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:14,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:0.2}}>
+          <button onClick={()=>openUrl("https://mentalgolfbook.com/mastermind-join?utm_source=email&utm_medium=email+marketing&contact_id=1dCK93hN9O4r9zdCWrzJ")} {...pp()} style={{width:"100%",padding:"13px 16px",borderRadius:12,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:14,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:0.2}}>
             <span>Join the Mastermind</span>
             <span style={{fontSize:16,opacity:0.5}}>→</span>
           </button>
