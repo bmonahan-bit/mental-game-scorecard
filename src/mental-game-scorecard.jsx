@@ -3871,7 +3871,7 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
               const runDiff=(h.strokeScore&&h.par)?runStroke-runPar:null;
               return [
                 <tr key={i} ref={!scores[i].strokeScore&&!scores.slice(0,i).some(h=>!h.strokeScore)?activeRowRef:null} onClick={()=>onSelectHole(i)} style={{cursor:"pointer",background:i%2===0?P.card:"transparent"}}>
-                  <td style={{...S.cell,fontWeight:700,color:P.accent}}>{i+1}</td>
+                  <td style={{...S.cell,fontWeight:700,color:P.white}}>{i+1}</td>
                   <td style={{...S.cell,color:P.green,fontWeight:600}}>{s.heroes||"—"}</td>
                   <td style={{...S.cell,color:P.red,fontWeight:600}}>{s.bandits||"—"}</td>
                   <td style={{...S.cell,fontWeight:700,color:s.net>0?P.green:s.net<0?P.red:s.heroes+s.bandits>0?P.gold:P.muted}}>{s.heroes+s.bandits>0?(s.net>0?"+":"")+s.net:"—"}</td>
@@ -4122,7 +4122,7 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                           const runDiff=(hole.strokeScore&&hole.par)?runStroke-runPar:null;
                           return (
                             <tr key={i} style={{background:i%2===0?P.cardAlt+"60":"transparent",borderBottom:i===8?`2px solid ${P.border}`:undefined}}>
-                              <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,color:P.accent,fontSize:14}}>{i+1}</td>
+                              <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,color:P.white,fontSize:14}}>{i+1}</td>
                               <td style={{padding:"6px 4px",textAlign:"center",color:P.green,fontWeight:600,fontSize:14}}>{s.heroes||"—"}</td>
                               <td style={{padding:"6px 4px",textAlign:"center",color:P.red,fontWeight:600,fontSize:14}}>{s.bandits||"—"}</td>
                               <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,fontSize:14,color:s.net>0?P.green:s.net<0?P.red:s.heroes+s.bandits>0?P.gold:P.muted}}>{s.heroes+s.bandits>0?(s.net>0?"+":"")+s.net:"—"}</td>
@@ -4428,34 +4428,37 @@ function CourseSelectModal({onConfirm, onSkip, settings, P, S}) {
   const displayName = selectedName || query;
 
   return (
-    <div onClick={onSkip} style={{position:"fixed",inset:0,zIndex:9998,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 16px"}}>
-      <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:400,background:P.bg,borderRadius:20,border:`1.5px solid ${P.border}`,boxShadow:"0 24px 60px rgba(0,0,0,0.4)",maxHeight:"80vh",display:"flex",flexDirection:"column"}}>
+    <div onClick={onSkip} style={{position:"fixed",inset:0,zIndex:9998,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 20px"}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:400,background:P.bg,borderRadius:24,border:`1.5px solid ${P.border}`,boxShadow:"0 32px 80px rgba(0,0,0,0.5)",maxHeight:"82vh",display:"flex",flexDirection:"column"}}>
 
         {/* Header */}
-        <div style={{padding:"16px 16px 12px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,borderBottom:`1px solid ${P.border}`}}>
+        <div style={{padding:"20px 20px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
           <div>
-            <div style={{fontSize:17,fontWeight:900,color:P.white}}>Select Course</div>
-            <div style={{fontSize:12,color:P.muted,marginTop:1,fontWeight:500}}>Search or use your favorite</div>
+            <div style={{fontSize:18,fontWeight:900,color:P.white,letterSpacing:-0.3}}>Select Course</div>
+            <div style={{fontSize:12,color:P.muted,marginTop:2,fontWeight:500}}>Search or use your favorite</div>
           </div>
-          <button onClick={onSkip} style={{padding:"6px 14px",borderRadius:8,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,fontWeight:700,cursor:"pointer"}} {...pp()}>Skip</button>
+          <button onClick={onSkip} style={{padding:"7px 16px",borderRadius:10,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,fontWeight:700,cursor:"pointer"}} {...pp()}>Skip</button>
         </div>
 
-        <div style={{flex:1,overflowY:"auto",padding:"0 16px 8px",display:"flex",flexDirection:"column",gap:10}}>
+        <div style={{flex:1,overflowY:"auto",padding:"0 20px 16px",display:"flex",flexDirection:"column",gap:12}}>
 
           {/* Favorite — one tap to confirm */}
           {settings.favCourse&&(
-            <button onClick={()=>onConfirm({courseName:settings.favCourse,selectedTee:settings.favTee||null,courseData:null})} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:12,border:`1.5px solid ${P.gold}55`,background:P.gold+"12",cursor:"pointer",width:"100%",textAlign:"left",flexShrink:0}} {...pp()}>
-              <div style={{width:32,height:32,borderRadius:9,background:P.gold+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                <Icons.Flag color={P.gold} size={14}/>
+            <button onClick={()=>onConfirm({courseName:settings.favCourse,selectedTee:settings.favTee||null,courseData:null})} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 14px",borderRadius:14,border:`1.5px solid ${P.gold}55`,background:P.gold+"12",cursor:"pointer",width:"100%",textAlign:"left",flexShrink:0}} {...pp()}>
+              <div style={{width:36,height:36,borderRadius:10,background:P.gold+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <Icons.Flag color={P.gold} size={16}/>
               </div>
               <div style={{minWidth:0,flex:1}}>
-                <div style={{fontSize:10,fontWeight:700,color:P.gold,letterSpacing:1}}>FAVORITE</div>
-                <div style={{fontSize:13,fontWeight:800,color:P.white,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{settings.favCourse}</div>
-                {settings.favTee&&<div style={{fontSize:11,color:P.muted}}>{settings.favTee} tees</div>}
+                <div style={{fontSize:10,fontWeight:700,color:P.gold,letterSpacing:1,marginBottom:2}}>FAVORITE</div>
+                <div style={{fontSize:14,fontWeight:800,color:P.white,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{settings.favCourse}</div>
+                {settings.favTee&&<div style={{fontSize:12,color:P.muted,marginTop:1}}>{settings.favTee} tees</div>}
               </div>
-              <div style={{fontSize:11,color:P.gold,fontWeight:700,flexShrink:0}}>Use →</div>
+              <div style={{fontSize:12,color:P.gold,fontWeight:700,flexShrink:0}}>Use →</div>
             </button>
           )}
+
+          {/* Divider */}
+          {settings.favCourse&&<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{flex:1,height:1,background:P.border}}/><span style={{fontSize:11,color:P.muted,fontWeight:600}}>or search</span><div style={{flex:1,height:1,background:P.border}}/></div>}
 
           {/* Search input */}
           <div style={{position:"relative",flexShrink:0}}>
@@ -4463,22 +4466,22 @@ function CourseSelectModal({onConfirm, onSkip, settings, P, S}) {
               ref={inputRef}
               value={query}
               onChange={e=>{setQuery(e.target.value);setSelectedName("");setConfirmed(false);}}
-              placeholder="Or search for a course..."
-              style={{width:"100%",padding:"11px 36px 11px 12px",borderRadius:10,border:`1.5px solid ${confirmed?P.green:P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",boxSizing:"border-box"}}
+              placeholder="Search for a course..."
+              style={{width:"100%",padding:"13px 40px 13px 14px",borderRadius:12,border:`1.5px solid ${confirmed?P.green:P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",boxSizing:"border-box"}}
             />
             {loading
-              ? <div style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",width:14,height:14,borderRadius:"50%",border:`2px solid ${P.border}`,borderTopColor:P.accent,animation:"spin 0.7s linear infinite"}}/>
-              : query&&<button onClick={()=>{setQuery("");setSelectedName("");setResults([]);setCourseData(null);setTees([]);setConfirmed(false);}} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",color:P.muted,fontSize:16,cursor:"pointer",lineHeight:1,padding:2}}>×</button>
+              ? <div style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)",width:14,height:14,borderRadius:"50%",border:`2px solid ${P.border}`,borderTopColor:P.accent,animation:"spin 0.7s linear infinite"}}/>
+              : query&&<button onClick={()=>{setQuery("");setSelectedName("");setResults([]);setCourseData(null);setTees([]);setConfirmed(false);}} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",color:P.muted,fontSize:18,cursor:"pointer",lineHeight:1,padding:2}}>×</button>
             }
           </div>
 
           {/* Search results */}
           {results.length>0&&(
-            <div style={{borderRadius:10,border:`1.5px solid ${P.border}`,overflow:"hidden",background:P.card,flexShrink:0}}>
+            <div style={{borderRadius:12,border:`1.5px solid ${P.border}`,overflow:"hidden",background:P.card,flexShrink:0}}>
               {results.map((r,i)=>(
-                <button key={r.id} onClick={()=>selectCourse(r)} style={{width:"100%",padding:"10px 12px",background:"transparent",border:"none",borderBottom:i<results.length-1?`1px solid ${P.border}`:"none",cursor:"pointer",textAlign:"left",display:"block"}} {...pp()}>
-                  <div style={{fontSize:13,fontWeight:700,color:P.white,lineHeight:1.3}}>{r.club_name}{r.course_name&&r.course_name!==r.club_name?` — ${r.course_name}`:""}</div>
-                  <div style={{fontSize:11,color:P.muted,marginTop:2}}>{[r.location?.city,r.location?.state].filter(Boolean).join(", ")}</div>
+                <button key={r.id} onClick={()=>selectCourse(r)} style={{width:"100%",padding:"13px 14px",background:"transparent",border:"none",borderBottom:i<results.length-1?`1px solid ${P.border}`:"none",cursor:"pointer",textAlign:"left",display:"block"}} {...pp()}>
+                  <div style={{fontSize:14,fontWeight:700,color:P.white,lineHeight:1.3}}>{r.club_name}{r.course_name&&r.course_name!==r.club_name?` — ${r.course_name}`:""}</div>
+                  <div style={{fontSize:12,color:P.muted,marginTop:3}}>{[r.location?.city,r.location?.state].filter(Boolean).join(", ")}</div>
                 </button>
               ))}
             </div>
@@ -4487,11 +4490,11 @@ function CourseSelectModal({onConfirm, onSkip, settings, P, S}) {
           {/* Tee selection */}
           {tees.length>0&&(
             <div style={{flexShrink:0}}>
-              <div style={{fontSize:10,fontWeight:700,color:P.muted,letterSpacing:1,marginBottom:6}}>SELECT TEE</div>
-              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              <div style={{fontSize:11,fontWeight:700,color:P.muted,letterSpacing:1,marginBottom:10}}>SELECT TEE</div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 {tees.map(t=>{
                   const sel=selectedTee===t;
-                  return <button key={t} onClick={()=>setSelectedTee(t)} style={{padding:"7px 14px",borderRadius:20,border:`1.5px solid ${sel?P.accent:P.border}`,background:sel?P.accent+"18":"transparent",color:sel?P.accent:P.muted,fontSize:12,fontWeight:700,cursor:"pointer"}} {...pp()}>{t}</button>;
+                  return <button key={t} onClick={()=>setSelectedTee(t)} style={{padding:"9px 18px",borderRadius:22,border:`1.5px solid ${sel?P.accent:P.border}`,background:sel?P.accent+"18":"transparent",color:sel?P.accent:P.muted,fontSize:13,fontWeight:700,cursor:"pointer",transition:"all 0.15s"}} {...pp()}>{t}</button>;
                 })}
               </div>
             </div>
@@ -4500,11 +4503,11 @@ function CourseSelectModal({onConfirm, onSkip, settings, P, S}) {
         </div>
 
         {/* Confirm */}
-        <div style={{padding:"10px 16px",flexShrink:0,borderTop:`1px solid ${P.border}`}}>
-          <button onClick={()=>onConfirm({courseName:displayName,selectedTee,courseData})} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:displayName?"linear-gradient(135deg,#16a34a,#22c55e)":`1.5px solid ${P.border}`,backgroundColor:displayName?undefined:P.card,color:displayName?"#fff":P.muted,fontSize:14,fontWeight:800,cursor:"pointer"}} {...pp()}>
+        <div style={{padding:"16px 20px",flexShrink:0,borderTop:`1px solid ${P.border}`}}>
+          <button onClick={()=>onConfirm({courseName:displayName,selectedTee,courseData})} style={{width:"100%",padding:"15px",borderRadius:14,border:"none",background:displayName?"linear-gradient(135deg,#16a34a,#22c55e)":P.card,color:displayName?"#fff":P.muted,fontSize:15,fontWeight:800,cursor:"pointer",border:displayName?"none":`1.5px solid ${P.border}`}} {...pp()}>
             {displayName?"Confirm →":"Skip →"}
           </button>
-          <div style={{height:"calc(8px + env(safe-area-inset-bottom,0px))"}}/>
+          <div style={{height:"calc(4px + env(safe-area-inset-bottom,0px))"}}/>
         </div>
       </div>
     </div>
@@ -6307,7 +6310,7 @@ function RoundStatsView({round,onHome,onShare,S}) {
                 const runDiR=(h.strokeScore&&h.par)?runStR-runPaR:null;
                 return [
                   <tr key={i} style={{background:i%2===0?P.card:"transparent"}}>
-                    <td style={{...cell,fontWeight:700,color:P.accent}}>{i+1}</td>
+                    <td style={{...cell,fontWeight:700,color:P.white}}>{i+1}</td>
                     <td style={{...cell,color:P.green,fontWeight:600}}>{s.heroes||"—"}</td>
                     <td style={{...cell,color:P.red,fontWeight:600}}>{s.bandits||"—"}</td>
                     <td style={{...cell,fontWeight:700,color:s.net>0?P.green:s.net<0?P.red:s.heroes+s.bandits>0?P.gold:P.muted}}>{s.heroes+s.bandits>0?(s.net>0?"+":"")+s.net:"—"}</td>
