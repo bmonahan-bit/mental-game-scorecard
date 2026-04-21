@@ -2494,7 +2494,7 @@ export default function App() {
   if (view==="home") return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><CommunityPromptModal/><ProfileGateModal/><CoursePromptModal/><OpenRoundModal/><HomeScreen onNav={(v)=>{if(v==="upgrade")return;navTo(v);}} onContinueRound={()=>{const firstEmpty=scores.findIndex(h=>!h.strokeScore&&!Object.values(h.heroes).some(v=>v>0)&&!Object.values(h.bandits).some(v=>v>0));setCurrentHole(Math.max(0,firstEmpty));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} isPro={isPro} roundsRemaining={roundsRemaining} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ if(window.__clerkSignOut) window.__clerkSignOut(); else window.location.href="/"; }} /></ThemeCtx.Provider>;
   if (view==="checklist") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist key={preroundKey} onBack={nav("home")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",new Date().toISOString().split("T")[0]);const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setPreRoundMeta(p=>({...p,checklistDone:true}));setView("play");}} onSkip={()=>{setPreRoundMeta(p=>({...p,checklistDone:false}));setView("play");}} S={S} lastIntention={carryForward} preRoundMeta={preRoundMeta} setPreRoundMeta={setPreRoundMeta} settings={settings} updateSetting={updateSetting} /></ThemeCtx.Provider>;
   if (view==="courseselect") return <ThemeCtx.Provider value={P}><ToastLayer/><div style={{height:"100%",background:P.bg,position:"relative"}}><HomeScreen onNav={()=>{}} onContinueRound={()=>{}} roundInProgress={false} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} isPro={isPro} roundsRemaining={roundsRemaining} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ if(window.__clerkSignOut) window.__clerkSignOut(); else window.location.href="/"; }}/><CourseSelectModal P={P} S={S} settings={settings} onSkip={()=>resetAndStartNew()} onConfirm={(data)=>resetAndStartNew(data)}/></div></ThemeCtx.Provider>;
-  if (view==="preround") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist key={preroundKey} onBack={nav("home")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",new Date().toISOString().split("T")[0]);const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setPreRoundMeta(p=>({...p,checklistDone:true}));setView("play");}} onSkip={()=>{setPreRoundMeta(p=>({...p,checklistDone:false}));setView("play");}} S={S} lastIntention={carryForward} preRoundMeta={preRoundMeta} setPreRoundMeta={setPreRoundMeta} settings={settings} updateSetting={updateSetting} /></ThemeCtx.Provider>;
+  if (view==="preround") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist key={preroundKey} onBack={()=>setView("courseselect")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",new Date().toISOString().split("T")[0]);const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setPreRoundMeta(p=>({...p,checklistDone:true}));setView("play");}} onSkip={()=>{setPreRoundMeta(p=>({...p,checklistDone:false}));setView("play");}} S={S} lastIntention={carryForward} preRoundMeta={preRoundMeta} setPreRoundMeta={setPreRoundMeta} settings={settings} updateSetting={updateSetting} /></ThemeCtx.Provider>;
   if (view==="tiger5") return <ThemeCtx.Provider value={P}><ToastLayer/><Tiger5View onBack={()=>setView(prevView||"home")} S={S}/></ThemeCtx.Provider>;
   if (view==="caddie") return <ThemeCtx.Provider value={P}><ToastLayer/><InnerCaddieView onBack={nav(prevView)} S={S} /></ThemeCtx.Provider>;
   if (view==="coach") return <ThemeCtx.Provider value={P}><ToastLayer/><CoachDashboardView onBack={nav("home")} S={S}/></ThemeCtx.Provider>;
@@ -4345,15 +4345,16 @@ function CourseSelectModal({onConfirm, onSkip, settings, P, S}) {
   const [selectedTee, setSelectedTee] = React.useState(settings.favTee||null);
   const [selectedName, setSelectedName] = React.useState("");
   const [courseData, setCourseData] = React.useState(null);
+  const [confirmed, setConfirmed] = React.useState(false);
   const debRef = React.useRef(null);
   const inputRef = React.useRef(null);
 
-  // Focus input on open
   React.useEffect(()=>{ setTimeout(()=>inputRef.current?.focus(),100); },[]);
 
   React.useEffect(()=>{
     clearTimeout(debRef.current);
-    if(!query||query.length<2){setResults([]);return;}
+    // Don't search if we already have a confirmed selection
+    if(confirmed||!query||query.length<2){setResults([]);return;}
     debRef.current=setTimeout(async()=>{
       setLoading(true);
       try{
@@ -4362,13 +4363,14 @@ function CourseSelectModal({onConfirm, onSkip, settings, P, S}) {
         setResults((d.courses||[]).slice(0,6));
       }catch{}finally{setLoading(false);}
     },350);
-  },[query]);
+  },[query, confirmed]);
 
   async function selectCourse(course) {
     const name=course.club_name+(course.course_name&&course.course_name!==course.club_name?` — ${course.course_name}`:"");
     setSelectedName(name);
     setQuery(name);
     setResults([]);
+    setConfirmed(true);
     try{
       const res=await fetch(`${GOLF_API_BASE}/courses/${course.id}`,{headers:{Authorization:`Key ${GOLF_API_KEY}`}});
       const d=await res.json();
@@ -4383,15 +4385,6 @@ function CourseSelectModal({onConfirm, onSkip, settings, P, S}) {
         if(!selectedTee&&teeNames.length>0) setSelectedTee(teeNames[0]);
       }
     }catch{}
-  }
-
-  function useFav() {
-    setQuery(settings.favCourse);
-    setSelectedName(settings.favCourse);
-    setTees(settings.favTeeOptions||[]);
-    setSelectedTee(settings.favTee||null);
-    setCourseData(null);
-    setResults([]);
   }
 
   const displayName = selectedName || query;
@@ -4411,9 +4404,9 @@ function CourseSelectModal({onConfirm, onSkip, settings, P, S}) {
 
         <div style={{flex:1,overflowY:"auto",padding:"0 16px 8px",display:"flex",flexDirection:"column",gap:10}}>
 
-          {/* Favorite shortcut */}
+          {/* Favorite — one tap to confirm */}
           {settings.favCourse&&(
-            <button onClick={useFav} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:12,border:`1.5px solid ${P.gold}55`,background:P.gold+"12",cursor:"pointer",width:"100%",textAlign:"left",flexShrink:0}} {...pp()}>
+            <button onClick={()=>onConfirm({courseName:settings.favCourse,selectedTee:settings.favTee||null,courseData:null})} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:12,border:`1.5px solid ${P.gold}55`,background:P.gold+"12",cursor:"pointer",width:"100%",textAlign:"left",flexShrink:0}} {...pp()}>
               <div style={{width:32,height:32,borderRadius:9,background:P.gold+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                 <Icons.Flag color={P.gold} size={14}/>
               </div>
@@ -4431,13 +4424,13 @@ function CourseSelectModal({onConfirm, onSkip, settings, P, S}) {
             <input
               ref={inputRef}
               value={query}
-              onChange={e=>{setQuery(e.target.value);setSelectedName("");}}
-              placeholder="Search for a course..."
-              style={{width:"100%",padding:"11px 36px 11px 12px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",boxSizing:"border-box"}}
+              onChange={e=>{setQuery(e.target.value);setSelectedName("");setConfirmed(false);}}
+              placeholder="Or search for a course..."
+              style={{width:"100%",padding:"11px 36px 11px 12px",borderRadius:10,border:`1.5px solid ${confirmed?P.green:P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",boxSizing:"border-box"}}
             />
             {loading
               ? <div style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",width:14,height:14,borderRadius:"50%",border:`2px solid ${P.border}`,borderTopColor:P.accent,animation:"spin 0.7s linear infinite"}}/>
-              : query&&<button onClick={()=>{setQuery("");setSelectedName("");setResults([]);setCourseData(null);setTees([]);}} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",color:P.muted,fontSize:16,cursor:"pointer",lineHeight:1,padding:2}}>×</button>
+              : query&&<button onClick={()=>{setQuery("");setSelectedName("");setResults([]);setCourseData(null);setTees([]);setConfirmed(false);}} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",color:P.muted,fontSize:16,cursor:"pointer",lineHeight:1,padding:2}}>×</button>
             }
           </div>
 
