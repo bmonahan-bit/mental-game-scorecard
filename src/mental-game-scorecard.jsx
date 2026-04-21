@@ -5425,20 +5425,20 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
             <div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1.5,marginBottom:10}}>YOUR GAME PATTERN</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               <div>
-                <div style={{fontSize:9,color:P.green,fontWeight:700,letterSpacing:1,marginBottom:6}}>STRENGTHS</div>
+                <div style={{fontSize:9,color:P.green,fontWeight:700,letterSpacing:1,marginBottom:6}}>TOP HEROES</div>
                 {stats.top2Heroes.map((h,i)=>(
                   <div key={h} style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:i===0?6:0}}>
                     <div style={{fontSize:i===0?14:12,fontWeight:i===0?900:700,color:i===0?P.green:P.muted}}>{h}</div>
-                    <div style={{fontSize:10,color:P.muted,fontWeight:600}}>{stats.hT[h]}×</div>
+                    <div style={{fontSize:10,color:i===0?P.green:P.muted,fontWeight:700}}>{stats.hT[h]}×</div>
                   </div>
                 ))}
               </div>
               <div>
-                <div style={{fontSize:9,color:P.red,fontWeight:700,letterSpacing:1,marginBottom:6}}>STRUGGLES</div>
+                <div style={{fontSize:9,color:P.red,fontWeight:700,letterSpacing:1,marginBottom:6}}>TOP BANDITS</div>
                 {stats.top2Bandits.map((b,i)=>(
                   <div key={b} style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:i===0?6:0}}>
                     <div style={{fontSize:i===0?14:12,fontWeight:i===0?900:700,color:i===0?P.red:P.muted}}>{b}</div>
-                    <div style={{fontSize:10,color:P.muted,fontWeight:600}}>{stats.bT[b]}×</div>
+                    <div style={{fontSize:10,color:i===0?P.red:P.muted,fontWeight:700}}>{stats.bT[b]}×</div>
                   </div>
                 ))}
               </div>
