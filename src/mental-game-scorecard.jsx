@@ -6553,19 +6553,29 @@ function ComboTrendChart({P, trend, rounds, onSelectRound}) {
 
       {/* ── Score to Par ── */}
       {hasScore&&(
-        <Section title="SCORE TO PAR" color={P.gold} h={SCORE_H}>
-          <svg style={{position:"absolute",inset:0,width:"100%",height:SCORE_H,overflow:"visible"}} viewBox={`0 0 ${svgW} ${SCORE_H}`} preserveAspectRatio="none">
-            {/* Zero line (even par) */}
-            {minS<=0&&maxS>=0&&<line x1="0" y1={zeroY} x2={svgW} y2={zeroY} stroke={P.border} strokeWidth="1" strokeDasharray="3 3" opacity="0.8"/>}
-            {/* Score line */}
-            {scorePoints.length>=2&&<polyline points={scorePoly} fill="none" stroke={P.gold} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" opacity="0.9"/>}
-            {scorePoints.map(p=>(
-              <circle key={p.i} cx={p.x} cy={p.y} r="3.5" fill={p.t.scoreToPar<=0?P.green:P.red} stroke={P.card} strokeWidth="1.5"/>
+        <>
+          <Section title="SCORE TO PAR" color={P.gold} h={SCORE_H}>
+            <svg style={{position:"absolute",inset:0,width:"100%",height:SCORE_H,overflow:"visible"}} viewBox={`0 0 ${svgW} ${SCORE_H}`} preserveAspectRatio="none">
+              {minS<=0&&maxS>=0&&<line x1="0" y1={zeroY} x2={svgW} y2={zeroY} stroke={P.border} strokeWidth="1" strokeDasharray="3 3" opacity="0.8"/>}
+              {scorePoints.length>=2&&<polyline points={scorePoly} fill="none" stroke={P.gold} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" opacity="0.9"/>}
+              {scorePoints.map(p=>(
+                <circle key={p.i} cx={p.x} cy={p.y} r="3.5" fill={p.t.scoreToPar<=0?P.green:P.red} stroke={P.card} strokeWidth="1.5"/>
+              ))}
+            </svg>
+            {minS<=0&&maxS>=0&&<div style={{position:"absolute",left:2,top:zeroY-7,fontSize:7,color:P.muted,fontWeight:700,opacity:0.6}}>E</div>}
+          </Section>
+          {/* Score to par values directly under the chart */}
+          <div style={{display:"flex",gap:2,marginTop:-6,marginBottom:8}}>
+            {trend.map((t,i)=>(
+              <div key={i} style={{flex:1,textAlign:"center"}}>
+                {t.scoreToPar!=null
+                  ? <div style={{fontSize:9,fontWeight:700,color:t.scoreToPar<=0?P.green:P.red}}>{t.scoreToPar>0?"+":""}{t.scoreToPar}</div>
+                  : <div style={{fontSize:9,color:"transparent"}}>—</div>
+                }
+              </div>
             ))}
-          </svg>
-          {/* E label on zero line */}
-          {minS<=0&&maxS>=0&&<div style={{position:"absolute",left:2,top:zeroY-7,fontSize:7,color:P.muted,fontWeight:700,opacity:0.6}}>E</div>}
-        </Section>
+          </div>
+        </>
       )}
 
       {/* ── PSR% ── */}
@@ -6585,7 +6595,6 @@ function ComboTrendChart({P, trend, rounds, onSelectRound}) {
         {trend.map((t,i)=>(
           <div key={i} style={{flex:1,textAlign:"center"}}>
             <div style={{fontSize:9,color:P.muted,fontWeight:500}}>{t.label}</div>
-            {t.scoreToPar!=null&&<div style={{fontSize:8,color:P.gold,fontWeight:700}}>{t.scoreToPar>0?"+":""}{t.scoreToPar}</div>}
             {t.psrPct!=null&&<div style={{fontSize:8,color:"#7c3aed",fontWeight:700}}>{t.psrPct}%</div>}
           </div>
         ))}
