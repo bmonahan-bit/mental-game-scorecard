@@ -1731,7 +1731,7 @@ export default function App() {
   const [holeGridOpen, setHoleGridOpen] = useState(true);
   const [tipStep, setTipStep] = useState(()=>{try{const s=localStorage.getItem("mgp_tip_step");return s?parseInt(s):0;}catch{return 0;}});
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const TOTAL_TIPS = 6;
+  const TOTAL_TIPS = 5;
   const tipDone = tipStep >= TOTAL_TIPS;
   const [tipRect, setTipRect] = useState(null);
 
@@ -1749,9 +1749,10 @@ export default function App() {
     scoreRow: React.useRef(null),
     matchup: React.useRef(null),
     mentalBar: React.useRef(null),
+    notesAndMore: React.useRef(null),
     nav: React.useRef(null),
   };
-  const TIP_REF_KEYS = ["course","grid","scoreRow","matchup","mentalBar","nav"];
+  const TIP_REF_KEYS = ["course","grid","scoreRow","matchup","notesAndMore"];
   React.useEffect(()=>{
     if(tipDone) return;
     const key = TIP_REF_KEYS[tipStep];
@@ -2510,12 +2511,11 @@ export default function App() {
         {/* Multi-step tooltip tour */}
         {!tipDone&&!dropdownOpen&&(()=>{
           const tips=[
-            {step:1,title:"Add Your Course",body:"Before your round, select your course to auto-fill hole data and yardages. Turn on the In-Game Caddie for mental guidance during play.",icon:"Flag",cardPos:"below"},
+            {step:1,title:"Course & Caddie",body:"Before your round, select your course to auto-fill hole data and yardages. Turn on the In-Game Caddie for mental guidance during play.",icon:"Flag",cardPos:"below"},
             {step:2,title:"Hole Grid",body:"Tap any hole to jump to it. Holes will fill in green when Heroes showed up. Red holes mean Bandits interfered.",icon:"Grid",cardPos:"below"},
             {step:3,title:"PAR, SCORE & STATS",body:"Enter your stroke score and putts. Toggle PSR to track your pre-shot routine. Then use the → arrow to move to the next hole. Hit Save to lock in the round.",icon:"Flag",cardPos:"below"},
             {step:4,title:"Heroes & Bandits",body:"After each shot, tap which Heroes showed up and which Bandits crept in. This is the heart of your mental game. (A hero or bandit can show up more than once a hole.)",icon:"Shield",cardPos:"above"},
-            {step:5,title:"Mental Score Bar",body:"Your Mental Net is Heroes minus Bandits. A positive number means the Heroes ran the show. A negative number means the Bandits interfered.",icon:"Chart",cardPos:"above"},
-            {step:6,title:"Notes, Save & Navigation",body:"Add a hole note using the Notes field above. Hit Save to lock in your hole. Use → to advance to the next hole, or Finish when your round is complete.",icon:"Note",cardPos:"above"},
+            {step:5,title:"Notes, Net & Intentions",body:"Add a Hole Note to capture what happened. Your Mental Net shows Heroes minus Bandits for the round. Tap Intention to keep your focus for the day front of mind.",icon:"Note",cardPos:"above"},
           ];
           const t=tips[tipStep];
           const isLast=tipStep===TOTAL_TIPS-1;
@@ -2890,6 +2890,8 @@ export default function App() {
           );})}
         </div>}
 
+        {/* notesAndMore ref — wraps hole note, mental bar, nav for slide 5 */}
+        <div ref={tipRefs.notesAndMore}>
         {/* Hole Note — above intentions */}
         <div style={{margin:"0 10px 6px",flexShrink:0}}>
           <button onClick={()=>setHoleNoteOpen(!holeNoteOpen)} style={{width:"100%",padding:"6px 12px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.card,color:P.white,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",transition:"transform 0.1s ease"}} {...pp()}>
@@ -2992,9 +2994,9 @@ export default function App() {
           )}
         </div>
         <div style={{height:"calc(4px + env(safe-area-inset-bottom, 0px))"}}/>
+        </div>{/* end notesAndMore ref */}
 
         {/* Intention modal */}
-        {showIntentionModal&&(
           <div onClick={()=>setShowIntentionModal(false)} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}>
             <div onClick={e=>e.stopPropagation()} style={{background:P.card,borderRadius:20,padding:"24px 20px",width:"100%",maxWidth:360,border:`1.5px solid #ca8a0444`}}>
               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
