@@ -2178,6 +2178,9 @@ export default function App() {
     setHoleNoteOpen(settings?.holeNoteDefault!==false);
     setSelectedTee(tee);
     setShowOpenRoundModal(false);
+    setShowIntentionModal(false);
+    setMindsetCard(null);
+    setShowTurnCheckIn(false);
     try{const cf=localStorage.getItem("mgp_carry_forward");if(cf)setCarryForward(cf);}catch{}
     try{localStorage.removeItem("mgp_checklist_date");sessionStorage.removeItem("mgp_preround_checked");}catch{}
     setPreroundKey(k=>k+1);
@@ -2997,6 +3000,7 @@ export default function App() {
         </div>{/* end notesAndMore ref */}
 
         {/* Intention modal */}
+        {showIntentionModal&&(
           <div onClick={()=>setShowIntentionModal(false)} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}>
             <div onClick={e=>e.stopPropagation()} style={{background:P.card,borderRadius:20,padding:"24px 20px",width:"100%",maxWidth:360,border:`1.5px solid #ca8a0444`}}>
               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
@@ -3007,6 +3011,7 @@ export default function App() {
               <button onClick={()=>setShowIntentionModal(false)} style={{width:"100%",marginTop:20,padding:"12px",borderRadius:12,border:"none",background:P.cardAlt,color:P.muted,fontSize:14,fontWeight:700,cursor:"pointer"}}>Close</button>
             </div>
           </div>
+        )}
         )}
 
 
