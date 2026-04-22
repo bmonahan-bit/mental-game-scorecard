@@ -1762,7 +1762,7 @@ export default function App() {
       const r = el.getBoundingClientRect();
       // For slide 5 (notes5), extend rect to bottom of screen to cover notes + mental bar + nav
       if(key === "notes5") {
-        setTipRect({top:r.top-4, left:r.left-4, width:r.width+8, height:130});
+        setTipRect({top:r.top-4, left:r.left-4, width:r.width+8, height:160});
       } else {
         setTipRect({top:r.top-4, left:r.left-4, width:r.width+8, height:r.height+8});
       }
