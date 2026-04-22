@@ -2185,6 +2185,8 @@ export default function App() {
     setShowTurnCheckIn(false);
     try{const cf=localStorage.getItem("mgp_carry_forward");if(cf)setCarryForward(cf);}catch{}
     try{localStorage.removeItem("mgp_checklist_date");sessionStorage.removeItem("mgp_preround_checked");}catch{}
+    // Reset tips so they start from slide 1 on each new round
+    if(tipStep < TOTAL_TIPS) { setTipStep(0); try{localStorage.setItem("mgp_tip_step","0");}catch{} }
     setPreroundKey(k=>k+1);
 
     // If courseData passed directly, load it
