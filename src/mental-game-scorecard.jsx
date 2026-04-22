@@ -1748,8 +1748,6 @@ export default function App() {
     grid: React.useRef(null),
     scoreRow: React.useRef(null),
     matchup: React.useRef(null),
-    mentalBar: React.useRef(null),
-    notesAndMore: React.useRef(null),
     nav: React.useRef(null),
   };
   const TIP_REF_KEYS = ["course","grid","scoreRow","matchup","nav"];
@@ -2913,7 +2911,7 @@ export default function App() {
         
 
         {/* Mental Net Bar — merged with matchup toggle */}
-        <div ref={tipRefs.mentalBar} style={{marginTop:2}}>
+        <div style={{marginTop:2}}>
         {matchupOpen&&(()=>{
           const scoredHoles=scores.slice(0,currentHole+1).filter(h=>h.strokeScore&&h.par);
           const rs=scoredHoles.reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0);
