@@ -2513,7 +2513,7 @@ export default function App() {
             {step:1,title:"Add Your Course",body:"Search for your course to auto-fill hole data and yardages. The In-Game Caddie toggle also lives here.",icon:"Flag",cardPos:"below"},
             {step:2,title:"Hole Grid",body:"Tap any hole to jump to it. Colored dots show mental activity — green for heroes, red for bandits.",icon:"Grid",cardPos:"below"},
             {step:3,title:"PAR, SCORE & STATS",body:"Enter par and your stroke score. Running score vs par shows on the left. Log putts on the right.",icon:"Flag",cardPos:"below"},
-            {step:4,title:"Heroes & Bandits",body:"After each hole, tap which Heroes showed up and which Bandits crept in. This is the heart of your mental game.",icon:"Shield",cardPos:"above"},
+            {step:4,title:"Heroes & Bandits",body:"After each shot, tap which Heroes showed up and which Bandits crept in. This is the heart of your mental game. (A hero or bandit can show up more than once a hole.)",icon:"Shield",cardPos:"above"},
             {step:5,title:"Mental Score Bar",body:"Your live Mental Net — Heroes minus Bandits. Tap MENTAL SCORE to collapse it and save space.",icon:"Chart",cardPos:"above"},
             {step:6,title:"Notes & Navigation",body:"Add a quick hole note, use ← → to move between holes, Save to draft, or Finish when your round is complete.",icon:"Note",cardPos:"above"},
           ];
