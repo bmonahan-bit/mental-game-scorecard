@@ -1762,7 +1762,7 @@ export default function App() {
       const r = el.getBoundingClientRect();
       // For slide 5 (notes5), extend rect to bottom of screen to cover notes + mental bar + nav
       if(key === "notes5") {
-        setTipRect({top:r.top-4, left:r.left-4, width:r.width+8, height:Math.min(window.innerHeight-r.top-8, 220)});
+        setTipRect({top:r.top-4, left:r.left-4, width:r.width+8, height:130});
       } else {
         setTipRect({top:r.top-4, left:r.left-4, width:r.width+8, height:r.height+8});
       }
@@ -1771,7 +1771,6 @@ export default function App() {
   },[tipStep, tipDone]);
   function nextTip(){const next=tipStep+1;setTipStep(next);try{localStorage.setItem("mgp_tip_step",next);}catch{}}
   function skipTips(){setTipStep(TOTAL_TIPS);try{localStorage.setItem("mgp_tip_step",TOTAL_TIPS);}catch{}}
-  const [mentalBarOpen, setMentalBarOpen] = useState(true);
   const [inGameCaddie, setInGameCaddie] = useState(true);
   const [caddieCard, setCaddieCard] = useState(null);
   const [caddieQueue, setCaddieQueue] = useState([]);
@@ -1817,7 +1816,6 @@ export default function App() {
   const [showProfileGate, setShowProfileGate] = useState(false);
   const [showCoursePrompt, setShowCoursePrompt] = useState(false);
   const [coursePromptCallback, setCoursePromptCallback] = useState(null);
-  const [communityProfile, setCommunityProfile] = useState(null); // legacy — replaced by Clerk
   // ─── SETTINGS ───
   const [settings, setSettings] = useState({
     favCourse: "", favTee: "", handicap: "", units: "imperial",
@@ -3268,15 +3266,6 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
         <div style={{textAlign:"center",marginBottom:32,opacity:loaded?1:0,transition:"opacity 0.7s ease 0.6s",padding:"0 16px"}}>
           <div style={{fontSize:12,color:textLow,fontStyle:"italic",lineHeight:1.5,fontWeight:500}}>"{quote}"</div>
         </div>
-
-        {/* UPGRADE NUDGE for non-pro */}
-        {false&&(
-          <button onClick={()=>onNav("upgrade")} {...pp()} style={{marginBottom:10,padding:"8px 18px",borderRadius:20,background:"linear-gradient(135deg,#16a34a22,#22c55e18)",border:"1px solid #16a34a44",cursor:"pointer",display:"flex",alignItems:"center",gap:8,opacity:loaded?1:0,transition:"opacity 0.6s ease 0.58s"}}>
-            <Icons.Star color="#16a34a" size={13}/>
-            <span style={{fontSize:12,fontWeight:700,color:"#16a34a"}}>Upgrade to Pro</span>
-            <span style={{fontSize:11,color:"#16a34a",opacity:0.6}}>$4.99/mo →</span>
-          </button>
-        )}
 
         {/* PRIMARY CTA */}
         <button onClick={()=>roundInProgress?onContinueRound():onNav("preround")} {...pp()} style={{
@@ -4831,11 +4820,6 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
               )}
             </div>
           </div>
-          {false&&(
-            <Row label="Manage Subscription" sub="Update payment or cancel in App Store" last>
-              <button onClick={onCancelPro} {...pp()} style={{padding:"7px 14px",borderRadius:9,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,fontWeight:600,cursor:"pointer"}}>Cancel</button>
-            </Row>
-          )}
         </Section>
 
         <div style={{textAlign:"center",paddingTop:8}}>
@@ -7643,15 +7627,6 @@ function TransformView({onBack,S,P}) {
               <span style={{fontSize:14,color:"rgba(255,255,255,0.7)",flexShrink:0}}>→</span>
             </button>
 
-            {/* Course - hidden for now */}
-            {false && <button onClick={()=>openUrl("https://mentalgolfbook.com/")} {...pp()} style={{width:"100%",padding:"12px 14px",borderRadius:12,background:"linear-gradient(135deg,#1a3a5c,#2563eb)",display:"flex",alignItems:"center",justifyContent:"space-between",border:"none",cursor:"pointer",boxSizing:"border-box"}}>
-              <div style={{minWidth:0,textAlign:"left"}}>
-                <div style={{fontSize:13,fontWeight:800,color:"#fff"}}>Rethinking Golf</div>
-                <div style={{fontSize:11,color:"rgba(255,255,255,0.7)",marginTop:2}}>Online Course</div>
-              </div>
-              <span style={{fontSize:14,color:"rgba(255,255,255,0.7)",flexShrink:0,marginLeft:8}}>→</span>
-            </button>}
-
             {/* 1-on-1 Coaching */}
             <button onClick={()=>openUrl("https://www.paulmonahan.com/golf-coach/")} {...pp()} style={{width:"100%",padding:"13px 16px",borderRadius:12,background:"linear-gradient(135deg,#1a2b4a,#2563eb)",border:"none",color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               <div style={{textAlign:"left"}}>
@@ -8290,12 +8265,6 @@ function OnboardingFlow({onFinish,onPrivacy,P,S}){
             </div>
             <span style={{fontSize:16,color:P.muted,opacity:0.5}}>→</span>
           </button>
-
-          {/* Course - hidden for now */}
-          {false && <button onClick={()=>{ openUrl("https://paulmonahan.com"); }} style={{width:"100%",padding:"13px 16px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#1a3a5c,#2563eb)",color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-            <span style={{fontSize:13}}>Rethinking Golf — Online Course</span>
-            <span style={{fontSize:16,opacity:0.8}}>→</span>
-          </button>}
 
           {/* Mastermind */}
           <button onClick={()=>openUrl("https://mentalgolfbook.com/mastermind-join?utm_source=email&utm_medium=email+marketing&contact_id=1dCK93hN9O4r9zdCWrzJ")} {...pp()} style={{width:"100%",padding:"13px 16px",borderRadius:12,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:14,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:0.2}}>
