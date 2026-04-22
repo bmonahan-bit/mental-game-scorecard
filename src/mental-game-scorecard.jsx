@@ -1762,7 +1762,7 @@ export default function App() {
       const r = el.getBoundingClientRect();
       // For slide 5 (notes5), extend rect to bottom of screen to cover notes + mental bar + nav
       if(key === "notes5") {
-        setTipRect({top:r.top-4, left:r.left-4, width:r.width+8, height:window.innerHeight-r.top+4});
+        setTipRect({top:r.top-4, left:r.left-4, width:r.width+8, height:Math.min(window.innerHeight-r.top-8, 220)});
       } else {
         setTipRect({top:r.top-4, left:r.left-4, width:r.width+8, height:r.height+8});
       }
@@ -2915,7 +2915,7 @@ export default function App() {
 
         
 
-        {/* Mental Net Bar — merged with matchup toggle */}
+        {/* Mental Net Bar */}
         <div style={{marginTop:2}}>
         {matchupOpen&&(()=>{
           const scoredHoles=scores.slice(0,currentHole+1).filter(h=>h.strokeScore&&h.par);
@@ -2926,7 +2926,6 @@ export default function App() {
           const holeBandits=hB?Object.values(hB).filter(v=>v>0).length:0;
           return (
           <div style={{margin:"0 12px 4px",padding:"6px 10px",borderRadius:12,background:total.net>0?P.green+"12":total.net<0?P.red+"12":P.card,border:`1.5px solid ${total.net>0?P.green+"44":total.net<0?P.red+"44":P.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",gap:6,transition:"all 0.3s ease"}}>
-            {/* Heroes side */}
             <div style={{display:"flex",alignItems:"center",gap:5,flex:1}}>
               <img src={darkMode?HEROES_LOGO_WHITE:HEROES_LOGO_DARK} alt="Heroes" style={{width:32,height:32,objectFit:"contain",flexShrink:0}}/>
               <div>
@@ -2937,16 +2936,14 @@ export default function App() {
                 </div>
               </div>
             </div>
-            {/* Mental Net center */}
             <div style={{textAlign:"center",flexShrink:0,position:"relative"}}>
-              <div style={{fontSize:9,color:P.muted,letterSpacing:1,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:0}}>
+              <div style={{fontSize:9,color:P.muted,letterSpacing:1,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>
                 NET
                 <button onClick={()=>setShowMentalNetInfo(true)} {...pp()} style={{width:12,height:12,borderRadius:"50%",border:`1px solid ${P.border}`,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:7,color:P.muted,cursor:"pointer",flexShrink:0,background:"transparent",padding:0,lineHeight:1,marginLeft:2,position:"absolute",right:-14,top:0}}>?</button>
               </div>
               <div style={{fontSize:26,fontWeight:900,lineHeight:1,color:total.net>0?P.green:total.net<0?P.red:P.gold,transition:"all 0.2s"}}>{total.net>0?"+":""}{total.net}</div>
               {rd!==null&&<div style={{fontSize:9,fontWeight:700,color:rd<0?P.green:rd>0?P.red:P.gold}}>{rd>0?"+":""}{rd===0?"E":rd}</div>}
             </div>
-            {/* Bandits side */}
             <div style={{display:"flex",alignItems:"center",gap:5,flex:1,justifyContent:"flex-end"}}>
               <div style={{textAlign:"right"}}>
                 <div style={{fontSize:10,color:P.red,letterSpacing:1,fontWeight:700}}>BANDITS</div>
@@ -2960,7 +2957,6 @@ export default function App() {
           </div>
           );
         })()}
-        {/* Collapsed mental net when matchup is closed */}
         {!matchupOpen&&(
           <div style={{margin:"0 12px 4px",padding:"6px 14px",borderRadius:10,background:P.card,border:`1.5px solid ${total.net>0?P.green+"44":total.net<0?P.red+"44":P.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <span style={{fontSize:12,fontWeight:700,color:P.green}}>{hT>0?`${hT} Heroes`:""}</span>
@@ -2968,7 +2964,7 @@ export default function App() {
             <span style={{fontSize:12,fontWeight:700,color:P.red}}>{bT>0?`${bT} Bandits`:""}</span>
           </div>
         )}
-        </div>{/* end mentalBar ref wrapper */}
+        </div>
 
         {/* Bottom row: next arrow + finish */}
         <div ref={tipRefs.nav} style={{flexShrink:0,borderTop:`1px solid ${P.border}`,background:P.bg,padding:"6px 12px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
