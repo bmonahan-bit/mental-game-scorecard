@@ -6,7 +6,8 @@ import ReactDOM from 'react-dom/client';
 import * as Sentry from '@sentry/react';
 import { ClerkProvider, useAuth, useClerk, useUser } from '@clerk/clerk-react';
 import { ConvexProviderWithClerk } from 'convex/react-clerk';
-import { ConvexReactClient } from 'convex/react';
+import { ConvexReactClient, useMutation, useQuery } from 'convex/react';
+import { api } from '../convex/_generated/api';
 import App from './mental-game-scorecard.jsx';
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
@@ -32,27 +33,48 @@ if (sentryDsn) {
   };
 }
 
-// Bridge
+// Clerk Bridge
 function ClerkBridge() {
   const { openSignUp, openSignIn, openUserProfile, signOut } = useClerk();
   const { user, isSignedIn, isLoaded } = useUser();
 
-  // Assign synchronously on every render so they're always current
-  window.__clerkOpenSignUp = () => openSignUp({});
-  window.__clerkOpenSignIn = () => openSignIn({});
-  window.__clerkOpenUserProfile = () => openUserProfile({});
-  window.__clerkSignOut = () => signOut(() => { window.location.reload(); });
-  window.__useUser = () => ({ user, isSignedIn, isLoaded });
-
-  // Fire event when auth state changes so app can react without polling
   React.useEffect(() => {
-    window.dispatchEvent(new Event("clerk:statechange"));
-  }, [isSignedIn, isLoaded]);
+    window.__clerkOpenSignUp = () => openSignUp({});
+    window.__clerkOpenSignIn = () => openSignIn({});
+    window.__clerkOpenUserProfile = () => openUserProfile({});
+    window.__clerkSignOut = () => signOut(() => { window.location.reload(); });
+    window.__useUser = () => ({ user, isSignedIn, isLoaded });
+  });
 
   return null;
 }
 
-// Clerk appearance - responds to light/dark theme
+// Convex Bridge — exposes rounds + settings mutations/queries via window
+function ConvexBridge() {
+  const { isSignedIn } = useUser();
+
+  const upsertRound = useMutation(api.rounds.upsertRound);
+  const bulkUpsertRounds = useMutation(api.rounds.bulkUpsertRounds);
+  const deleteRound = useMutation(api.rounds.deleteRound);
+  const upsertSettings = useMutation(api.settings.upsertSettings);
+
+  const cloudRounds = useQuery(api.rounds.getRounds, isSignedIn ? {} : 'skip');
+  const cloudSettings = useQuery(api.settings.getSettings, isSignedIn ? {} : 'skip');
+
+  React.useEffect(() => {
+    window.__convexUpsertRound = (round) => upsertRound(round).catch(e => console.warn('upsertRound failed', e));
+    window.__convexBulkUpsertRounds = (rounds) => bulkUpsertRounds({ rounds }).catch(e => console.warn('bulkUpsert failed', e));
+    window.__convexDeleteRound = (roundId) => deleteRound({ roundId }).catch(e => console.warn('deleteRound failed', e));
+    window.__convexUpsertSettings = (data, carryForward) => upsertSettings({ data, carryForward }).catch(e => console.warn('upsertSettings failed', e));
+    window.__convexRounds = cloudRounds;
+    window.__convexSettings = cloudSettings;
+    window.__convexReady = isSignedIn && cloudRounds !== undefined;
+  });
+
+  return null;
+}
+
+// Clerk appearance
 function getClerkAppearance(dark) {
   const bg       = dark ? "#09090b" : "#ffffff";
   const card     = dark ? "#18181b" : "#ffffff";
@@ -124,6 +146,7 @@ root.render(
       <ClerkProviderWithTheme>
         <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
           <ClerkBridge />
+          <ConvexBridge />
           <App />
         </ConvexProviderWithClerk>
       </ClerkProviderWithTheme>

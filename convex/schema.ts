@@ -4,7 +4,7 @@ import { v } from "convex/values";
 export default defineSchema({
   // Community profiles — one per user
   profiles: defineTable({
-    clerkId: v.string(),            // Clerk user ID
+    clerkId: v.string(),
     email: v.string(),
     name: v.optional(v.string()),
     topHero: v.optional(v.string()),
@@ -15,8 +15,8 @@ export default defineSchema({
     source: v.string(),
     cloudSync: v.boolean(),
     optedIn: v.boolean(),
-    legacyUid: v.optional(v.string()), // for migrating pre-Clerk users
-    joinedAt: v.number(),               // ms timestamp
+    legacyUid: v.optional(v.string()),
+    joinedAt: v.number(),
     lastUpdated: v.number(),
   })
     .index("by_clerk_id", ["clerkId"])
@@ -46,4 +46,31 @@ export default defineSchema({
   })
     .index("by_clerk_id", ["clerkId"])
     .index("by_code", ["code"]),
+
+  // Golf rounds — one per round per user
+  rounds: defineTable({
+    clerkId: v.string(),
+    roundId: v.string(),
+    date: v.string(),
+    courseName: v.optional(v.string()),
+    net: v.number(),
+    totalStroke: v.optional(v.number()),
+    totalPar: v.optional(v.number()),
+    scores: v.any(),
+    notes: v.optional(v.string()),
+    preRoundMeta: v.optional(v.any()),
+    savedAt: v.number(),
+  })
+    .index("by_clerk_id", ["clerkId"])
+    .index("by_clerk_and_round", ["clerkId", "roundId"])
+    .index("by_clerk_and_date", ["clerkId", "date"]),
+
+  // User settings — one per user
+  settings: defineTable({
+    clerkId: v.string(),
+    data: v.any(),        // full settings object
+    carryForward: v.optional(v.string()),  // intention carry forward
+    updatedAt: v.number(),
+  })
+    .index("by_clerk_id", ["clerkId"]),
 });

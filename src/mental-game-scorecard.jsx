@@ -1826,6 +1826,9 @@ export default function App() {
     setSettings(prev => {
       const next = { ...prev, [key]: val };
       try { localStorage.setItem("mgp_settings", JSON.stringify(next)); } catch {}
+      if(window.__convexUpsertSettings) {
+        try { window.__convexUpsertSettings(next, localStorage.getItem("mgp_carry_forward")||undefined); } catch {}
+      }
       return next;
     });
   }
@@ -1872,6 +1875,51 @@ export default function App() {
       } catch(e) { console.warn('favCourse autoload failed', e); }
     })();
   }, []); // run once on mount
+
+  // ── Load from Convex when signed in and data arrives ──
+  const convexSyncDone = React.useRef(false);
+  useEffect(() => {
+    const cloudRounds = window.__convexRounds;
+    const cloudSettings = window.__convexSettings;
+    const isReady = window.__convexReady;
+    if (!isReady || convexSyncDone.current) return;
+    if (!cloudRounds) return;
+    convexSyncDone.current = true;
+
+    // Merge cloud rounds with local — cloud wins on conflict (roundId match)
+    const localRounds = (() => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]"); } catch { return []; } })();
+    const localIds = new Set(localRounds.map(r=>r.roundId).filter(Boolean));
+    const newFromCloud = cloudRounds
+      .filter(r => !localIds.has(r.roundId))
+      .map(r => ({ id: r.savedAt||Date.now(), roundId: r.roundId, course: r.courseName||"Unnamed Course", date: r.date, scores: r.scores, totalPar: r.totalPar, totalStroke: r.totalStroke, notes: r.notes, preRoundMeta: r.preRoundMeta, net: r.net, heroes: r.net >= 0 ? r.net : 0, bandits: r.net < 0 ? Math.abs(r.net) : 0 }));
+
+    if (newFromCloud.length > 0) {
+      const merged = [...localRounds, ...newFromCloud].sort((a,b) => (b.date||"").localeCompare(a.date||""));
+      setSavedRounds(merged);
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)); } catch {}
+      showToast(`Synced ${newFromCloud.length} round${newFromCloud.length>1?"s":""} from cloud`, "success", 3000);
+    }
+
+    // Also push any local rounds that don't have roundIds up to Convex
+    const unsynced = localRounds.filter(r => !r.roundId);
+    if (unsynced.length > 0 && window.__convexBulkUpsertRounds) {
+      const toSync = unsynced.map(r => ({ roundId: String(r.id||Date.now()+Math.random()), date: r.date, courseName: r.course, net: r.net||0, totalStroke: r.totalStroke, totalPar: r.totalPar, scores: r.scores, notes: r.notes, preRoundMeta: r.preRoundMeta, savedAt: r.id||Date.now() }));
+      window.__convexBulkUpsertRounds(toSync);
+    }
+
+    // Load cloud settings if no local settings
+    if (cloudSettings?.data) {
+      const localSettings = (() => { try { return JSON.parse(localStorage.getItem("mgp_settings")||"null"); } catch { return null; } })();
+      if (!localSettings) {
+        setSettings(cloudSettings.data);
+        try { localStorage.setItem("mgp_settings", JSON.stringify(cloudSettings.data)); } catch {}
+      }
+      if (cloudSettings.carryForward && !carryForward) {
+        setCarryForward(cloudSettings.carryForward);
+        try { localStorage.setItem("mgp_carry_forward", cloudSettings.carryForward); } catch {}
+      }
+    }
+  });
 
   useEffect(() => {
     window.addEventListener("online",()=>setIsOffline(false));
@@ -1929,8 +1977,6 @@ export default function App() {
       const rated = localStorage.getItem("mgp_rated");
       if(!rated && rounds.length===3) setTimeout(()=>setShowRateApp(true), 2000);
     } catch {}
-    // Community prompt disabled — captured in onboarding now
-    // try { ... } catch {}
   }
   function toggleTheme() { const next=!darkMode; setDarkMode(next); try{localStorage.setItem(THEME_KEY,next?"dark":"light");window.dispatchEvent(new Event("mgp_theme_change"));}catch{} }
 
@@ -2134,8 +2180,11 @@ export default function App() {
     const ts=getTrimmedScores(scores);
     const course = courseName||"Unnamed Course";
     const existing = savedRounds.find(r=>r.date===roundDate&&r.course===course);
-    const round = { id:existing?.id||Date.now(), course, date:roundDate, scores:ts, totalPar:getTotalPar(ts), totalStroke:getTotalStroke(ts), notes:postRoundNotes, preRoundMeta:JSON.parse(JSON.stringify(preRoundMeta)), ...getRoundTotals(ts).total };
+    const roundId = existing?.roundId || String(Date.now());
+    const round = { id:existing?.id||Date.now(), roundId, course, date:roundDate, scores:ts, totalPar:getTotalPar(ts), totalStroke:getTotalStroke(ts), notes:postRoundNotes, preRoundMeta:JSON.parse(JSON.stringify(preRoundMeta)), ...getRoundTotals(ts).total };
     persistRounds(existing ? savedRounds.map(r=>r.id===existing.id?round:r) : [round, ...savedRounds]);
+    // Sync to Convex
+    if(window.__convexUpsertRound) window.__convexUpsertRound({ roundId, date:round.date, courseName:round.course, net:round.net||0, totalStroke:round.totalStroke, totalPar:round.totalPar, scores:ts, notes:round.notes, preRoundMeta:round.preRoundMeta });
     vibrate([10,20,10]);
     showToast(existing ? "Draft updated!" : "Draft saved!", "success");
   }
@@ -2147,20 +2196,26 @@ export default function App() {
   function saveAndFinish() {
     const trimmedScores = getTrimmedScores(scores);
     const holesPlayed = trimmedScores.filter(h=>h.strokeScore||Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)).length;
-    const round = { id:Date.now(), course:courseName||"Unnamed Course", date:roundDate, scores:trimmedScores, holesPlayed, totalPar:getTotalPar(trimmedScores), totalStroke:getTotalStroke(trimmedScores), notes:postRoundNotes, preRoundMeta:JSON.parse(JSON.stringify(preRoundMeta)), savedRoundsCount: savedRounds.length + 1, ...getRoundTotals(trimmedScores).total };
+    const roundId = String(Date.now());
+    const round = { id:Date.now(), roundId, course:courseName||"Unnamed Course", date:roundDate, scores:trimmedScores, holesPlayed, totalPar:getTotalPar(trimmedScores), totalStroke:getTotalStroke(trimmedScores), notes:postRoundNotes, preRoundMeta:JSON.parse(JSON.stringify(preRoundMeta)), savedRoundsCount: savedRounds.length + 1, ...getRoundTotals(trimmedScores).total };
     persistRounds([round, ...savedRounds]);
+    // Sync to Convex
+    if(window.__convexUpsertRound) window.__convexUpsertRound({ roundId, date:round.date, courseName:round.course, net:round.net||0, totalStroke:round.totalStroke, totalPar:round.totalPar, scores:trimmedScores, notes:round.notes, preRoundMeta:round.preRoundMeta });
     setCompletedRound(round);
     try { localStorage.setItem("mgp_carry_forward", carryForward); } catch {}
-    // Share prompt
     if(round.net>=3){ setTimeout(()=>showToast(`Mental Net ${round.net>0?"+":""}${round.net} — great round!`, "success", 4000), 800); }
     try { localStorage.removeItem("mgp_checklist_date"); } catch {}
     setScores(initScores()); setCurrentHole(0); setCourseName(""); setRoundDate(new Date().toISOString().split("T")[0]); setPostRoundNotes(""); setHoleNoteOpen(settings?.holeNoteDefault!==false); setUsedMessages({}); setPreRoundMeta({sleep:3,energy:3,partners:"friends"});
-    // Fireworks on round save!
     setShowFireworks(true);
     setView("roundstats");
   }
 
-  function deleteRound(id) { persistRounds(savedRounds.filter(r=>r.id!==id)); if(selectedRound?.id===id)setSelectedRound(null); }
+  function deleteRound(id) {
+    const round = savedRounds.find(r=>r.id===id);
+    persistRounds(savedRounds.filter(r=>r.id!==id));
+    if(selectedRound?.id===id) setSelectedRound(null);
+    if(round?.roundId && window.__convexDeleteRound) window.__convexDeleteRound(round.roundId);
+  }
   function startNewRound() {
     if(trialExpired) { setShowProfileGate(true); return; }
     const roundHasData=scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts);
@@ -2248,6 +2303,12 @@ export default function App() {
       ))}
     </div>;
   }
+  function handleSignOut() {
+    const keysToRemove = ["mental_game_rounds","mgp_settings","mgp_carry_forward","mgp_carry_forward_draft","mgp_avatar","mgp_avatar_changed","mgp_badge_tiers","mgp_milestones","mgp_onboarded","mgp_pro_date","mgp_rated","mgp_checklist_count","mgp_coach_code","mgp_coach_code_own","mgp_coach_name","mgp_coach_roster","mgp_community_joined","mgp_display_name","mgp_uid","mgp_tip_step"];
+    keysToRemove.forEach(k=>{try{localStorage.removeItem(k);}catch{}});
+    if(window.__clerkSignOut) window.__clerkSignOut(); else window.location.href="/";
+  }
+
   function navTo(v) {
     if(v==="caddie") setPrevView(view);
     if(v==="checklist"||v==="preround"){
@@ -2432,9 +2493,9 @@ export default function App() {
   // ─── ROUTING ───
   if (showOnboarding) return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><OpenRoundModal/><OnboardingFlow onFinish={finishOnboarding} onPrivacy={()=>setShowPrivacyPolicy(true)} P={P} S={S}/></ThemeCtx.Provider>;
   // paywall disabled
-  if (view==="home") return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><CommunityPromptModal/><ProfileGateModal/><CoursePromptModal/><OpenRoundModal/><HomeScreen onNav={(v)=>{if(v==="upgrade")return;navTo(v);}} onContinueRound={()=>{const firstEmpty=scores.findIndex(h=>!h.strokeScore&&!Object.values(h.heroes).some(v=>v>0)&&!Object.values(h.bandits).some(v=>v>0));setCurrentHole(Math.max(0,firstEmpty));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} isPro={isPro} roundsRemaining={roundsRemaining} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ if(window.__clerkSignOut) window.__clerkSignOut(); else window.location.href="/"; }} /></ThemeCtx.Provider>;
+  if (view==="home") return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><CommunityPromptModal/><ProfileGateModal/><CoursePromptModal/><OpenRoundModal/><HomeScreen onNav={(v)=>{if(v==="upgrade")return;navTo(v);}} onContinueRound={()=>{const firstEmpty=scores.findIndex(h=>!h.strokeScore&&!Object.values(h.heroes).some(v=>v>0)&&!Object.values(h.bandits).some(v=>v>0));setCurrentHole(Math.max(0,firstEmpty));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} isPro={isPro} roundsRemaining={roundsRemaining} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }} /></ThemeCtx.Provider>;
   if (view==="checklist") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist key={preroundKey} onBack={nav("home")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",new Date().toISOString().split("T")[0]);const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setPreRoundMeta(p=>({...p,checklistDone:true}));setView("play");}} onSkip={()=>{setPreRoundMeta(p=>({...p,checklistDone:false}));setView("play");}} S={S} lastIntention={carryForward} preRoundMeta={preRoundMeta} setPreRoundMeta={setPreRoundMeta} settings={settings} updateSetting={updateSetting} /></ThemeCtx.Provider>;
-  if (view==="courseselect") return <ThemeCtx.Provider value={P}><ToastLayer/><div style={{height:"100%",background:P.bg,position:"relative"}}><HomeScreen onNav={()=>{}} onContinueRound={()=>{}} roundInProgress={false} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} isPro={isPro} roundsRemaining={roundsRemaining} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ if(window.__clerkSignOut) window.__clerkSignOut(); else window.location.href="/"; }}/><CourseSelectModal P={P} S={S} settings={settings} onSkip={()=>resetAndStartNew()} onConfirm={(data)=>resetAndStartNew(data)}/></div></ThemeCtx.Provider>;
+  if (view==="courseselect") return <ThemeCtx.Provider value={P}><ToastLayer/><div style={{height:"100%",background:P.bg,position:"relative"}}><HomeScreen onNav={()=>{}} onContinueRound={()=>{}} roundInProgress={false} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} isPro={isPro} roundsRemaining={roundsRemaining} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }}/><CourseSelectModal P={P} S={S} settings={settings} onSkip={()=>resetAndStartNew()} onConfirm={(data)=>resetAndStartNew(data)}/></div></ThemeCtx.Provider>;
   if (view==="preround") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist key={preroundKey} onBack={()=>setView("courseselect")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",new Date().toISOString().split("T")[0]);const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setPreRoundMeta(p=>({...p,checklistDone:true}));setView("play");}} onSkip={()=>{setPreRoundMeta(p=>({...p,checklistDone:false}));setView("play");}} S={S} lastIntention={carryForward} preRoundMeta={preRoundMeta} setPreRoundMeta={setPreRoundMeta} settings={settings} updateSetting={updateSetting} /></ThemeCtx.Provider>;
   if (view==="tiger5") return <ThemeCtx.Provider value={P}><ToastLayer/><Tiger5View onBack={()=>setView(prevView||"home")} S={S}/></ThemeCtx.Provider>;
   if (view==="caddie") return <ThemeCtx.Provider value={P}><ToastLayer/><InnerCaddieView onBack={nav(prevView)} S={S} /></ThemeCtx.Provider>;
@@ -3136,7 +3197,7 @@ function UserDropdown({firstName, overlay1, overlay2, textHigh, textMid, P, onSe
               </div>
             </div>
             <button onClick={()=>{setOpen(false);onSettings&&onSettings();}} style={{display:"block",width:"100%",padding:"11px 14px",background:"transparent",border:"none",color:P.white,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>Settings</button>
-            <button onClick={()=>{setOpen(false);if(window.__clerkSignOut)window.__clerkSignOut();}} style={{display:"block",width:"100%",padding:"11px 14px",background:"transparent",border:"none",color:P.red,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>Sign Out</button>
+            <button onClick={()=>{setOpen(false);handleSignOut();}} style={{display:"block",width:"100%",padding:"11px 14px",background:"transparent",border:"none",color:P.red,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>Sign Out</button>
           </div>
         </>
       )}

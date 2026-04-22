@@ -10,6 +10,8 @@
 
 import type * as coach from "../coach.js";
 import type * as profiles from "../profiles.js";
+import type * as rounds from "../rounds.js";
+import type * as settings from "../settings.js";
 
 import type {
   ApiFromModules,
@@ -20,6 +22,8 @@ import type {
 declare const fullApi: ApiFromModules<{
   coach: typeof coach;
   profiles: typeof profiles;
+  rounds: typeof rounds;
+  settings: typeof settings;
 }>;
 
 /**
