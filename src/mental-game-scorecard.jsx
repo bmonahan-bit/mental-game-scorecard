@@ -1752,7 +1752,7 @@ export default function App() {
     notesAndMore: React.useRef(null),
     nav: React.useRef(null),
   };
-  const TIP_REF_KEYS = ["course","grid","scoreRow","matchup","notesAndMore"];
+  const TIP_REF_KEYS = ["course","grid","scoreRow","matchup","nav"];
   React.useEffect(()=>{
     if(tipDone) return;
     const key = TIP_REF_KEYS[tipStep];
@@ -2893,8 +2893,6 @@ export default function App() {
           );})}
         </div>}
 
-        {/* notesAndMore ref — wraps hole note, mental bar, nav for slide 5 */}
-        <div ref={tipRefs.notesAndMore}>
         {/* Hole Note — above intentions */}
         <div style={{margin:"0 10px 6px",flexShrink:0}}>
           <button onClick={()=>setHoleNoteOpen(!holeNoteOpen)} style={{width:"100%",padding:"6px 12px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.card,color:P.white,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",transition:"transform 0.1s ease"}} {...pp()}>
@@ -2997,7 +2995,6 @@ export default function App() {
           )}
         </div>
         <div style={{height:"calc(4px + env(safe-area-inset-bottom, 0px))"}}/>
-        </div>{/* end notesAndMore ref */}
 
         {/* Intention modal */}
         {showIntentionModal&&(
