@@ -1748,18 +1748,24 @@ export default function App() {
     grid: React.useRef(null),
     scoreRow: React.useRef(null),
     matchup: React.useRef(null),
+    bandits: React.useRef(null),
+    notes5: React.useRef(null),
     nav: React.useRef(null),
   };
-  const TIP_REF_KEYS = ["course","grid","scoreRow","matchup","nav"];
+  const TIP_REF_KEYS = ["course","grid","scoreRow","matchup","notes5"];
   React.useEffect(()=>{
     if(tipDone) return;
     const key = TIP_REF_KEYS[tipStep];
-    // Use rAF to ensure DOM has painted before measuring
     const frame = requestAnimationFrame(()=>{
       const el = tipRefs[key]?.current;
       if(!el) return;
       const r = el.getBoundingClientRect();
-      setTipRect({top:r.top-4, left:r.left-4, width:r.width+8, height:r.height+8});
+      // For slide 5 (notes5), extend rect to bottom of screen to cover notes + mental bar + nav
+      if(key === "notes5") {
+        setTipRect({top:r.top-4, left:r.left-4, width:r.width+8, height:window.innerHeight-r.top+4});
+      } else {
+        setTipRect({top:r.top-4, left:r.left-4, width:r.width+8, height:r.height+8});
+      }
     });
     return ()=>cancelAnimationFrame(frame);
   },[tipStep, tipDone]);
@@ -2696,8 +2702,7 @@ export default function App() {
           </div>
         </div>
 
-        <div style={{flexShrink:0,paddingTop:6}}>
-        <div ref={tipRefs.course}>
+        <div ref={tipRefs.course} style={{flexShrink:0,paddingTop:6}}>
         <CourseSearchBar
           P={P} S={S}
           courseName={courseName}
@@ -2708,9 +2713,7 @@ export default function App() {
           courseData={courseData}
           setCourseData={setCourseData}
         />
-        </div>
-        </div>
-        <div ref={tipRefs.course} style={{padding:"0 12px 4px",display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
+        <div style={{padding:"0 12px 4px",display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
           <input type="date" value={roundDate} onChange={e=>setRoundDate(e.target.value)} style={{...S.input,flex:"0 0 auto",width:130,fontSize:12,padding:"6px 8px"}}/>
           <div style={{flex:1}}/>
           <button onClick={()=>setInGameCaddie(!inGameCaddie)} {...pp()} style={{display:"flex",alignItems:"center",gap:4,padding:"6px 8px",borderRadius:10,border:`1.5px solid ${inGameCaddie?"#006747":P.border}`,background:inGameCaddie?"#00674715":"transparent",cursor:"pointer",transition:"all 0.15s",flexShrink:0,fontSize:12,fontWeight:600,color:inGameCaddie?"#006747":P.muted}}>
@@ -2718,6 +2721,7 @@ export default function App() {
             <span>Caddie</span>
             <div style={{width:22,height:12,borderRadius:6,background:inGameCaddie?"#006747":P.border,position:"relative",transition:"background 0.2s",flexShrink:0}}><div style={{width:8,height:8,borderRadius:"50%",background:"#fff",position:"absolute",top:2,left:inGameCaddie?12:2,transition:"left 0.2s",boxShadow:"0 1px 2px rgba(0,0,0,0.2)"}}/></div>
           </button>
+        </div>
         </div>
 
         {/* Hole Grid */}
@@ -2890,9 +2894,10 @@ export default function App() {
             </div>
           );})}
         </div>}
+        </div>{/* end matchup ref wrapper */}
 
         {/* Hole Note — above intentions */}
-        <div style={{margin:"0 10px 6px",flexShrink:0}}>
+        <div ref={tipRefs.notes5} style={{margin:"0 10px 6px",flexShrink:0}}>
           <button onClick={()=>setHoleNoteOpen(!holeNoteOpen)} style={{width:"100%",padding:"6px 12px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.card,color:P.white,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",transition:"transform 0.1s ease"}} {...pp()}>
             <span style={{display:"flex",alignItems:"center",gap:5}}><Icons.Note color={scores[currentHole].holeNote?P.accent:P.muted} size={13}/> {scores[currentHole].holeNote?"Hole Note ✓":"Add Hole Note"}</span>
             <span style={{fontSize:10,color:P.muted,transition:"transform 0.2s",transform:holeNoteOpen?"rotate(180deg)":"rotate(0)"}}>▼</span>
@@ -2964,8 +2969,6 @@ export default function App() {
           </div>
         )}
         </div>{/* end mentalBar ref wrapper */}
-
-        </div>{/* end matchup ref wrapper — scrollable area ends here */}
 
         {/* Bottom row: next arrow + finish */}
         <div ref={tipRefs.nav} style={{flexShrink:0,borderTop:`1px solid ${P.border}`,background:P.bg,padding:"6px 12px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
