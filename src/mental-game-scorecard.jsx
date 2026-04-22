@@ -2510,12 +2510,12 @@ export default function App() {
         {/* Multi-step tooltip tour */}
         {!tipDone&&!dropdownOpen&&(()=>{
           const tips=[
-            {step:1,title:"Add Your Course",body:"Search for your course to auto-fill hole data and yardages. The In-Game Caddie toggle also lives here.",icon:"Flag",cardPos:"below"},
-            {step:2,title:"Hole Grid",body:"Tap any hole to jump to it. Colored dots show mental activity — green for heroes, red for bandits.",icon:"Grid",cardPos:"below"},
-            {step:3,title:"PAR, SCORE & STATS",body:"Enter par and your stroke score. Running score vs par shows on the left. Log putts on the right.",icon:"Flag",cardPos:"below"},
+            {step:1,title:"Add Your Course",body:"Before your round, select your course to auto-fill hole data and yardages. Turn on the In-Game Caddie for mental guidance during play.",icon:"Flag",cardPos:"below"},
+            {step:2,title:"Hole Grid",body:"Tap any hole to jump to it. Holes will fill in green when Heroes showed up. Red holes mean Bandits interfered.",icon:"Grid",cardPos:"below"},
+            {step:3,title:"PAR, SCORE & STATS",body:"Enter your stroke score and putts. Toggle PSR to track your pre-shot routine. Then use the → arrow to move to the next hole. Hit Save to lock in the round.",icon:"Flag",cardPos:"below"},
             {step:4,title:"Heroes & Bandits",body:"After each shot, tap which Heroes showed up and which Bandits crept in. This is the heart of your mental game. (A hero or bandit can show up more than once a hole.)",icon:"Shield",cardPos:"above"},
             {step:5,title:"Mental Score Bar",body:"Your Mental Net is Heroes minus Bandits. A positive number means the Heroes ran the show. A negative number means the Bandits interfered.",icon:"Chart",cardPos:"above"},
-            {step:6,title:"Notes & Navigation",body:"Add a quick hole note, use ← → to move between holes, Save to draft, or Finish when your round is complete.",icon:"Note",cardPos:"above"},
+            {step:6,title:"Notes, Save & Navigation",body:"Add a hole note using the Notes field above. Hit Save to lock in your hole. Use → to advance to the next hole, or Finish when your round is complete.",icon:"Note",cardPos:"above"},
           ];
           const t=tips[tipStep];
           const isLast=tipStep===TOTAL_TIPS-1;
@@ -2709,7 +2709,7 @@ export default function App() {
         />
         </div>
         </div>
-        <div style={{padding:"0 12px 4px",display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
+        <div ref={tipRefs.course} style={{padding:"0 12px 4px",display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
           <input type="date" value={roundDate} onChange={e=>setRoundDate(e.target.value)} style={{...S.input,flex:"0 0 auto",width:130,fontSize:12,padding:"6px 8px"}}/>
           <div style={{flex:1}}/>
           <button onClick={()=>setInGameCaddie(!inGameCaddie)} {...pp()} style={{display:"flex",alignItems:"center",gap:4,padding:"6px 8px",borderRadius:10,border:`1.5px solid ${inGameCaddie?"#006747":P.border}`,background:inGameCaddie?"#00674715":"transparent",cursor:"pointer",transition:"all 0.15s",flexShrink:0,fontSize:12,fontWeight:600,color:inGameCaddie?"#006747":P.muted}}>
@@ -2967,7 +2967,7 @@ export default function App() {
         </div>{/* end matchup ref wrapper — scrollable area ends here */}
 
         {/* Bottom row: next arrow + finish */}
-        <div style={{flexShrink:0,borderTop:`1px solid ${P.border}`,background:P.bg,padding:"6px 12px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+        <div ref={tipRefs.nav} style={{flexShrink:0,borderTop:`1px solid ${P.border}`,background:P.bg,padding:"6px 12px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
           {/* Intention pill — shown throughout round */}
           {carryForward?(
             <button onClick={()=>setShowIntentionModal(true)} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 10px",borderRadius:8,border:"1px solid #ca8a0440",background:"#ca8a0410",cursor:"pointer",flexShrink:0,maxWidth:160}} {...pp()}>
