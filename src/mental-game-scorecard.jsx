@@ -2932,8 +2932,11 @@ export default function App() {
               </div>
             </div>
             {/* Mental Net center */}
-            <div style={{textAlign:"center",flexShrink:0}}>
-              <div style={{fontSize:9,color:P.muted,letterSpacing:1,fontWeight:700,display:"flex",alignItems:"center",gap:2,justifyContent:"center"}}>NET <button onClick={()=>setShowMentalNetInfo(true)} {...pp()} style={{width:12,height:12,borderRadius:"50%",border:`1px solid ${P.border}`,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:7,color:P.muted,cursor:"pointer",flexShrink:0,background:"transparent",padding:0,lineHeight:1}}>?</button></div>
+            <div style={{textAlign:"center",flexShrink:0,position:"relative"}}>
+              <div style={{fontSize:9,color:P.muted,letterSpacing:1,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:0}}>
+                NET
+                <button onClick={()=>setShowMentalNetInfo(true)} {...pp()} style={{width:12,height:12,borderRadius:"50%",border:`1px solid ${P.border}`,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:7,color:P.muted,cursor:"pointer",flexShrink:0,background:"transparent",padding:0,lineHeight:1,marginLeft:2,position:"absolute",right:-14,top:0}}>?</button>
+              </div>
               <div style={{fontSize:26,fontWeight:900,lineHeight:1,color:total.net>0?P.green:total.net<0?P.red:P.gold,transition:"all 0.2s"}}>{total.net>0?"+":""}{total.net}</div>
               {rd!==null&&<div style={{fontSize:9,fontWeight:700,color:rd<0?P.green:rd>0?P.red:P.gold}}>{rd>0?"+":""}{rd===0?"E":rd}</div>}
             </div>
