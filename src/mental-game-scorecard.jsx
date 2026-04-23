@@ -1778,7 +1778,7 @@ export default function App() {
   const [completedRound, setCompletedRound] = useState(null);
   const [showOpenRoundModal, setShowOpenRoundModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [isPro, setIsPro] = useState(true); // App is free - paywall hidden
+  const [isPro, setIsPro] = useState(()=>{try{return localStorage.getItem("mgp_pro")==="true";}catch{return false;}});
   const [showPaywall, setShowPaywall] = useState(false);
   const [showCancelPro, setShowCancelPro] = useState(false);
   const [showRateApp, setShowRateApp] = useState(false);
