@@ -8148,8 +8148,8 @@ function PaywallView({onUnlock, onBack, onPrivacy, P, S}) {
         </div>
         {/* Gold accent line */}
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:2,background:`linear-gradient(90deg,transparent,${PM_GOLD}88,transparent)`}}/>
-        <div style={{fontSize:11,fontWeight:800,letterSpacing:3,color:PM_GOLD,marginBottom:12,opacity:0.9}}>MENTAL GAME PRO</div>
-        <div style={{fontSize:30,fontWeight:900,color:"#fff",letterSpacing:-0.5,lineHeight:1.15,marginBottom:10}}>
+        <div style={{fontSize:15,fontWeight:800,letterSpacing:3,color:PM_GOLD,marginBottom:12,opacity:0.9}}>MENTAL GAME PRO</div>
+        <div style={{fontSize:22,fontWeight:900,color:"#fff",letterSpacing:-0.5,lineHeight:1.2,marginBottom:10}}>
           Play Better.<br/>Struggle Less.<br/><span style={{color:P.green}}>Enjoy More.</span>
         </div>
         <div style={{fontSize:13,color:"rgba(255,255,255,0.5)",lineHeight:1.5}}>The scorecard for your mental game.</div>
