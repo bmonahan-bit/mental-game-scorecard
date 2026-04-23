@@ -1726,7 +1726,7 @@ export default function App() {
   const [postRoundNotes, setPostRoundNotes] = useState("");
   const [carryForward, setCarryForward] = useState(()=>{try{return localStorage.getItem("mgp_carry_forward")||"";}catch{return "";}});
   const [preRoundMeta, setPreRoundMeta] = useState({ sleep:3, energy:3, partners:"friends" });
-  const [holeNoteOpen, setHoleNoteOpen] = useState(()=>{try{const s=JSON.parse(localStorage.getItem("mgp_settings")||"{}");return s.holeNoteDefault!==false;}catch{return true;}});
+  const [holeNoteOpen, setHoleNoteOpen] = useState(()=>{try{const s=JSON.parse(localStorage.getItem("mgp_settings")||"{}");return s.holeNoteDefault===true;}catch{return false;}});
   const [matchupOpen, setMatchupOpen] = useState(true);
   const [holeGridOpen, setHoleGridOpen] = useState(true);
   const [tipStep, setTipStep] = useState(()=>{try{const s=localStorage.getItem("mgp_tip_step");return s?parseInt(s):0;}catch{return 0;}});
@@ -1821,7 +1821,7 @@ export default function App() {
   const [settings, setSettings] = useState({
     favCourse: "", favTee: "", handicap: "", units: "imperial",
     caddieDefault: true, showStreak: true, showHeatMap: true, showScoreInGrid: false,
-    postRoundPrompt: true, notifications: false, preroundChecklist: true, preroundTimer: true, holeNoteDefault: true,
+    postRoundPrompt: true, notifications: false, preroundChecklist: true, preroundTimer: true, holeNoteDefault: false,
   });
   function updateSetting(key, val) {
     setSettings(prev => {
@@ -2206,7 +2206,7 @@ export default function App() {
     try { localStorage.setItem("mgp_carry_forward", carryForward); } catch {}
     if(round.net>=3){ setTimeout(()=>showToast(`Mental Net ${round.net>0?"+":""}${round.net} — great round!`, "success", 4000), 800); }
     try { localStorage.removeItem("mgp_checklist_date"); } catch {}
-    setScores(initScores()); setCurrentHole(0); setCourseName(""); setRoundDate(new Date().toISOString().split("T")[0]); setPostRoundNotes(""); setHoleNoteOpen(settings?.holeNoteDefault!==false); setUsedMessages({}); setPreRoundMeta({sleep:3,energy:3,partners:"friends"});
+    setScores(initScores()); setCurrentHole(0); setCourseName(""); setRoundDate(new Date().toISOString().split("T")[0]); setPostRoundNotes(""); setHoleNoteOpen(settings?.holeNoteDefault===true); setUsedMessages({}); setPreRoundMeta({sleep:3,energy:3,partners:"friends"});
     setShowFireworks(true);
     setView("roundstats");
   }
@@ -2233,7 +2233,7 @@ export default function App() {
     setCourseName(name);
     setRoundDate(new Date().toISOString().split("T")[0]);
     setPostRoundNotes("");
-    setHoleNoteOpen(settings?.holeNoteDefault!==false);
+    setHoleNoteOpen(settings?.holeNoteDefault===true);
     setSelectedTee(tee);
     setShowOpenRoundModal(false);
     setShowIntentionModal(false);
