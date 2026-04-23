@@ -8148,69 +8148,66 @@ function PaywallView({onUnlock, onBack, onPrivacy, P, S}) {
   }
 
   return (
-    <div style={{height:"100svh",display:"flex",flexDirection:"column",background:P.bg,maxWidth:480,margin:"0 auto",overflow:"hidden",position:"relative"}}>
+    <div style={{height:"100svh",display:"flex",flexDirection:"column",background:`linear-gradient(170deg,${PM_NAVY} 0%,#0d1f0f 60%,#0a1a0d 100%)`,maxWidth:480,margin:"0 auto",overflow:"hidden",position:"relative"}}>
 
       {/* Close button */}
-      <button onClick={onBack} {...pp()} style={{position:"absolute",top:16,right:16,zIndex:10,width:32,height:32,borderRadius:"50%",background:"rgba(0,0,0,0.25)",border:"none",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round"/></svg>
+      <button onClick={onBack} {...pp()} style={{position:"absolute",top:16,right:16,zIndex:10,width:32,height:32,borderRadius:"50%",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="rgba(255,255,255,0.5)" strokeWidth="2" strokeLinecap="round"/></svg>
       </button>
 
-      {/* Hero section with shield watermark */}
-      <div style={{background:`linear-gradient(165deg,${PM_NAVY} 0%,#0f1e35 50%,#162b1a 100%)`,padding:"52px 28px 32px",flexShrink:0,position:"relative",overflow:"hidden",textAlign:"center"}}>
+      {/* Hero section */}
+      <div style={{padding:"52px 28px 24px",flexShrink:0,position:"relative",overflow:"hidden",textAlign:"center"}}>
         {/* Shield watermark */}
-        <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",opacity:0.06,pointerEvents:"none"}}>
-          <img src={HEROES_LOGO_WHITE} alt="" style={{width:240,height:240,objectFit:"contain"}}/>
+        <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",opacity:0.05,pointerEvents:"none"}}>
+          <img src={HEROES_LOGO_WHITE} alt="" style={{width:220,height:220,objectFit:"contain"}}/>
         </div>
         {/* Gold accent line */}
-        <div style={{position:"absolute",bottom:0,left:0,right:0,height:2,background:`linear-gradient(90deg,transparent,${PM_GOLD}88,transparent)`}}/>
-        <div style={{fontSize:22,fontWeight:800,letterSpacing:3,color:PM_GOLD,marginBottom:12,opacity:0.9}}>MENTAL GAME PRO</div>
-        <div style={{fontSize:18,fontWeight:900,color:"#fff",letterSpacing:-0.5,lineHeight:1.2,marginBottom:10}}>
-          Play Better.<br/>Struggle Less.<br/><span style={{color:P.green}}>Enjoy More.</span>
+        <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${PM_GOLD}66,transparent)`}}/>
+        <div style={{fontSize:22,fontWeight:800,letterSpacing:3,color:PM_GOLD,marginBottom:8,opacity:0.95}}>MENTAL GAME PRO</div>
+        <div style={{fontSize:18,fontWeight:900,color:"#fff",letterSpacing:-0.5,lineHeight:1.2,marginBottom:6}}>
+          Play Better. Struggle Less.<br/><span style={{color:"#4ade80"}}>Enjoy More.</span>
         </div>
-        <div style={{fontSize:13,color:"rgba(255,255,255,0.5)",lineHeight:1.5}}>The scorecard for your mental game.</div>
+        <div style={{fontSize:12,color:"rgba(255,255,255,0.4)",lineHeight:1.5}}>The scorecard for your mental game.</div>
       </div>
 
       {/* Scrollable content — features only */}
       <div style={{flex:1,overflowY:"auto",padding:"16px 24px 0"}}>
-        {/* Features */}
-        <div style={{marginBottom:8}}>
-          {features.map((f,i)=>(
-            <div key={i} style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
-              <div style={{width:22,height:22,borderRadius:"50%",background:"#16a34a22",border:"1.5px solid #16a34a55",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </div>
-              <span style={{fontSize:14,color:P.white,fontWeight:500,lineHeight:1.4}}>{f}</span>
+        {features.map((f,i)=>(
+          <div key={i} style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
+            <div style={{width:20,height:20,borderRadius:"50%",background:"rgba(74,222,128,0.12)",border:"1.5px solid rgba(74,222,128,0.35)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <svg width="9" height="7" viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </div>
-          ))}
-        </div>
+            <span style={{fontSize:14,color:"rgba(255,255,255,0.85)",fontWeight:500,lineHeight:1.4}}>{f}</span>
+          </div>
+        ))}
       </div>
 
       {/* Plan selector + CTA — always visible */}
-      <div style={{padding:"12px 20px 0",flexShrink:0,background:P.bg}}>
+      <div style={{padding:"12px 20px 0",flexShrink:0}}>
         {/* Plan pills */}
         <div style={{display:"flex",gap:10,marginBottom:12}}>
           {Object.entries(plans).map(([key, plan])=>(
             <button key={key} onClick={()=>setSelected(key)} {...pp()} style={{
               flex:1,padding:"12px 10px",borderRadius:14,cursor:"pointer",textAlign:"center",
-              border:`2px solid ${selected===key?"#16a34a":P.border}`,
-              background:selected===key?"#16a34a14":P.card,
+              border:`2px solid ${selected===key?"#4ade80":"rgba(255,255,255,0.1)"}`,
+              background:selected===key?"rgba(74,222,128,0.08)":"rgba(255,255,255,0.03)",
               transition:"all 0.15s",position:"relative",
             }}>
               {plan.save&&<div style={{position:"absolute",top:-10,left:"50%",transform:"translateX(-50%)",background:"#16a34a",color:"#fff",fontSize:9,fontWeight:800,padding:"2px 8px",borderRadius:20,letterSpacing:1,whiteSpace:"nowrap"}}>{plan.save}</div>}
-              <div style={{fontSize:11,fontWeight:700,color:selected===key?"#16a34a":P.muted,marginBottom:2,letterSpacing:0.5}}>{plan.label.toUpperCase()}</div>
-              <div style={{fontSize:22,fontWeight:900,color:P.white,lineHeight:1}}>{plan.price}</div>
-              <div style={{fontSize:10,color:P.muted,marginTop:2}}>{plan.sub}</div>
-              <div style={{fontSize:10,color:selected===key?"#16a34a":P.muted,fontWeight:600,marginTop:2}}>{plan.detail}</div>
+              <div style={{fontSize:11,fontWeight:700,color:selected===key?"#4ade80":"rgba(255,255,255,0.35)",marginBottom:2,letterSpacing:0.5}}>{plan.label.toUpperCase()}</div>
+              <div style={{fontSize:22,fontWeight:900,color:"#fff",lineHeight:1}}>{plan.price}</div>
+              <div style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginTop:2}}>{plan.sub}</div>
+              <div style={{fontSize:10,color:selected===key?"#4ade80":"rgba(255,255,255,0.3)",fontWeight:600,marginTop:2}}>{plan.detail}</div>
             </button>
           ))}
         </div>
         <button onClick={handleSubscribe} disabled={loading} {...pp()} style={{
           width:"100%",padding:"17px",borderRadius:16,border:"none",
-          background:loading?"#16a34a88":"linear-gradient(135deg,#16a34a,#22c55e)",
+          background:loading?"rgba(22,163,74,0.5)":"linear-gradient(135deg,#16a34a,#22c55e)",
           color:"#fff",fontSize:16,fontWeight:800,cursor:loading?"default":"pointer",
-          boxShadow:"0 4px 28px rgba(22,163,74,0.4)",transition:"all 0.2s",
-          display:"flex",alignItems:"center",justifyContent:"center",gap:10,
-          flexDirection:"column",lineHeight:1.2,
+          boxShadow:"0 4px 28px rgba(22,163,74,0.35)",transition:"all 0.2s",
+          display:"flex",alignItems:"center",justifyContent:"center",
+          flexDirection:"column",lineHeight:1.2,marginBottom:10,
         }}>
           {loading?(
             <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -8220,19 +8217,19 @@ function PaywallView({onUnlock, onBack, onPrivacy, P, S}) {
           ):(
             <>
               <span>Start my free 7 days</span>
-              <span style={{fontSize:11,fontWeight:600,opacity:0.8}}>Don't love it? Pay nothing.</span>
+              <span style={{fontSize:11,fontWeight:600,opacity:0.75}}>Don't love it? Pay nothing.</span>
             </>
           )}
         </button>
 
         {/* Legal */}
-        <div style={{fontSize:10,color:P.muted,textAlign:"center",lineHeight:1.6,marginBottom:10}}>
+        <div style={{fontSize:10,color:"rgba(255,255,255,0.3)",textAlign:"center",lineHeight:1.6,marginBottom:8}}>
           7-day free trial, then {selected==="annual"?"$49.99/year":"$4.99/month"}. Cancel anytime.{" "}
-          <span style={{color:"#16a34a",fontWeight:600,cursor:"pointer"}} onClick={()=>onPrivacy&&onPrivacy()}>Terms & Privacy</span>
+          <span style={{color:"rgba(255,255,255,0.45)",fontWeight:600,cursor:"pointer"}} onClick={()=>onPrivacy&&onPrivacy()}>Terms & Privacy</span>
         </div>
         <div style={{display:"flex",justifyContent:"space-between",paddingBottom:28}}>
-          <button onClick={()=>{}} {...pp()} style={{background:"none",border:"none",fontSize:11,color:P.muted,cursor:"pointer",fontWeight:600}}>Restore Purchase</button>
-          <button onClick={()=>onPrivacy&&onPrivacy()} {...pp()} style={{background:"none",border:"none",fontSize:11,color:P.muted,cursor:"pointer",fontWeight:600}}>Terms & Conditions</button>
+          <button onClick={()=>{}} {...pp()} style={{background:"none",border:"none",fontSize:11,color:"rgba(255,255,255,0.25)",cursor:"pointer",fontWeight:600}}>Restore Purchase</button>
+          <button onClick={()=>onPrivacy&&onPrivacy()} {...pp()} style={{background:"none",border:"none",fontSize:11,color:"rgba(255,255,255,0.25)",cursor:"pointer",fontWeight:600}}>Terms & Conditions</button>
         </div>
       </div>
 
