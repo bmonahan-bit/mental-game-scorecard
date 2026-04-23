@@ -3362,6 +3362,21 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
           </button>
         )}
 
+        {/* Upgrade to Pro — shown for non-pro users */}
+        {!isPro&&(
+          <button onClick={()=>onNav("upgrade")} {...pp()} style={{
+            marginBottom:12,padding:"10px 20px",borderRadius:14,
+            background:`linear-gradient(135deg,${PM_NAVY},#1a3a5c)`,
+            border:`1.5px solid ${PM_GOLD}55`,color:PM_GOLD,
+            fontSize:13,fontWeight:700,cursor:"pointer",
+            display:"flex",alignItems:"center",gap:8,
+            opacity:loaded?1:0,transition:"opacity 0.6s ease 0.58s",
+          }}>
+            <Icons.Star color={PM_GOLD} size={14}/>
+            Start free 7-day trial → Pro
+          </button>
+        )}
+
         {/* Trial counter — shown when not yet profiled and rounds remain */}
         {!hasProfile&&roundsRemaining<=FREE_ROUNDS_LIMIT&&roundsRemaining>0&&!roundInProgress&&(
           <div style={{marginBottom:8,padding:"7px 14px",borderRadius:10,background:roundsRemaining===1?P.red+"12":PM_GOLD+"10",border:`1px solid ${roundsRemaining===1?P.red:PM_GOLD}33`,width:"100%",maxWidth:320,textAlign:"center",opacity:loaded?1:0,transition:"opacity 0.6s ease 0.58s"}}>
@@ -8155,11 +8170,10 @@ function PaywallView({onUnlock, onBack, onPrivacy, P, S}) {
         <div style={{fontSize:13,color:"rgba(255,255,255,0.5)",lineHeight:1.5}}>The scorecard for your mental game.</div>
       </div>
 
-      {/* Scrollable content */}
-      <div style={{flex:1,overflowY:"auto",padding:"20px 24px 0"}}>
-
+      {/* Scrollable content — features only */}
+      <div style={{flex:1,overflowY:"auto",padding:"16px 24px 0"}}>
         {/* Features */}
-        <div style={{marginBottom:20}}>
+        <div style={{marginBottom:8}}>
           {features.map((f,i)=>(
             <div key={i} style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
               <div style={{width:22,height:22,borderRadius:"50%",background:"#16a34a22",border:"1.5px solid #16a34a55",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
@@ -8169,34 +8183,27 @@ function PaywallView({onUnlock, onBack, onPrivacy, P, S}) {
             </div>
           ))}
         </div>
+      </div>
 
-        {/* Plan selector */}
-        <div style={{display:"flex",gap:10,marginBottom:16}}>
+      {/* Plan selector + CTA — always visible */}
+      <div style={{padding:"12px 20px 0",flexShrink:0,background:P.bg}}>
+        {/* Plan pills */}
+        <div style={{display:"flex",gap:10,marginBottom:12}}>
           {Object.entries(plans).map(([key, plan])=>(
             <button key={key} onClick={()=>setSelected(key)} {...pp()} style={{
-              flex:1,padding:"14px 10px",borderRadius:14,cursor:"pointer",textAlign:"center",
+              flex:1,padding:"12px 10px",borderRadius:14,cursor:"pointer",textAlign:"center",
               border:`2px solid ${selected===key?"#16a34a":P.border}`,
               background:selected===key?"#16a34a14":P.card,
               transition:"all 0.15s",position:"relative",
             }}>
               {plan.save&&<div style={{position:"absolute",top:-10,left:"50%",transform:"translateX(-50%)",background:"#16a34a",color:"#fff",fontSize:9,fontWeight:800,padding:"2px 8px",borderRadius:20,letterSpacing:1,whiteSpace:"nowrap"}}>{plan.save}</div>}
-              <div style={{fontSize:11,fontWeight:700,color:selected===key?"#16a34a":P.muted,marginBottom:4,letterSpacing:0.5}}>{plan.label.toUpperCase()}</div>
-              <div style={{fontSize:24,fontWeight:900,color:P.white,lineHeight:1}}>{plan.price}</div>
+              <div style={{fontSize:11,fontWeight:700,color:selected===key?"#16a34a":P.muted,marginBottom:2,letterSpacing:0.5}}>{plan.label.toUpperCase()}</div>
+              <div style={{fontSize:22,fontWeight:900,color:P.white,lineHeight:1}}>{plan.price}</div>
               <div style={{fontSize:10,color:P.muted,marginTop:2}}>{plan.sub}</div>
-              <div style={{fontSize:10,color:selected===key?"#16a34a":P.muted,fontWeight:600,marginTop:4}}>{plan.detail}</div>
+              <div style={{fontSize:10,color:selected===key?"#16a34a":P.muted,fontWeight:600,marginTop:2}}>{plan.detail}</div>
             </button>
           ))}
         </div>
-
-        {/* Legal */}
-        <div style={{fontSize:10,color:P.muted,textAlign:"center",lineHeight:1.7,marginBottom:8}}>
-          7-day free trial, then {selected==="annual"?"$49.99/year":"$4.99/month"}. Cancel anytime.{" "}
-          <span style={{color:"#16a34a",fontWeight:600,cursor:"pointer"}} onClick={()=>onPrivacy&&onPrivacy()}>Terms & Privacy</span>
-        </div>
-      </div>
-
-      {/* CTA */}
-      <div style={{padding:"12px 24px 32px",flexShrink:0,background:P.bg}}>
         <button onClick={handleSubscribe} disabled={loading} {...pp()} style={{
           width:"100%",padding:"17px",borderRadius:16,border:"none",
           background:loading?"#16a34a88":"linear-gradient(135deg,#16a34a,#22c55e)",
@@ -8218,8 +8225,12 @@ function PaywallView({onUnlock, onBack, onPrivacy, P, S}) {
           )}
         </button>
 
-        {/* Restore */}
-        <div style={{display:"flex",justifyContent:"space-between",marginTop:14}}>
+        {/* Legal */}
+        <div style={{fontSize:10,color:P.muted,textAlign:"center",lineHeight:1.6,marginBottom:10}}>
+          7-day free trial, then {selected==="annual"?"$49.99/year":"$4.99/month"}. Cancel anytime.{" "}
+          <span style={{color:"#16a34a",fontWeight:600,cursor:"pointer"}} onClick={()=>onPrivacy&&onPrivacy()}>Terms & Privacy</span>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",paddingBottom:28}}>
           <button onClick={()=>{}} {...pp()} style={{background:"none",border:"none",fontSize:11,color:P.muted,cursor:"pointer",fontWeight:600}}>Restore Purchase</button>
           <button onClick={()=>onPrivacy&&onPrivacy()} {...pp()} style={{background:"none",border:"none",fontSize:11,color:P.muted,cursor:"pointer",fontWeight:600}}>Terms & Conditions</button>
         </div>
