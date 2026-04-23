@@ -1,6 +1,4 @@
 # netlify.toml
-# Place at project root
-
 [build]
   command = "npm install && chmod +x ./node_modules/.bin/vite && ./node_modules/.bin/vite build"
   publish = "dist"
@@ -8,13 +6,11 @@
 [build.environment]
   NODE_VERSION = "20"
 
-# SPA routing — all routes serve index.html
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
-# Security + CORS headers
 [[headers]]
   for = "/*"
   [headers.values]
@@ -27,9 +23,8 @@
     Access-Control-Allow-Origin = "https://little-parakeet-900.convex.cloud https://fearless-kookabura-418.convex.cloud https://notable-mammal-26.clerk.accounts.dev"
     Access-Control-Allow-Methods = "GET, POST, OPTIONS"
     Access-Control-Allow-Headers = "Content-Type, Authorization"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://browser.sentry-cdn.com https://*.clerk.accounts.dev https://*.convex.cloud; worker-src blob: 'self'; connect-src 'self' https://*.convex.cloud https://*.clerk.accounts.dev https://api.golfcourseapi.com https://api.open-meteo.com https://*.sentry.io wss://*.convex.cloud; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src https://*.clerk.accounts.dev;"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://browser.sentry-cdn.com https://*.clerk.accounts.dev https://*.convex.cloud; worker-src blob: 'self'; connect-src 'self' https://*.convex.cloud https://*.clerk.accounts.dev https://clerk-telemetry.com https://api.golfcourseapi.com https://api.open-meteo.com https://*.sentry.io wss://*.convex.cloud; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src https://*.clerk.accounts.dev;"
 
-# Cache static assets aggressively
 [[headers]]
   for = "/assets/*"
   [headers.values]
