@@ -8096,112 +8096,124 @@ function HelpView({onBack, S}) {
 // ═══════════════════════════════════════
 // PAYWALL
 // ═══════════════════════════════════════
-function PaywallView({onUnlock, onBack, P, S}) {
+function PaywallView({onUnlock, onBack, onPrivacy, P, S}) {
   const [selected, setSelected] = React.useState("annual");
   const [loading, setLoading] = React.useState(false);
   const dm = P.bg === "#09090b";
 
   const plans = {
-    monthly: { label:"Monthly", price:"$4.99", sub:"/month", total:"$4.99/mo", save:null },
-    annual:  { label:"Annual",  price:"$49.99", sub:"/year", total:"$4.17/mo", save:"SAVE 17%" },
+    monthly: { label:"Monthly", price:"$4.99", sub:"/month", detail:"Billed monthly · Cancel anytime", save:null },
+    annual:  { label:"Annual",  price:"$49.99", sub:"/year", detail:"Just $4.17/mo · Best value", save:"SAVE 17%" },
   };
 
   const features = [
-    { icon:"Shield",  text:"Track Heroes & Bandits every hole" },
-    { icon:"Chart",   text:"Full dashboard & mental trends" },
-    { icon:"Medal",   text:"25 milestone badges across 4 tiers" },
-    { icon:"Brain",   text:"In-game mental caddie tips" },
-    { icon:"Clipboard", text:"Pre-round routine & intention setting" },
-    { icon:"Flag",    text:"Unlimited round history & stats" },
+    "Track Heroes & Bandits hole by hole",
+    "In-Game Caddie mental guidance",
+    "Full dashboard & mental trends",
+    "Round history & stats",
+    "Pre-round mental checklist",
   ];
 
   async function handleSubscribe() {
     setLoading(true);
-    // TODO: replace with Stripe Checkout or Apple IAP call
-    // For now simulates a 1.5s payment flow then unlocks
     await new Promise(r=>setTimeout(r,1500));
     onUnlock(selected);
     setLoading(false);
   }
 
   return (
-    <div style={{height:"100svh",display:"flex",flexDirection:"column",background:P.bg,maxWidth:480,margin:"0 auto",overflow:"hidden",fontFamily:"'Avenir Next','SF Pro Display',-apple-system,sans-serif"}}>
-      {/* Header */}
-      <div style={{background:dm?`linear-gradient(175deg,${PM_NAVY} 0%,#141416 60%,#1c1c1f 100%)`:`linear-gradient(175deg,${PM_NAVY} 0%,#2a3020 100%)`,borderBottom:`2px solid ${PM_GOLD}44`,padding:"16px 20px 20px",flexShrink:0,position:"relative",overflow:"hidden"}}>
-        <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",border:"1px solid rgba(255,255,255,0.04)"}}/>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
-          <div style={{width:40}}/>
-          <div style={{fontSize:11,fontWeight:700,letterSpacing:2,color:"rgba(255,255,255,0.4)"}}>MENTAL GAME PRO</div>
-          <button onClick={onBack} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:"5px 12px",fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.4)",cursor:"pointer"}}>Later</button>
+    <div style={{height:"100svh",display:"flex",flexDirection:"column",background:P.bg,maxWidth:480,margin:"0 auto",overflow:"hidden",position:"relative"}}>
+
+      {/* Close button */}
+      <button onClick={onBack} {...pp()} style={{position:"absolute",top:16,right:16,zIndex:10,width:32,height:32,borderRadius:"50%",background:"rgba(0,0,0,0.25)",border:"none",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round"/></svg>
+      </button>
+
+      {/* Hero section with shield watermark */}
+      <div style={{background:`linear-gradient(165deg,${PM_NAVY} 0%,#0f1e35 50%,#162b1a 100%)`,padding:"52px 28px 32px",flexShrink:0,position:"relative",overflow:"hidden",textAlign:"center"}}>
+        {/* Shield watermark */}
+        <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",opacity:0.06,pointerEvents:"none"}}>
+          <img src={HEROES_LOGO_WHITE} alt="" style={{width:240,height:240,objectFit:"contain"}}/>
         </div>
-        <div style={{fontSize:26,fontWeight:900,color:"#fff",letterSpacing:-0.5,lineHeight:1.15,marginBottom:6}}>Unlock Your{"\n"}Mental Game</div>
-        <div style={{fontSize:13,color:"rgba(255,255,255,0.5)",lineHeight:1.5}}>The only golf app built around how you think, not just how you score.</div>
+        {/* Gold accent line */}
+        <div style={{position:"absolute",bottom:0,left:0,right:0,height:2,background:`linear-gradient(90deg,transparent,${PM_GOLD}88,transparent)`}}/>
+        <div style={{fontSize:11,fontWeight:800,letterSpacing:3,color:PM_GOLD,marginBottom:12,opacity:0.9}}>MENTAL GAME PRO</div>
+        <div style={{fontSize:30,fontWeight:900,color:"#fff",letterSpacing:-0.5,lineHeight:1.15,marginBottom:10}}>
+          Play Better.<br/>Struggle Less.<br/><span style={{color:P.green}}>Enjoy More.</span>
+        </div>
+        <div style={{fontSize:13,color:"rgba(255,255,255,0.5)",lineHeight:1.5}}>The scorecard for your mental game.</div>
       </div>
 
       {/* Scrollable content */}
-      <div style={{flex:1,overflowY:"auto",padding:"16px 20px"}}>
+      <div style={{flex:1,overflowY:"auto",padding:"20px 24px 0"}}>
+
         {/* Features */}
-        <div style={{marginBottom:16}}>
-          {features.map((f,i)=>{
-            const Ic = Icons[f.icon];
-            return (
-              <div key={i} style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
-                <div style={{width:32,height:32,borderRadius:9,background:"#16a34a18",border:"1.5px solid #16a34a33",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  <Ic color="#16a34a" size={15}/>
-                </div>
-                <span style={{fontSize:14,color:P.white,fontWeight:500}}>{f.text}</span>
+        <div style={{marginBottom:20}}>
+          {features.map((f,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
+              <div style={{width:22,height:22,borderRadius:"50%",background:"#16a34a22",border:"1.5px solid #16a34a55",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </div>
-            );
-          })}
+              <span style={{fontSize:14,color:P.white,fontWeight:500,lineHeight:1.4}}>{f}</span>
+            </div>
+          ))}
         </div>
 
         {/* Plan selector */}
         <div style={{display:"flex",gap:10,marginBottom:16}}>
           {Object.entries(plans).map(([key, plan])=>(
-            <button key={key} onClick={()=>setSelected(key)} {...pressProps()} style={{
+            <button key={key} onClick={()=>setSelected(key)} {...pp()} style={{
               flex:1,padding:"14px 10px",borderRadius:14,cursor:"pointer",textAlign:"center",
               border:`2px solid ${selected===key?"#16a34a":P.border}`,
-              background:selected===key?"#16a34a12":P.card,
+              background:selected===key?"#16a34a14":P.card,
               transition:"all 0.15s",position:"relative",
             }}>
               {plan.save&&<div style={{position:"absolute",top:-10,left:"50%",transform:"translateX(-50%)",background:"#16a34a",color:"#fff",fontSize:9,fontWeight:800,padding:"2px 8px",borderRadius:20,letterSpacing:1,whiteSpace:"nowrap"}}>{plan.save}</div>}
-              <div style={{fontSize:11,fontWeight:700,color:selected===key?"#16a34a":P.muted,marginBottom:4}}>{plan.label}</div>
-              <div style={{fontSize:22,fontWeight:900,color:P.white,lineHeight:1}}>{plan.price}</div>
+              <div style={{fontSize:11,fontWeight:700,color:selected===key?"#16a34a":P.muted,marginBottom:4,letterSpacing:0.5}}>{plan.label.toUpperCase()}</div>
+              <div style={{fontSize:24,fontWeight:900,color:P.white,lineHeight:1}}>{plan.price}</div>
               <div style={{fontSize:10,color:P.muted,marginTop:2}}>{plan.sub}</div>
-              {plan.total!==plan.price+plan.sub&&<div style={{fontSize:10,color:"#16a34a",fontWeight:600,marginTop:4}}>{plan.total}</div>}
+              <div style={{fontSize:10,color:selected===key?"#16a34a":P.muted,fontWeight:600,marginTop:4}}>{plan.detail}</div>
             </button>
           ))}
         </div>
 
         {/* Legal */}
-        <div style={{fontSize:10,color:P.muted,textAlign:"center",lineHeight:1.6,marginBottom:8}}>
-          Subscription auto-renews. Cancel anytime in your App Store settings.{"\n"}
-          By subscribing you agree to our{" "}
-          <span style={{color:"#16a34a",fontWeight:600,cursor:"pointer"}} onClick={()=>onPrivacy&&onPrivacy()}>Terms</span>
-          {" & "}
-          <span style={{color:"#16a34a",fontWeight:600,cursor:"pointer"}} onClick={()=>onPrivacy&&onPrivacy()}>Privacy Policy</span>.
+        <div style={{fontSize:10,color:P.muted,textAlign:"center",lineHeight:1.7,marginBottom:8}}>
+          7-day free trial, then {selected==="annual"?"$49.99/year":"$4.99/month"}. Cancel anytime.{" "}
+          <span style={{color:"#16a34a",fontWeight:600,cursor:"pointer"}} onClick={()=>onPrivacy&&onPrivacy()}>Terms & Privacy</span>
         </div>
       </div>
 
       {/* CTA */}
-      <div style={{padding:"12px 20px 28px",flexShrink:0,borderTop:`1px solid ${P.border}`,background:P.bg}}>
-        <button onClick={handleSubscribe} disabled={loading} {...pressProps()} style={{
-          width:"100%",padding:"16px",borderRadius:14,border:"none",
-          background:loading?"#16a34a88":"#16a34a",
+      <div style={{padding:"12px 24px 32px",flexShrink:0,background:P.bg}}>
+        <button onClick={handleSubscribe} disabled={loading} {...pp()} style={{
+          width:"100%",padding:"17px",borderRadius:16,border:"none",
+          background:loading?"#16a34a88":"linear-gradient(135deg,#16a34a,#22c55e)",
           color:"#fff",fontSize:16,fontWeight:800,cursor:loading?"default":"pointer",
-          boxShadow:"0 4px 24px rgba(22,163,74,0.35)",transition:"all 0.2s",
+          boxShadow:"0 4px 28px rgba(22,163,74,0.4)",transition:"all 0.2s",
           display:"flex",alignItems:"center",justifyContent:"center",gap:10,
+          flexDirection:"column",lineHeight:1.2,
         }}>
           {loading?(
-            <><div style={{width:16,height:16,borderRadius:"50%",border:"2px solid rgba(255,255,255,0.3)",borderTopColor:"#fff",animation:"spin 0.7s linear infinite"}}/> Processing...</>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <div style={{width:16,height:16,borderRadius:"50%",border:"2px solid rgba(255,255,255,0.3)",borderTopColor:"#fff",animation:"spin 0.7s linear infinite"}}/>
+              Processing...
+            </div>
           ):(
-            `Start ${plans[selected].label} — ${plans[selected].price}`
+            <>
+              <span>Start my free 7 days</span>
+              <span style={{fontSize:11,fontWeight:600,opacity:0.8}}>Don't love it? Pay nothing.</span>
+            </>
           )}
         </button>
-        <div style={{textAlign:"center",marginTop:10,fontSize:11,color:P.muted}}>
-          {selected==="annual"?"$49.99 billed annually":"$4.99 billed monthly"} · Cancel anytime
+
+        {/* Restore */}
+        <div style={{display:"flex",justifyContent:"space-between",marginTop:14}}>
+          <button onClick={()=>{}} {...pp()} style={{background:"none",border:"none",fontSize:11,color:P.muted,cursor:"pointer",fontWeight:600}}>Restore Purchase</button>
+          <button onClick={()=>onPrivacy&&onPrivacy()} {...pp()} style={{background:"none",border:"none",fontSize:11,color:P.muted,cursor:"pointer",fontWeight:600}}>Terms & Conditions</button>
         </div>
       </div>
+
       <style>{`@keyframes spin{to{transform:rotate(360deg);}}`}</style>
     </div>
   );
