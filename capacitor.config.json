@@ -5,5 +5,16 @@
   "server": {
     "url": "https://mental-game-scorecard.netlify.app",
     "cleartext": false
+  },
+  "ios": {
+    "contentInset": "always",
+    "scrollEnabled": false,
+    "backgroundColor": "#09090b"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0,
+      "backgroundColor": "#09090b"
+    }
   }
 }
