@@ -1934,16 +1934,15 @@ export default function App() {
     })();
   }, []);
 
-  // Show paywall on mount for signed-in non-pro users
+  // Show paywall for non-pro users after a short delay
   const paywallShownRef = React.useRef(false);
   useEffect(() => {
-    if (paywallShownRef.current || isPro || showOnboarding) return;
-    const clerkUser = window.__useUser ? window.__useUser() : null;
-    if (clerkUser?.isSignedIn) {
-      paywallShownRef.current = true;
-      setTimeout(() => setShowPaywall(true), 800);
-    }
-  });// runs every render so catches when Clerk loads
+    if (paywallShownRef.current || isPro) return;
+    paywallShownRef.current = true;
+    setTimeout(() => {
+      if (!isPro) setShowPaywall(true);
+    }, 1200);
+  }, [isPro, showOnboarding]);
 
   function finishOnboarding(){
     setShowOnboarding(false);
