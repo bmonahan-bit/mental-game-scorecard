@@ -1940,9 +1940,7 @@ export default function App() {
   useEffect(() => {
     if (paywallShownRef.current || isPro) return;
     paywallShownRef.current = true;
-    setTimeout(() => {
-      if (!isPro) setShowPaywall(true);
-    }, 1200);
+    if (!isPro) setShowPaywall(true);
   }, [isPro, showOnboarding]);
 
   function finishOnboarding(){
@@ -8240,10 +8238,10 @@ function PaywallView({onUnlock, onBack, onPrivacy, P, S}) {
         <div style={{fontSize:12,color:"rgba(255,255,255,0.4)",lineHeight:1.5}}>The scorecard for your mental game.</div>
       </div>
 
-      {/* Scrollable content — features only */}
-      <div style={{flex:1,overflowY:"auto",padding:"16px 24px 0"}}>
+      {/* Features — fill remaining space evenly */}
+      <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",padding:"0 24px"}}>
         {features.map((f,i)=>(
-          <div key={i} style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
+          <div key={i} style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
             <div style={{width:20,height:20,borderRadius:"50%",background:"rgba(74,222,128,0.12)",border:"1.5px solid rgba(74,222,128,0.35)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
               <svg width="9" height="7" viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </div>
