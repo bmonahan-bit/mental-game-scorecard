@@ -2319,6 +2319,7 @@ export default function App() {
     keysToRemove.forEach(k=>{try{localStorage.removeItem(k);}catch{}});
     if(window.__clerkSignOut) window.__clerkSignOut(); else window.location.href="/";
   }
+  window.__handleSignOut = handleSignOut;
 
   function navTo(v) {
     if(v==="caddie") setPrevView(view);
@@ -3208,7 +3209,7 @@ function UserDropdown({firstName, overlay1, overlay2, textHigh, textMid, P, onSe
               </div>
             </div>
             <button onClick={()=>{setOpen(false);onSettings&&onSettings();}} style={{display:"block",width:"100%",padding:"11px 14px",background:"transparent",border:"none",color:P.white,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>Settings</button>
-            <button onClick={()=>{setOpen(false);handleSignOut();}} style={{display:"block",width:"100%",padding:"11px 14px",background:"transparent",border:"none",color:P.red,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>Sign Out</button>
+            <button onClick={()=>{setOpen(false);if(window.__handleSignOut)window.__handleSignOut();}} style={{display:"block",width:"100%",padding:"11px 14px",background:"transparent",border:"none",color:P.red,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>Sign Out</button>
           </div>
         </>
       )}
