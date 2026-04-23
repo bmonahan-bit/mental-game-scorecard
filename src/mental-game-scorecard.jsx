@@ -1450,9 +1450,9 @@ function fallbackShare(r) {
 // ─── STYLE HELPERS ───
 function mkStyles(P) {
   return {
-    shell: { height:"100svh", minHeight:"-webkit-fill-available", background:P.bg, color:P.white, fontFamily:"'Avenir Next','SF Pro Display',-apple-system,sans-serif", display:"flex", flexDirection:"column", maxWidth:480, width:"100%", margin:"0 auto", position:"relative", overflowX:"hidden", overflowY:"hidden", paddingTop:"env(safe-area-inset-top)", paddingBottom:"env(safe-area-inset-bottom)", paddingLeft:"env(safe-area-inset-left)", paddingRight:"env(safe-area-inset-right)" },
+    shell: { height:"100svh", minHeight:"-webkit-fill-available", background:P.bg, color:P.white, fontFamily:"'Avenir Next','SF Pro Display',-apple-system,sans-serif", display:"flex", flexDirection:"column", maxWidth:480, width:"100%", margin:"0 auto", position:"relative", overflowX:"hidden", overflowY:"hidden", paddingTop:"env(safe-area-inset-top, 0px)", paddingBottom:"env(safe-area-inset-bottom, 0px)", paddingLeft:"env(safe-area-inset-left, 0px)", paddingRight:"env(safe-area-inset-right, 0px)" },
     iconBtn: { width:38, height:38, borderRadius:10, border:`1.5px solid ${P.border}`, background:P.card, color:P.white, fontSize:17, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 1px 3px rgba(0,0,0,0.06)", transition:"transform 0.1s ease" },
-    input: { flex:1, padding:"10px 12px", borderRadius:10, border:`1.5px solid ${P.border}`, background:P.inputBg, color:P.white, fontSize:15, outline:"none", fontWeight:500 },
+    input: { flex:1, padding:"10px 12px", borderRadius:10, border:`1.5px solid ${P.border}`, background:P.inputBg, color:P.white, fontSize:16, outline:"none", fontWeight:500 },
     miniInput: { padding:"6px", borderRadius:8, border:`1.5px solid ${P.border}`, background:P.inputBg, color:P.white, fontSize:20, textAlign:"center", outline:"none", fontWeight:700, width:48 },
     cell: { padding:"12px 8px", textAlign:"center", borderBottom:`1px solid ${P.border}`, fontSize:16, whiteSpace:"nowrap" },
     pressBtn: { transition:"transform 0.1s ease, opacity 0.1s ease" },
@@ -2778,7 +2778,7 @@ export default function App() {
           setCourseData={setCourseData}
         />
         <div style={{padding:"0 12px 4px",display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
-          <input type="date" value={roundDate} onChange={e=>setRoundDate(e.target.value)} style={{...S.input,flex:"0 0 auto",width:130,fontSize:12,padding:"6px 8px"}}/>
+          <input type="date" value={roundDate} onChange={e=>setRoundDate(e.target.value)} style={{...S.input,flex:"0 0 auto",width:130,fontSize:16,padding:"6px 8px"}}/>
           <div style={{flex:1}}/>
           <button onClick={()=>setInGameCaddie(!inGameCaddie)} {...pp()} style={{display:"flex",alignItems:"center",gap:4,padding:"6px 8px",borderRadius:10,border:`1.5px solid ${inGameCaddie?"#006747":P.border}`,background:inGameCaddie?"#00674715":"transparent",cursor:"pointer",transition:"all 0.15s",flexShrink:0,fontSize:12,fontWeight:600,color:inGameCaddie?"#006747":P.muted}}>
             <Icons.Brain color={inGameCaddie?"#006747":P.muted} size={13}/>
@@ -5216,7 +5216,7 @@ function RoundEditView({round, onSave, onBack, S}) {
 
       {/* Hole note */}
       <div style={{padding:"0 12px 4px"}}>
-        <textarea value={scores[currentHole].holeNote||""} onChange={e=>updateField("holeNote",sanitiseNote(e.target.value))} placeholder={`Hole ${currentHole+1} note...`} rows={2} style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:13,outline:"none",resize:"none",lineHeight:1.4}}/>
+        <textarea value={scores[currentHole].holeNote||""} onChange={e=>updateField("holeNote",sanitiseNote(e.target.value))} placeholder={`Hole ${currentHole+1} note...`} rows={2} style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:16,outline:"none",resize:"none",lineHeight:1.4}}/>
       </div>
       {/* Round total + notes */}
       <div style={{padding:"4px 12px 6px",background:total.net>0?P.green+"10":total.net<0?P.red+"10":P.card,borderTop:`1px solid ${P.border}`,display:"flex",alignItems:"center",gap:12}}>
@@ -5224,7 +5224,7 @@ function RoundEditView({round, onSave, onBack, S}) {
           <div style={{fontSize:9,color:P.muted,letterSpacing:1,fontWeight:600}}>ROUND NET</div>
           <div style={{fontSize:22,fontWeight:900,color:total.net>0?P.green:total.net<0?P.red:P.gold}}>{total.net>0?"+":""}{total.net}</div>
         </div>
-        <textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Post-round notes..." rows={2} style={{flex:1,padding:"6px 8px",borderRadius:8,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:12,outline:"none",resize:"none",lineHeight:1.4}}/>
+        <textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Post-round notes..." rows={2} style={{flex:1,padding:"6px 8px",borderRadius:8,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:16,outline:"none",resize:"none",lineHeight:1.4}}/>
         <button onClick={handleSave} {...pp()} style={{padding:"10px 16px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green+"15",color:P.green,fontSize:14,fontWeight:800,cursor:"pointer",flexShrink:0}}>Save ✓</button>
       </div>
     </div>
@@ -8211,12 +8211,12 @@ function PaywallView({onUnlock, onBack, onPrivacy, P, S}) {
     <div style={{height:"100svh",display:"flex",flexDirection:"column",background:`linear-gradient(170deg,${PM_NAVY} 0%,#0d1f0f 60%,#0a1a0d 100%)`,maxWidth:480,margin:"0 auto",overflow:"hidden",position:"relative"}}>
 
       {/* Close button */}
-      <button onClick={onBack} {...pp()} style={{position:"absolute",top:16,right:16,zIndex:10,width:32,height:32,borderRadius:"50%",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+      <button onClick={onBack} {...pp()} style={{position:"absolute",top:"calc(env(safe-area-inset-top, 16px) + 12px)",right:16,zIndex:10,width:36,height:36,borderRadius:"50%",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="rgba(255,255,255,0.5)" strokeWidth="2" strokeLinecap="round"/></svg>
       </button>
 
       {/* Hero section */}
-      <div style={{padding:"52px 28px 24px",flexShrink:0,position:"relative",overflow:"hidden",textAlign:"center"}}>
+      <div style={{padding:"calc(env(safe-area-inset-top, 0px) + 52px) 28px 24px",flexShrink:0,position:"relative",overflow:"hidden",textAlign:"center"}}>
         {/* Shield watermark */}
         <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",opacity:0.05,pointerEvents:"none"}}>
           <img src={HEROES_LOGO_WHITE} alt="" style={{width:220,height:220,objectFit:"contain"}}/>
