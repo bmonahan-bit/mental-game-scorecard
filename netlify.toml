@@ -24,12 +24,10 @@
     Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=(self)"
-    # CORS — allow Convex and Clerk to communicate
     Access-Control-Allow-Origin = "https://little-parakeet-900.convex.cloud https://fearless-kookabura-418.convex.cloud https://notable-mammal-26.clerk.accounts.dev"
     Access-Control-Allow-Methods = "GET, POST, OPTIONS"
     Access-Control-Allow-Headers = "Content-Type, Authorization"
-    # CSP — tightened for security
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://browser.sentry-cdn.com https://*.clerk.accounts.dev https://*.convex.cloud; connect-src 'self' https://*.convex.cloud https://*.clerk.accounts.dev https://api.golfcourseapi.com https://api.open-meteo.com https://*.sentry.io wss://*.convex.cloud; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src https://*.clerk.accounts.dev;"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://browser.sentry-cdn.com https://*.clerk.accounts.dev https://*.convex.cloud; worker-src blob: 'self'; connect-src 'self' https://*.convex.cloud https://*.clerk.accounts.dev https://api.golfcourseapi.com https://api.open-meteo.com https://*.sentry.io wss://*.convex.cloud; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src https://*.clerk.accounts.dev;"
 
 # Cache static assets aggressively
 [[headers]]
