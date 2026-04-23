@@ -1780,7 +1780,7 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isPro, setIsPro] = useState(()=>{try{return localStorage.getItem("mgp_pro")==="true";}catch{return false;}});
   const [showShare, setShowShare] = useState(false);
-  const [showPaywall, setShowPaywall] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(()=>{try{return localStorage.getItem("mgp_pro")!=="true";}catch{return true;}});
   const [showCancelPro, setShowCancelPro] = useState(false);
   const [showRateApp, setShowRateApp] = useState(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
@@ -1934,14 +1934,6 @@ export default function App() {
       try{const sv=localStorage.getItem("mgp_settings");if(sv){const s=JSON.parse(sv);setSettings(s);setInGameCaddie(s.caddieDefault!==false);}}catch{}
     })();
   }, []);
-
-  // Show paywall for non-pro users after a short delay
-  const paywallShownRef = React.useRef(false);
-  useEffect(() => {
-    if (paywallShownRef.current || isPro) return;
-    paywallShownRef.current = true;
-    if (!isPro) setShowPaywall(true);
-  }, [isPro, showOnboarding]);
 
   function finishOnboarding(){
     setShowOnboarding(false);
