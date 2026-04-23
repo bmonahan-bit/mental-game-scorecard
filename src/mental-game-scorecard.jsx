@@ -1780,6 +1780,7 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isPro, setIsPro] = useState(()=>{try{return localStorage.getItem("mgp_pro")==="true";}catch{return false;}});
   const [showShare, setShowShare] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
   const [showCancelPro, setShowCancelPro] = useState(false);
   const [showRateApp, setShowRateApp] = useState(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
