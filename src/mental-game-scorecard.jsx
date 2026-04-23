@@ -1937,13 +1937,13 @@ export default function App() {
   // Show paywall on mount for signed-in non-pro users
   const paywallShownRef = React.useRef(false);
   useEffect(() => {
-    if (paywallShownRef.current) return;
+    if (paywallShownRef.current || isPro || showOnboarding) return;
     const clerkUser = window.__useUser ? window.__useUser() : null;
-    if (clerkUser?.isSignedIn && !isPro) {
+    if (clerkUser?.isSignedIn) {
       paywallShownRef.current = true;
       setTimeout(() => setShowPaywall(true), 800);
     }
-  }, [isPro]);
+  });// runs every render so catches when Clerk loads
 
   function finishOnboarding(){
     setShowOnboarding(false);
