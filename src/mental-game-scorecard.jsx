@@ -1145,7 +1145,10 @@ async function shareRoundAsImage(r, darkMode) {
   const HERO_COLORS = {"Love":green,"Acceptance":green,"Commitment":green,"Vulnerability":green,"Grit":green};
   const heroes = ["Love","Acceptance","Commitment","Vulnerability","Grit"];
   const bandits = ["Fear","Frustration","Doubt","Shame","Quit"];
-  const maxHB = Math.max(1, ...heroes.map(h => r.scores ? r.scores.reduce((s,hole)=>s+(hole.heroes[h]||0),0) : 0));
+  const maxHB = Math.max(1,
+    ...heroes.map(h => r.scores ? r.scores.reduce((s,hole)=>s+(hole.heroes[h]||0),0) : 0),
+    ...bandits.map(b => r.scores ? r.scores.reduce((s,hole)=>s+(hole.bandits[b]||0),0) : 0)
+  );
   const barX = 380, barW = W - barX - 64;
   heroes.forEach((h, i) => {
     const hc = r.scores ? r.scores.reduce((s,hole)=>s+(hole.heroes[h]||0),0) : 0;
