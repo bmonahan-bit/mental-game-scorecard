@@ -3319,7 +3319,7 @@ function LaunchScreen({onStartRound,onContinueRound,roundInProgress,onHub,savedR
           <img src={BADGE_LOGO} alt="5 Heroes" style={{
             width:"100%",height:"100%",objectFit:"contain",
             filter: darkMode
-              ? "brightness(1.1) drop-shadow(0 0 24px rgba(59,130,246,0.6))"
+              ? "brightness(0) invert(1) drop-shadow(0 0 28px rgba(255,255,255,0.25))"
               : "none",
           }}/>
         </div>
