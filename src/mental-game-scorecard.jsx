@@ -1892,6 +1892,14 @@ export default function App() {
 
   // ── Load from Convex when signed in and data arrives ──
   const convexSyncDone = React.useRef(false);
+
+  // Reset sync flag when sign-in completes so we re-sync fresh data
+  useEffect(() => {
+    const handler = () => { convexSyncDone.current = false; };
+    window.addEventListener('convex_ready', handler);
+    return () => window.removeEventListener('convex_ready', handler);
+  }, []);
+
   useEffect(() => {
     const cloudRounds = window.__convexRounds;
     const cloudSettings = window.__convexSettings;

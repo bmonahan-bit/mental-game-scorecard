@@ -6,7 +6,8 @@ import ReactDOM from 'react-dom/client';
 import * as Sentry from '@sentry/react';
 import { ClerkProvider, useAuth, useClerk, useUser } from '@clerk/clerk-react';
 import { ConvexProviderWithClerk } from 'convex/react-clerk';
-import { ConvexReactClient } from 'convex/react';
+import { ConvexReactClient, useQuery, useMutation } from 'convex/react';
+import { api } from '../convex/_generated/api';
 import App from './mental-game-scorecard.jsx';
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
@@ -32,13 +33,58 @@ if (sentryDsn) {
   };
 }
 
-// Bridge — exposes Clerk to the app via window globals.
-// forceRedirectUrl ensures OAuth (Apple/Google) returns to the app's
-// origin after completing in Safari, so the PWA session cookie is set.
+// ─── Convex Bridge ──────────────────────────────────────────
+// Subscribes to the user's cloud rounds and settings, and exposes
+// mutation helpers as window globals that the app calls.
+function ConvexBridge() {
+  const { isSignedIn } = useUser();
+
+  const rounds   = useQuery(api.rounds.getRounds,   isSignedIn ? {} : "skip");
+  const settings = useQuery(api.settings.getSettings, isSignedIn ? {} : "skip");
+
+  const upsertRoundMut        = useMutation(api.rounds.upsertRound);
+  const bulkUpsertRoundsMut   = useMutation(api.rounds.bulkUpsertRounds);
+  const deleteRoundMut        = useMutation(api.rounds.deleteRound);
+  const upsertSettingsMut     = useMutation(api.settings.upsertSettings);
+
+  React.useEffect(() => {
+    // Expose data to the app
+    window.__convexRounds   = rounds ?? null;
+    window.__convexSettings = settings ?? null;
+    window.__convexReady    = isSignedIn && rounds !== undefined;
+
+    // Expose mutations to the app
+    window.__convexUpsertRound = (round) => {
+      if (!isSignedIn) return;
+      upsertRoundMut(round).catch(e => console.error('convexUpsertRound', e));
+    };
+
+    window.__convexBulkUpsertRounds = (rounds) => {
+      if (!isSignedIn || !rounds?.length) return;
+      bulkUpsertRoundsMut({ rounds }).catch(e => console.error('convexBulkUpsert', e));
+    };
+
+    window.__convexDeleteRound = (roundId) => {
+      if (!isSignedIn || !roundId) return;
+      deleteRoundMut({ roundId }).catch(e => console.error('convexDeleteRound', e));
+    };
+
+    window.__convexUpsertSettings = (data, carryForward) => {
+      if (!isSignedIn) return;
+      upsertSettingsMut({ data, carryForward }).catch(e => console.error('convexUpsertSettings', e));
+    };
+
+    // Dispatch an event so the app re-checks Convex data
+    window.dispatchEvent(new Event('convex_ready'));
+  });
+
+  return null;
+}
+
+// ─── Clerk Bridge ───────────────────────────────────────────
 function ClerkBridge() {
   const { openSignUp, openSignIn, openUserProfile, signOut } = useClerk();
   const { user, isSignedIn, isLoaded } = useUser();
-
   const appUrl = window.location.origin;
 
   React.useEffect(() => {
@@ -58,12 +104,12 @@ function ClerkBridge() {
   return null;
 }
 
-// Clerk appearance - responds to light/dark theme
+// ─── Clerk appearance ───────────────────────────────────────
 function getClerkAppearance(dark) {
   const bg       = dark ? "#09090b" : "#ffffff";
   const card     = dark ? "#18181b" : "#ffffff";
   const border   = dark ? "#3f3f46" : "#d4d4d8";
-  const text      = dark ? "#f8fafc" : "#09090b";
+  const text     = dark ? "#f8fafc" : "#09090b";
   const muted    = dark ? "#71717a" : "#52525b";
   const inputBg  = dark ? "#09090b" : "#f4f4f5";
   const socialBg = dark ? "#27272a" : "#f4f4f5";
@@ -97,7 +143,7 @@ function getClerkAppearance(dark) {
       identityPreviewText:           { color: text },
       identityPreviewEditButton:     { color: "#16a34a" },
       otpCodeFieldInput:             { backgroundColor: inputBg, border: `1.5px solid ${border}`, color: text },
-      // Push modal content below the notch on iOS PWA
+      // Push modal below notch on iOS PWA
       modalContent:                  { marginTop: "env(safe-area-inset-top, 0px)", paddingTop: "max(16px, env(safe-area-inset-top, 16px))", alignItems: "flex-start" },
       modalBackdrop:                 { paddingTop: "env(safe-area-inset-top, 0px)" },
     },
@@ -133,6 +179,7 @@ root.render(
       <ClerkProviderWithTheme>
         <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
           <ClerkBridge />
+          <ConvexBridge />
           <App />
         </ConvexProviderWithClerk>
       </ClerkProviderWithTheme>
