@@ -78,9 +78,22 @@
           transition-duration: 0.01ms !important;
         }
       }
+
+      /* Clerk CAPTCHA mount point — must be visible in the DOM but
+         positioned so it doesn't break layout. Clerk renders the
+         Smart CAPTCHA / Cloudflare Turnstile widget into this div. */
+      #clerk-captcha {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        z-index: 9999;
+      }
     </style>
   </head>
   <body>
+    <!-- Clerk CAPTCHA mount point — fixes "CAPTCHA failed to load" error
+         by giving Clerk a stable DOM target outside the modal stacking context. -->
+    <div id="clerk-captcha"></div>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
