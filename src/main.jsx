@@ -3,11 +3,11 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter, Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import * as Sentry from '@sentry/react';
-import { ClerkProvider, useAuth, useClerk, useUser } from '@clerk/clerk-react';
+import { ClerkProvider, useAuth, useClerk, useUser, SignIn, SignUp } from '@clerk/clerk-react';
 import { ConvexProviderWithClerk } from 'convex/react-clerk';
-import { ConvexReactClient, useMutation, useQuery } from 'convex/react';
-import { api } from '../convex/_generated/api';
+import { ConvexReactClient } from 'convex/react';
 import App from './mental-game-scorecard.jsx';
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
@@ -33,48 +33,26 @@ if (sentryDsn) {
   };
 }
 
-// Clerk Bridge
+// Bridge — exposes Clerk + navigation to the legacy App
 function ClerkBridge() {
-  const { openSignUp, openSignIn, openUserProfile, signOut } = useClerk();
+  const { openUserProfile, signOut } = useClerk();
   const { user, isSignedIn, isLoaded } = useUser();
+  const navigate = useNavigate();
 
   React.useEffect(() => {
-    window.__clerkOpenSignUp = () => openSignUp({});
-    window.__clerkOpenSignIn = () => openSignIn({});
+    // Sign-in/up now navigate to dedicated routes (not modals)
+    // This is required for Smart CAPTCHA to mount properly.
+    window.__clerkOpenSignUp = () => navigate('/sign-up');
+    window.__clerkOpenSignIn = () => navigate('/sign-in');
     window.__clerkOpenUserProfile = () => openUserProfile({});
-    window.__clerkSignOut = () => signOut(() => { window.location.reload(); });
+    window.__clerkSignOut = () => signOut(() => { window.location.href = '/'; });
     window.__useUser = () => ({ user, isSignedIn, isLoaded });
   });
 
   return null;
 }
 
-// Convex Bridge — exposes rounds + settings mutations/queries via window
-function ConvexBridge() {
-  const { isSignedIn } = useUser();
-
-  const upsertRound = useMutation(api.rounds.upsertRound);
-  const bulkUpsertRounds = useMutation(api.rounds.bulkUpsertRounds);
-  const deleteRound = useMutation(api.rounds.deleteRound);
-  const upsertSettings = useMutation(api.settings.upsertSettings);
-
-  const cloudRounds = useQuery(api.rounds.getRounds, isSignedIn ? {} : 'skip');
-  const cloudSettings = useQuery(api.settings.getSettings, isSignedIn ? {} : 'skip');
-
-  React.useEffect(() => {
-    window.__convexUpsertRound = (round) => upsertRound(round).catch(e => console.warn('upsertRound failed', e));
-    window.__convexBulkUpsertRounds = (rounds) => bulkUpsertRounds({ rounds }).catch(e => console.warn('bulkUpsert failed', e));
-    window.__convexDeleteRound = (roundId) => deleteRound({ roundId }).catch(e => console.warn('deleteRound failed', e));
-    window.__convexUpsertSettings = (data, carryForward) => upsertSettings({ data, carryForward }).catch(e => console.warn('upsertSettings failed', e));
-    window.__convexRounds = cloudRounds;
-    window.__convexSettings = cloudSettings;
-    window.__convexReady = isSignedIn && cloudRounds !== undefined;
-  });
-
-  return null;
-}
-
-// Clerk appearance
+// Clerk appearance - responds to light/dark theme
 function getClerkAppearance(dark) {
   const bg       = dark ? "#09090b" : "#ffffff";
   const card     = dark ? "#18181b" : "#ffffff";
@@ -135,6 +113,49 @@ function ClerkProviderWithTheme({ children }) {
   );
 }
 
+// ─── Auth route wrappers ──────────────────────────────────────
+// Mounted SignIn/SignUp components on dedicated routes.
+// Smart CAPTCHA mounts cleanly here (no modal stacking-context issues).
+function SignInPage() {
+  return (
+    <div style={{
+      minHeight: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px 16px',
+    }}>
+      <SignIn
+        routing="path"
+        path="/sign-in"
+        signUpUrl="/sign-up"
+        forceRedirectUrl="/"
+        signInForceRedirectUrl="/"
+      />
+    </div>
+  );
+}
+
+function SignUpPage() {
+  return (
+    <div style={{
+      minHeight: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px 16px',
+    }}>
+      <SignUp
+        routing="path"
+        path="/sign-up"
+        signInUrl="/sign-in"
+        forceRedirectUrl="/"
+        signUpForceRedirectUrl="/"
+      />
+    </div>
+  );
+}
+
 function hideSplash() {
   try { if (window.__hideSplash) window.__hideSplash(); } catch {}
 }
@@ -143,13 +164,20 @@ const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <Sentry.ErrorBoundary fallback={<p>An error has occurred</p>}>
-      <ClerkProviderWithTheme>
-        <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-          <ClerkBridge />
-          <ConvexBridge />
-          <App />
-        </ConvexProviderWithClerk>
-      </ClerkProviderWithTheme>
+      <BrowserRouter>
+        <ClerkProviderWithTheme>
+          <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+            <ClerkBridge />
+            <Routes>
+              {/* Clerk uses path-based routing, so we need /* to match
+                  /sign-in/factor-one, /sign-up/verify-email-address, etc. */}
+              <Route path="/sign-in/*" element={<SignInPage />} />
+              <Route path="/sign-up/*" element={<SignUpPage />} />
+              <Route path="/*" element={<App />} />
+            </Routes>
+          </ConvexProviderWithClerk>
+        </ClerkProviderWithTheme>
+      </BrowserRouter>
     </Sentry.ErrorBoundary>
   </React.StrictMode>
 );

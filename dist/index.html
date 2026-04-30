@@ -3,36 +3,98 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+
+    <!-- Lock zoom: maximum-scale=1 + user-scalable=no means iOS will never
+         pinch-zoom or auto-zoom on input focus. Safe because every input
+         in the app is ≥16px. viewport-fit=cover enables env(safe-area-*). -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+
+    <!-- Status bar color (matches app bg, light/dark aware) -->
+    <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+
+    <!-- iOS standalone / PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Mental Game" />
+
     <title>Mental Game Scorecard</title>
+
     <style>
-      * { box-sizing: border-box; margin: 0; padding: 0; }
+      * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+      /* Fill the full screen — including behind the notch and home indicator —
+         with the app background color so the safe-area gutters never flash white. */
       html {
         height: 100%;
         background: #09090b;
       }
+      @media (prefers-color-scheme: light) {
+        html { background: #ffffff; }
+      }
+
+      /* Body is the outer viewport. Lock scroll so ONLY in-app scroll
+         containers scroll — prevents the "whole page scrolls under the shell"
+         bug when a view's content is taller than the visible area. */
       body {
         height: 100%;
-        background: #09090b;
+        background: inherit;
         overscroll-behavior: none;
         -webkit-text-size-adjust: 100%;
         text-size-adjust: 100%;
         touch-action: manipulation;
+        overflow: hidden;
       }
+
+      /* #root is 100% of body and pads the safe-area on all sides.
+         Every view inside uses height:100% and will fill ONLY this padded
+         area — so nothing renders under the notch or home indicator. */
       #root {
         height: 100%;
+        width: 100%;
         padding-top: env(safe-area-inset-top);
         padding-bottom: env(safe-area-inset-bottom);
         padding-left: env(safe-area-inset-left);
         padding-right: env(safe-area-inset-right);
       }
+
+      /* iOS auto-zoom failsafe: every focusable text field stays ≥16px.
+         Combined with the viewport meta above, this guarantees no zoom,
+         no stuck-zoom, ever — even if a future edit drops an input at 12px. */
       input, textarea, select {
         font-size: 16px !important;
       }
+
+      /* Hide scrollbars (app uses custom scroll styling) */
+      ::-webkit-scrollbar { width: 0; display: none; }
+
+      /* Reduced motion */
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+
+      /* Clerk CAPTCHA mount point — must be visible in the DOM but
+         positioned so it doesn't break layout. Clerk renders the
+         Smart CAPTCHA / Cloudflare Turnstile widget into this div. */
+      #clerk-captcha {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        z-index: 9999;
+      }
     </style>
-    <script type="module" crossorigin src="/assets/index-9efWEmus.js"></script>
+    <script type="module" crossorigin src="/assets/index-CVzFf4RE.js"></script>
   </head>
   <body>
+    <!-- Clerk CAPTCHA mount point — fixes "CAPTCHA failed to load" error
+         by giving Clerk a stable DOM target outside the modal stacking context. -->
+    <div id="clerk-captcha"></div>
     <div id="root"></div>
   </body>
 </html>

@@ -1,31 +1,21 @@
-# netlify.toml
 [build]
-  command = "npm install && chmod +x ./node_modules/.bin/vite && ./node_modules/.bin/vite build"
-  publish = "dist"
-
-[build.environment]
-  NODE_VERSION = "20"
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+  publish = "."
 
 [[headers]]
   for = "/*"
   [headers.values]
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
-    X-XSS-Protection = "1; mode=block"
-    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=(self)"
-    Access-Control-Allow-Origin = "https://little-parakeet-900.convex.cloud https://fearless-kookabura-418.convex.cloud https://notable-mammal-26.clerk.accounts.dev"
-    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, Authorization"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://browser.sentry-cdn.com https://*.clerk.accounts.dev https://*.convex.cloud; worker-src blob: 'self'; connect-src 'self' https://*.convex.cloud https://*.clerk.accounts.dev https://clerk-telemetry.com https://api.golfcourseapi.com https://api.open-meteo.com https://*.sentry.io wss://*.convex.cloud; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src https://*.clerk.accounts.dev;"
 
 [[headers]]
-  for = "/assets/*"
+  for = "/index.html"
   [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# SPA fallback — React Router handles /sign-in, /sign-up, etc. client-side.
+# Without this, a hard refresh on those routes would 404.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
