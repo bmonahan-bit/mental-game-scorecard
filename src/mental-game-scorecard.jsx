@@ -43,52 +43,6 @@ function logError(error, context) {
 
 // ── Push notifications ───────────────────────────────────────
 // Schedules local re-engagement notifications based on mental game data
-async function schedulePushNotifications(rounds, settings) {
-  if (!("Notification" in window) || Notification.permission !== "granted") return;
-  if (!settings?.notifications) return;
-
-  // Find top bandit across recent rounds (last 5)
-  const recent = rounds.slice(0, 5);
-  const banditCounts = {};
-  recent.forEach(r => {
-    if (!r.scores) return;
-    r.scores.forEach(h => Object.keys(h.bandits || {}).forEach(k => {
-      if (h.bandits[k]) banditCounts[k] = (banditCounts[k] || 0) + 1;
-    }));
-  });
-  const topBandit = Object.keys(banditCounts).sort((a, b) => banditCounts[b] - banditCounts[a])[0];
-
-  // Personalized messages based on top bandit
-  const messages = {
-    Fear:        { title: "Conquer Fear today", body: "Love is your weapon against Fear. Head out and practice staying present on every shot." },
-    Frustration: { title: "Channel Acceptance", body: "Your last rounds showed Frustration creeping in. Acceptance turns every bad shot into feedback." },
-    Doubt:       { title: "Commitment is waiting", body: "Doubt has been showing up in your game. Today, commit fully to every shot — no second-guessing." },
-    Shame:       { title: "Vulnerability is strength", body: "Golf humbles everyone. Show up anyway — Vulnerability is what separates good golfers from great ones." },
-    Quit:        { title: "Grit wins today", body: "You have Grit in you. Your last rounds showed the Quit bandit — go out and beat it back today." },
-  };
-
-  const msg = topBandit ? messages[topBandit] : {
-    title: "Time to play some golf",
-    body: "Track your mental game today — Heroes and Bandits are waiting.",
-  };
-
-  // Only show if user hasn't played in 4+ days
-  const lastRoundDate = rounds[0]?.date;
-  if (lastRoundDate) {
-    const daysSince = Math.floor((Date.now() - new Date(lastRoundDate).getTime()) / 86400000);
-    if (daysSince < 4) return;
-  }
-
-  try {
-    new Notification(msg.title, {
-      body: msg.body,
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
-      tag: "mgp-reengagement",
-    });
-  } catch {}
-}
-
 // ── Input sanitisation ──────────────────────────────────────
 // Strips HTML tags and dangerous characters to prevent XSS
 function sanitiseText(val, maxLen = 200, trim = true) {
@@ -117,7 +71,7 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{height:"100svh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"#09090b",color:"#f8fafc",padding:24,textAlign:"center",fontFamily:"-apple-system,sans-serif"}}>
+        <div style={{height:"100%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"#09090b",color:"#f8fafc",padding:24,textAlign:"center",fontFamily:"-apple-system,sans-serif"}}>
           <div style={{fontSize:28,fontWeight:900,color:"#16a34a",marginBottom:16,letterSpacing:-1}}>MGS</div>
           <div style={{fontSize:20,fontWeight:800,marginBottom:8}}>Something went wrong</div>
           <div style={{fontSize:14,color:"#71717a",lineHeight:1.6,marginBottom:24}}>The app ran into an unexpected error. Your round data is safe.</div>
@@ -221,6 +175,7 @@ const Icons = {
   Wind: ({ color, size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>,
   Golf: ({ color, size = 20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="18" r="3"/><path d="M12 15V5"/><path d="M12 5l5 3-5 3"/></svg>,  Gear: ({ color, size = 18 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,
   Clock: ({ color, size = 18 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+  Cat: ({ color, size = 18 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5C8.5 5 6 7.5 6 11v4c0 2.2 1.8 4 4 4h4c2.2 0 4-1.8 4-4v-4c0-3.5-2.5-6-6-6z"/><path d="M9 5V3L6 1"/><path d="M15 5V3l3-2"/><circle cx="9.5" cy="11.5" r="1" fill={color}/><circle cx="14.5" cy="11.5" r="1" fill={color}/><path d="M10 15c.5.5 1 .8 2 .8s1.5-.3 2-.8"/><path d="M9 13h.01M15 13h.01"/></svg>,
 };
 
 // ─── BALLOON CANVAS (streak 3) ───
@@ -255,22 +210,6 @@ function ShareBtn({P, onShare}) {
   );
 }
 
-function LiveClock({ P }) {
-  const [time, setTime] = React.useState(()=>new Date());
-  React.useEffect(()=>{
-    const t = setInterval(()=>setTime(new Date()), 1000);
-    return()=>clearInterval(t);
-  },[]);
-  const h = time.getHours()%12||12;
-  const m = String(time.getMinutes()).padStart(2,"0");
-  const ampm = time.getHours()>=12?"PM":"AM";
-  return (
-    <div style={{display:"flex",alignItems:"center",gap:3,flexShrink:0}}>
-      <span style={{fontSize:13,fontWeight:800,color:P.white,letterSpacing:0.5}}>{h}:{m}</span>
-      <span style={{fontSize:9,fontWeight:700,color:P.muted}}>{ampm}</span>
-    </div>
-  );
-}
 
 function BalloonCanvas({ active, onDone }) {
   const canvasRef = useRef(null);
@@ -599,7 +538,7 @@ function useCourseSearch() {
   const search = useCallback((val) => {
     setQuery(val);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!val || val.length < 3 || !GOLF_API_KEY || GOLF_API_KEY === "YOUR_API_KEY_HERE" || GOLF_API_KEY === "undefined") {
+    if (!val || val.length < 2 || !GOLF_API_KEY || GOLF_API_KEY === "YOUR_API_KEY_HERE" || GOLF_API_KEY === "undefined") {
       setResults([]);
       return;
     }
@@ -736,8 +675,8 @@ function CourseSearchBar({ P, S, courseName, setCourseName, onCourseLoaded, sele
         <div style={{ position: "relative" }}>
           <input
             ref={inputRef}
-            value={localCourseData ? courseName : (query || courseName)}
-            onChange={e => { const v=sanitiseCourse(e.target.value); search(v); setCourseName(v); setOpen(true); }}
+            defaultValue={courseName}
+            onInput={e => { const v=sanitiseCourse(e.target.value); search(v); setCourseName(v); setOpen(true); }}
             onFocus={() => setOpen(true)}
             placeholder={apiConfigured ? "Search for your course (optional)..." : "Course name (optional)"}
             style={{ ...S.input, width: "100%", paddingRight: loading ? 36 : 12 }}
@@ -764,7 +703,7 @@ function CourseSearchBar({ P, S, courseName, setCourseName, onCourseLoaded, sele
               ))}
             </div>
           )}
-          {open && !loading && results.length === 0 && query.length >= 3 && apiConfigured && (
+          {open && !loading && results.length === 0 && query.length >= 2 && apiConfigured && (
             <div style={{ position:"absolute", top:"100%", left:0, right:0, zIndex:200, background:P.card, borderRadius:12, border:`1.5px solid ${P.border}`, padding:"12px 14px", marginTop:4, fontSize:13, color:P.muted }}>
               No courses found for "{query}"
             </div>
@@ -825,73 +764,6 @@ function CourseSearchBar({ P, S, courseName, setCourseName, onCourseLoaded, sele
 }
 
 // ─── WEATHER HOOK ───
-function useWeather(courseData) {
-  const [weather, setWeather] = useState(null);
-  const [loadingWeather, setLoadingWeather] = useState(false);
-
-  useEffect(() => {
-    if (!courseData) { setWeather(null); return; }
-    // Try to get coords from course data — GolfCourseAPI returns location.latitude/longitude
-    const lat = courseData.location?.latitude ?? courseData.latitude ?? courseData.lat;
-    const lon = courseData.location?.longitude ?? courseData.longitude ?? courseData.lng ?? courseData.lon;
-    if (!lat || !lon) { setWeather(null); return; }
-
-    setLoadingWeather(true);
-    // Open-Meteo: free, no key, returns current weather
-    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode,windspeed_10m,winddirection_10m&wind_speed_unit=mph&temperature_unit=fahrenheit&forecast_days=1`)
-      .then(r => r.json())
-      .then(d => {
-        const c = d.current;
-        if (!c) return;
-        setWeather({
-          temp: Math.round(c.temperature_2m),
-          wind: Math.round(c.windspeed_10m),
-          windDir: windDirLabel(c.winddirection_10m),
-          code: c.weathercode,
-        });
-      })
-      .catch(() => setWeather(null))
-      .finally(() => setLoadingWeather(false));
-  }, [courseData?.id ?? courseData?.club_name]);
-
-  return { weather, loadingWeather };
-}
-
-function windDirLabel(deg) {
-  if (deg == null) return "";
-  const dirs = ["N","NE","E","SE","S","SW","W","NW"];
-  return dirs[Math.round(deg / 45) % 8];
-}
-
-function weatherIcon(code) {
-  if (code == null) return "Sunny";
-  if (code === 0) return "Sunny";
-  if (code <= 2) return "P.Cloudy";
-  if (code <= 3) return "Cloudy";
-  if (code <= 49) return "Foggy";
-  if (code <= 59) return "Showers";
-  if (code <= 69) return "Rain";
-  if (code <= 79) return "Snow";
-  if (code <= 84) return "Sleet";
-  if (code <= 99) return "Storm";
-  return "Sunny";
-}
-function weatherLabel(code) {
-  if (code == null) return "";
-  if (code === 0) return "Clear";
-  if (code <= 3) return "Cloudy";
-  if (code <= 49) return "Foggy";
-  if (code <= 59) return "Drizzle";
-  if (code <= 69) return "Rain";
-  if (code <= 79) return "Snow";
-  if (code <= 84) return "Showers";
-  if (code <= 99) return "Thunder";
-  return "";
-}
-
-
-
-
 const CADDIE_CATEGORIES = [
   { name: "Love", subtitle: "conquers Fear", IconKey: "Heart", color: "#dc2626", messages: ["Remind yourself how much you LOVE and appreciate hitting that first tee shot.","Feel excitement and passion for the opportunity in this moment.","Connect to the gratitude you have for being at the course, playing with your friends.","Smile — it's called 'playing' golf.","Channeling Love will allow you to experience golf with objectivity, joy, and passion."] },
   { name: "Acceptance", subtitle: "eliminates Frustration", IconKey: "Hands", color: "#ca8a04", messages: ["See the outcomes of your shots as feedback, not failure.","Be curious — not critical. Try: 'Hmmm... that was interesting.'","Drop your expectations. You don't need them.","Stop arguing with reality.","Objectivity leads to discovery."] },
@@ -904,9 +776,9 @@ const CADDIE_CATEGORIES = [
 ];
 
 const PREROUND_SECTIONS = [
-  { title: "Set Your Intention", IconKey: "Compass", color: "#ca8a04", items: ["Notice what expectations you're carrying today — then release them","Decide who you want to BE on the course, not what you want to shoot","Set process goals: trust your swing, execute your routine, stay present"] },
-  { title: "Connect to Gratitude", IconKey: "Heart", color: "#dc2626", items: ["Appreciate the opportunity to be here today","Recall why you love this game — the people, the place, the challenge","Feel excitement and passion for hitting that first tee shot"] },
-  { title: "Embrace Curiosity & Learning", IconKey: "Shield", color: "#7c3aed", items: ["Shift from score-fixation to learning — focus on growth and execution","Replace fear of results with curiosity about each shot","You're here to find out how good you can be today, nothing more"] },
+  { title: "Set Your Intention", IconKey: "Compass", color: "#ca8a04", items: ["Notice what expectations you're carrying today, then release them","Decide who you want to BE on the course, not what you want to shoot","Set process goals: trust your swing, execute your routine, stay present"] },
+  { title: "Connect to Gratitude", IconKey: "Heart", color: "#dc2626", items: ["Appreciate the opportunity to be here today","Recall why you love this game, the people, the place, the challenge","Feel excitement and passion for hitting that first tee shot"] },
+  { title: "Embrace Curiosity & Learning", IconKey: "Shield", color: "#7c3aed", items: ["Shift from score-fixation to learning, focus on growth and execution","Replace fear of results with curiosity about each shot","You're here to learn and figure out what you need to keep working on"] },
 ];
 
 const POST_ROUND_PROMPTS = [
@@ -934,8 +806,7 @@ function _maxStreakInRound(r){let best=0;r.forEach(x=>{if(!x.scores)return;let c
 function _posStreak(r){let best=0,cur=0;[...r].reverse().forEach(x=>{if(x.net>0){cur++;best=Math.max(best,cur);}else cur=0;});return best;}
 function _cleanRounds(r){return r.filter(x=>x.scores&&x.bandits===0&&x.heroes>0).length;}
 function _recoveryRate(r){let att=0,rec=0;r.forEach(x=>{if(!x.scores)return;for(let i=0;i<17;i++){const cur=getHoleStats(x.scores,i),nxt=getHoleStats(x.scores,i+1);if(cur.net<0&&nxt.heroes+nxt.bandits>0){att++;if(nxt.net>0)rec++;}}});return{att,rate:att?Math.round((rec/att)*100):0};}
-function _maxFIRpct(r){let best=0;r.forEach(x=>{if(!x.scores)return;const h=x.scores.filter(s=>s.fairway!==null&&s.fairway!==undefined);if(h.length>=9)best=Math.max(best,Math.round((h.filter(s=>s.fairway===true).length/h.length)*100));});return best;}
-function _GIRpct(r){let tot=0,gir=0;r.forEach(x=>{if(!x.scores)return;x.scores.forEach(h=>{if(h.gir!==null&&h.gir!==undefined){tot++;if(h.gir===true)gir++;}});});return tot>=18?Math.round((gir/tot)*100):0;}
+function _GIRpct(r){let tot=0,gir=0;r.forEach(x=>{if(!x.scores)return;x.scores.forEach(h=>{if(h.strokeScore&&h.par){tot++;if(calcGir(h))gir++;}});});return tot>=18?Math.round((gir/tot)*100):0;}
 function _maxOnePutts(r){let best=0;r.forEach(x=>{if(!x.scores)return;best=Math.max(best,x.scores.filter(h=>parseInt(h.putts)===1).length);});return best;}
 function _checklistCount(){try{return parseInt(localStorage.getItem("mgp_checklist_count")||"0");}catch{return 0;}}
 function _maxMonthlyRounds(r){const c={};r.forEach(x=>{const k=x.date?x.date.slice(0,7):"x";c[k]=(c[k]||0)+1;});return Math.max(0,...Object.values(c));}
@@ -1053,12 +924,6 @@ const MILESTONES = [
     {tier:3,target:6,desc:"6 one-putts in a round", check:(r)=>_maxOnePutts(r)>=6, progress:(r)=>({val:Math.min(_maxOnePutts(r),6),max:6})},
     {tier:4,target:9,desc:"9 one-putts — putting legend", check:(r)=>_maxOnePutts(r)>=9, progress:(r)=>({val:Math.min(_maxOnePutts(r),9),max:9})},
   ]},
-  {id:"fairway_finder",label:"Fairway Finder",IconKey:"Target",color:"#2563eb",category:"Shots",tiers:[
-    {tier:1,target:50,desc:"Hit 50%+ fairways in a round",          check:(r)=>_maxFIRpct(r)>=50, progress:(r)=>({val:Math.min(_maxFIRpct(r),50),max:50,suffix:"%"})},
-    {tier:2,target:60,desc:"Hit 60%+ fairways in a round",          check:(r)=>_maxFIRpct(r)>=60, progress:(r)=>({val:Math.min(_maxFIRpct(r),60),max:60,suffix:"%"})},
-    {tier:3,target:70,desc:"Hit 70%+ fairways in a round",          check:(r)=>_maxFIRpct(r)>=70, progress:(r)=>({val:Math.min(_maxFIRpct(r),70),max:70,suffix:"%"})},
-    {tier:4,target:85,desc:"Hit 85%+ fairways — fairways are home", check:(r)=>_maxFIRpct(r)>=85, progress:(r)=>({val:Math.min(_maxFIRpct(r),85),max:85,suffix:"%"})},
-  ]},
   {id:"greens_machine",label:"Greens Machine",IconKey:"FlagHole",color:"#16a34a",category:"Shots",tiers:[
     {tier:1,target:33,desc:"33%+ GIR across your rounds", check:(r)=>_GIRpct(r)>=33, progress:(r)=>({val:Math.min(_GIRpct(r),33),max:33,suffix:"%"})},
     {tier:2,target:42,desc:"42%+ GIR",                   check:(r)=>_GIRpct(r)>=42, progress:(r)=>({val:Math.min(_GIRpct(r),42),max:42,suffix:"%"})},
@@ -1082,6 +947,61 @@ function checkNewMilestones(rounds) {
 
 
 // Score notation: returns { label, style } for a stroke score vs par
+// GIR: auto-calculated — strokes before putting must be <= par - 2
+// ─── SCROLL WHEEL PICKER ───
+function Stepper({ value, min=1, max=15, onChange, notation, P, defaultVal=null, emptyable=false }) {
+  // isEmpty = user hasn't tapped yet; display shows defaultVal (par) in muted style
+  const isEmpty = value===""||value===null||value===undefined;
+  const num = isEmpty ? null : parseInt(value);
+  const displayNum = isEmpty ? (defaultVal ? parseInt(defaultVal)||null : null) : (num!==null&&!isNaN(num)?num:null);
+
+  const borderRadius = notation?.diff<=-1?"50%":notation?.diff>=1?"6px":"8px";
+  const borderColor = notation?.diff&&notation.diff!==0?(notation.diff<0?P.green:P.red):P.border;
+  const borderWidth = notation?.diff&&Math.abs(notation.diff)>=2?"2.5px":"1.5px";
+
+  function dec() {
+    if (isEmpty) {
+      const start = defaultVal ? parseInt(defaultVal)||min : min;
+      if (emptyable) { onChange(""); return; }
+      onChange(String(Math.max(min, start - 1)));
+      return;
+    }
+    if (emptyable && num <= min) { onChange(""); return; }
+    if (num > min) onChange(String(num - 1));
+  }
+  function inc() {
+    if (isEmpty) {
+      const start = defaultVal ? parseInt(defaultVal)||min : min;
+      onChange(String(start));
+      return;
+    }
+    if (num < max) onChange(String(num + 1));
+  }
+
+  function handleDec(e) { e.stopPropagation(); dec(); }
+  function handleInc(e) { e.stopPropagation(); inc(); }
+
+  return (
+    <div style={{display:"flex",alignItems:"center",borderRadius,border:`${borderWidth} solid ${borderColor}`,overflow:"hidden",background:P.inputBg,position:"relative",flexShrink:0}}>
+      {notation?.diff&&Math.abs(notation.diff)>=2&&(
+        <div style={{position:"absolute",inset:3,borderRadius:notation.diff<=-2?"50%":"3px",border:`1px solid ${notation.diff<0?P.green:P.red}`,pointerEvents:"none",zIndex:1}}/>
+      )}
+      <button onTouchEnd={handleDec} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>−</button>
+      <div style={{minWidth:28,textAlign:"center",fontSize:18,fontWeight:700,color:isEmpty?P.muted:P.white,lineHeight:1,userSelect:"none",flexShrink:0,padding:"0 2px"}}>
+        {displayNum!==null?displayNum:"—"}
+      </div>
+      <button onTouchEnd={handleInc} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>+</button>
+    </div>
+  );
+}
+
+function calcGir(hole) {
+  const s = parseInt(hole.strokeScore), p = parseInt(hole.par);
+  const putts = hole.putts !== "" && hole.putts !== null && hole.putts !== undefined ? (parseInt(hole.putts) || 0) : null;
+  if (!s || !p || putts === null) return false;
+  return (s - putts) <= (p - 2);
+}
+
 function scoreNotation(strokeScore, par) {
   if (!strokeScore || !par) return null;
   const s = parseInt(strokeScore), p = parseInt(par), diff = s - p;
@@ -1093,7 +1013,7 @@ function scoreNotation(strokeScore, par) {
   return { diff, label:"Triple+", dot:"#7c3aed", border:"double 3px #7c3aed", bg:"#f5f3ff", square:true };
 }
 
-function initScores() { return Array.from({ length: TOTAL_HOLES }, () => ({ bandits: Object.fromEntries(BANDITS.map(b=>[b,0])), heroes: Object.fromEntries(HEROES.map(h=>[h,0])), par:"", strokeScore:"", holeNote:"", yardage:"", putts:"", routine:0, fairway:null, gir:null, strokeIndex:"" })); }
+function initScores() { return Array.from({ length: TOTAL_HOLES }, () => ({ bandits: Object.fromEntries(BANDITS.map(b=>[b,0])), heroes: Object.fromEntries(HEROES.map(h=>[h,0])), par:"", strokeScore:"", holeNote:"", yardage:"", putts:"", routine:0, strokeIndex:"" })); }
 function getHoleStats(sc,i) { if(!sc[i])return{bandits:0,heroes:0,net:0}; const b=Object.values(sc[i].bandits||{}).reduce((a,c)=>a+c,0), h=Object.values(sc[i].heroes||{}).reduce((a,c)=>a+c,0); return {bandits:b,heroes:h,net:h-b}; }
 function getNineStats(sc,s,e) { let b=0,h=0; for(let i=s;i<e;i++){if(!sc[i])continue;const st=getHoleStats(sc,i);b+=st.bandits;h+=st.heroes;} return {bandits:b,heroes:h,net:h-b}; }
 function getRoundTotals(sc) { const f=getNineStats(sc,0,9),bk=getNineStats(sc,9,18); return {front:f,back:bk,total:{bandits:f.bandits+bk.bandits,heroes:f.heroes+bk.heroes,net:f.net+bk.net}}; }
@@ -1211,7 +1131,7 @@ async function shareRoundAsImage(r, darkMode) {
   });
 
   // Hero breakdown bars on right
-  const HERO_COLORS = {"Love":P.green,"Acceptance":P.green,"Commitment":P.green,"Vulnerability":P.green,"Grit":P.green};
+  const HERO_COLORS = {"Love":green,"Acceptance":green,"Commitment":green,"Vulnerability":green,"Grit":green};
   const heroes = ["Love","Acceptance","Commitment","Vulnerability","Grit"];
   const bandits = ["Fear","Frustration","Doubt","Shame","Quit"];
   const maxHB = Math.max(1, ...heroes.map(h => r.scores ? r.scores.reduce((s,hole)=>s+(hole.heroes[h]||0),0) : 0));
@@ -1225,10 +1145,6 @@ async function shareRoundAsImage(r, darkMode) {
     ctx.fillStyle = white;
     ctx.font = "bold 13px 'Avenir Next', -apple-system, sans-serif";
     ctx.fillText(h, barX, y + 14);
-    // vs bandit
-    ctx.fillStyle = muted;
-    ctx.font = "11px 'Avenir Next', -apple-system, sans-serif";
-    ctx.fillText(`vs ${bandits[i]}`, barX + 120, y + 14);
     // Hero bar
     ctx.fillStyle = hColor + "33";
     roundRect(ctx, barX, y + 20, barW, 14, 4);
@@ -1238,13 +1154,11 @@ async function shareRoundAsImage(r, darkMode) {
       roundRect(ctx, barX, y + 20, Math.max(8, (hc / maxHB) * barW), 14, 4);
       ctx.fill();
     }
-    // Counts
+    // Hero count (left of bar)
     ctx.fillStyle = hColor;
     ctx.font = "bold 11px 'Avenir Next', -apple-system, sans-serif";
     ctx.textAlign = "right";
     ctx.fillText(hc, barX - 6, y + 32);
-    ctx.fillStyle = red;
-    ctx.fillText(bc, W - 52, y + 32);
     ctx.textAlign = "left";
     // Bandit bar (right-to-left)
     ctx.fillStyle = red + "33";
@@ -1255,6 +1169,18 @@ async function shareRoundAsImage(r, darkMode) {
       roundRect(ctx, barX + barW - Math.max(6, (bc / maxHB) * barW), y + 38, Math.max(6, (bc / maxHB) * barW), 10, 3);
       ctx.fill();
     }
+    // Bandit count (right of bar)
+    ctx.fillStyle = red;
+    ctx.font = "bold 11px 'Avenir Next', -apple-system, sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText(bc, W - 52, y + 47);
+    ctx.textAlign = "left";
+    // Bandit name below red bar, right-aligned
+    ctx.fillStyle = white;
+    ctx.font = "bold 13px 'Avenir Next', -apple-system, sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText(bandits[i], barX + barW, y + 62);
+    ctx.textAlign = "left";
   });
 
   // Bottom branding
@@ -1264,6 +1190,202 @@ async function shareRoundAsImage(r, darkMode) {
   ctx.fillText("PAUL MONAHAN GOLF · Mental Game Scorecard", W / 2, H - 20);
   ctx.textAlign = "left";
 
+  return canvas;
+}
+
+async function scorecardAsImage(r, darkMode) {
+  try { await document.fonts.ready; } catch {}
+  const scores = r.scores || Array.from({length:18},()=>({bandits:{},heroes:{},par:"",strokeScore:"",putts:"",routine:0}));
+  const bg=darkMode?"#09090b":"#f6f7f4", card=darkMode?"#18181b":"#ffffff";
+  const cardAlt=darkMode?"#111113":"#f1f3ee", border=darkMode?"#27272a":"#e0e2dc";
+  const white=darkMode?"#f8fafc":"#0f172a", muted="#71717a";
+  const green="#16a34a", red="#dc2626", gold="#ca8a04", pmGold="#c9a84c", accent="#2563eb";
+
+  const cols = ["#","H","B","Net","Par","Scr","+/-","Pts","GIR","PSR"];
+  const colW = [28,28,28,36,28,36,36,28,28,28]; // px per col
+  const totalW = colW.reduce((s,w)=>s+w,0);
+  const PAD=16, ROW=22, HDR_ROW=20;
+  // 18 rows + OUT + IN + TOT = 21 rows
+  const W = PAD*2 + totalW;
+  const H = PAD + HDR_ROW + 21*ROW + PAD;
+  const canvas = document.createElement("canvas");
+  const scale = 2; // retina
+  canvas.width=W*scale; canvas.height=H*scale;
+  const ctx=canvas.getContext("2d");
+  ctx.scale(scale,scale);
+
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  // Helper: col x positions
+  const colX = [];
+  let cx2=PAD;
+  colW.forEach(w=>{colX.push(cx2);cx2+=w;});
+
+  // Helper: cell text
+  function cell(text, ci, row, color, bold=false, align="center") {
+    ctx.fillStyle=color||white;
+    ctx.font=`${bold?"bold ":""}10px 'Avenir Next',-apple-system,sans-serif`;
+    ctx.textAlign=align==="center"?"center":"left";
+    const x = align==="center" ? colX[ci]+colW[ci]/2 : colX[ci]+3;
+    ctx.fillText(String(text), x, PAD+HDR_ROW+row*ROW+ROW*0.68);
+    ctx.textAlign="left";
+  }
+
+  // Header row
+  cols.forEach((h,ci)=>{
+    ctx.fillStyle=muted; ctx.font="bold 9px 'Avenir Next',-apple-system,sans-serif"; ctx.textAlign="center";
+    ctx.fillText(h, colX[ci]+colW[ci]/2, PAD+HDR_ROW*0.75);
+  });
+  ctx.textAlign="left";
+  // Header bottom border
+  ctx.strokeStyle=border; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(PAD,PAD+HDR_ROW); ctx.lineTo(W-PAD,PAD+HDR_ROW); ctx.stroke();
+
+  // Row index: holes 0-8 → rows 0-8, OUT → row 9, holes 9-17 → rows 10-18, IN → row 19, TOT → row 20
+  function rowIdx(i) { return i < 9 ? i : i + 1; }
+
+  // Per-hole rows
+  for(let i=0;i<18;i++){
+    const h=scores[i]||{};
+    const ri = rowIdx(i);
+    const rowY=PAD+HDR_ROW+ri*ROW;
+    ctx.fillStyle=i%2===0?card:bg; ctx.fillRect(PAD,rowY,totalW,ROW);
+
+    const hStats={heroes:Object.values(h.heroes||{}).reduce((s,v)=>s+v,0),bandits:Object.values(h.bandits||{}).reduce((s,v)=>s+v,0)};
+    hStats.net=hStats.heroes-hStats.bandits;
+    const par=parseInt(h.par)||null;
+    const score=parseInt(h.strokeScore)||null;
+    const diff=score&&par?score-par:null;
+    const runStroke=scores.slice(0,i+1).filter(x=>x.strokeScore&&x.par).reduce((a,x)=>a+(parseInt(x.strokeScore)||0),0);
+    const runPar=scores.slice(0,i+1).filter(x=>x.strokeScore&&x.par).reduce((a,x)=>a+(parseInt(x.par)||0),0);
+    const runDiff=(h.strokeScore&&h.par)?runStroke-runPar:null;
+    const putts=h.putts!==""&&h.putts!==null&&h.putts!==undefined?parseInt(h.putts):null;
+    const gir=(()=>{const s=score,p=par,pt=putts!==null?putts:null;if(!s||!p||pt===null)return false;return(s-pt)<=(p-2);})();
+
+    cell(i+1,0,ri,accent,true);
+    cell(hStats.heroes||"—",1,ri,green,hStats.heroes>0);
+    cell(hStats.bandits||"—",2,ri,red,hStats.bandits>0);
+    cell(hStats.heroes+hStats.bandits>0?(hStats.net>0?"+":"")+hStats.net:"—",3,ri,hStats.net>0?green:hStats.net<0?red:hStats.heroes+hStats.bandits>0?gold:muted,true);
+    cell(par||"—",4,ri,muted);
+
+    if(score){
+      const scoreColor=diff<0?green:diff>0?red:white;
+      const scx=colX[5]+colW[5]/2, scy=rowY+ROW*0.5;
+      if(diff<=-2){ctx.strokeStyle=gold;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(scx,scy,9,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.arc(scx,scy,6,0,Math.PI*2);ctx.stroke();}
+      else if(diff===-1){ctx.strokeStyle=green;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(scx,scy,9,0,Math.PI*2);ctx.stroke();}
+      else if(diff===1){ctx.strokeStyle=red;ctx.lineWidth=1.5;roundRect(ctx,scx-9,scy-8,18,16,2);ctx.stroke();}
+      else if(diff>=2){ctx.strokeStyle=red;ctx.lineWidth=1.5;roundRect(ctx,scx-10,scy-9,20,18,2);ctx.stroke();roundRect(ctx,scx-7,scy-6,14,12,1);ctx.stroke();}
+      ctx.fillStyle=scoreColor;ctx.font="bold 10px 'Avenir Next',-apple-system,sans-serif";ctx.textAlign="center";
+      ctx.fillText(score,scx,scy+ROW*0.18);ctx.textAlign="left";
+    } else { cell("—",5,ri,muted); }
+
+    cell(runDiff===null?"—":runDiff===0?"E":(runDiff>0?"+":"")+runDiff,6,ri,runDiff===null?muted:runDiff<0?green:runDiff>0?red:gold,true);
+    cell(putts!==null?putts:"—",7,ri,putts===1?green:putts>=3?red:white,putts!==null);
+    cell(gir?"✓":"—",8,ri,gir?accent:muted,gir);
+    cell(h.routine?"✓":"—",9,ri,h.routine?green:muted,!!h.routine);
+
+    ctx.strokeStyle=border;ctx.lineWidth=0.5;
+    ctx.beginPath();ctx.moveTo(PAD,rowY+ROW);ctx.lineTo(W-PAD,rowY+ROW);ctx.stroke();
+
+    // OUT row between holes 9 and 10
+    if(i===8){
+      const outRI=9, outY=PAD+HDR_ROW+outRI*ROW;
+      ctx.fillStyle=accent+"30";ctx.fillRect(PAD,outY,totalW,ROW);
+      ctx.strokeStyle=border;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(PAD,outY);ctx.lineTo(W-PAD,outY);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(PAD,outY+ROW);ctx.lineTo(W-PAD,outY+ROW);ctx.stroke();
+      const fp=scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.par)||0),0);
+      const fs2=scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0);
+      const fH=scores.slice(0,9).reduce((s,h)=>s+Object.values(h.heroes||{}).reduce((a,v)=>a+v,0),0);
+      const fB=scores.slice(0,9).reduce((s,h)=>s+Object.values(h.bandits||{}).reduce((a,v)=>a+v,0),0);
+      const fNet=fH-fB,fPutts2=scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.putts)||0),0);
+      const fGir2=scores.slice(0,9).filter(h2=>calcGir(h2)).length;
+      const fPsr2=scores.slice(0,9).filter(h2=>h2.routine).length;
+      ctx.fillStyle=accent;ctx.font="bold 9px 'Avenir Next',-apple-system,sans-serif";ctx.textAlign="center";
+      ctx.fillText("OUT",colX[0]+colW[0]/2,outY+ROW*0.68);ctx.textAlign="left";
+      cell(fH||"—",1,outRI,green,true);cell(fB||"—",2,outRI,red,true);
+      cell(fNet>0?"+"+fNet:fNet,3,outRI,fNet>0?green:fNet<0?red:gold,true);
+      cell(fp||"—",4,outRI,muted);cell(fs2||"—",5,outRI,white,true);
+      cell(fs2&&fp?(fs2-fp)===0?"E":((fs2-fp)>0?"+":"")+(fs2-fp):"—",6,outRI,fs2&&fp?(fs2-fp)<0?green:(fs2-fp)>0?red:gold:muted,true);
+      cell(fPutts2||"—",7,outRI,white,true);cell(`${fGir2}/9`,8,outRI,accent,true);cell(`${fPsr2}/9`,9,outRI,green,true);
+    }
+  }
+
+  // IN row (row index 19 = after hole 18)
+  const inRowIdx=19;
+  const inY=PAD+HDR_ROW+inRowIdx*ROW;
+  ctx.fillStyle=cardAlt;ctx.fillRect(PAD,inY,totalW,ROW);
+  ctx.strokeStyle=border;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(PAD,inY);ctx.lineTo(W-PAD,inY);ctx.stroke();
+  const bp=scores.slice(9).reduce((s,h)=>s+(parseInt(h.par)||0),0);
+  const bs2=scores.slice(9).reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0);
+  const bH=scores.slice(9).reduce((s,h)=>s+Object.values(h.heroes||{}).reduce((a,v)=>a+v,0),0);
+  const bB=scores.slice(9).reduce((s,h)=>s+Object.values(h.bandits||{}).reduce((a,v)=>a+v,0),0);
+  const bNet=bH-bB, bPutts2=scores.slice(9).reduce((s,h)=>s+(parseInt(h.putts)||0),0);
+  const bGir2=scores.slice(9).filter(h=>calcGir(h)).length, bPsr2=scores.slice(9).filter(h=>h.routine).length;
+  ctx.fillStyle=muted;ctx.font="bold 9px 'Avenir Next',-apple-system,sans-serif";ctx.textAlign="center";
+  ctx.fillText("IN",colX[0]+colW[0]/2,inY+ROW*0.68);ctx.textAlign="left";
+  cell(bH||"—",1,inRowIdx,green,true); cell(bB||"—",2,inRowIdx,red,true);
+  cell(bNet>0?"+"+bNet:bNet,3,inRowIdx,bNet>0?green:bNet<0?red:gold,true);
+  cell(bp||"—",4,inRowIdx,muted); cell(bs2||"—",5,inRowIdx,white,true);
+  cell(bs2&&bp?(bs2-bp)===0?"E":((bs2-bp)>0?"+":"")+(bs2-bp):"—",6,inRowIdx,bs2&&bp?(bs2-bp)<0?green:(bs2-bp)>0?red:gold:muted,true);
+  cell(bPutts2||"—",7,inRowIdx,white,true); cell(`${bGir2}/9`,8,inRowIdx,accent,true); cell(`${bPsr2}/9`,9,inRowIdx,green,true);
+
+  // TOT row
+  const totRowIdx=20;
+  const totY=PAD+HDR_ROW+totRowIdx*ROW;
+  ctx.fillStyle=accent+"18";ctx.fillRect(PAD,totY,totalW,ROW);
+  ctx.strokeStyle=accent+"44";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(PAD,totY);ctx.lineTo(W-PAD,totY);ctx.stroke();
+  const fp2=scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.par)||0),0);
+  const fs3=scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0);
+  const fH2=scores.slice(0,9).reduce((s,h)=>s+Object.values(h.heroes||{}).reduce((a,v)=>a+v,0),0);
+  const fB2=scores.slice(0,9).reduce((s,h)=>s+Object.values(h.bandits||{}).reduce((a,v)=>a+v,0),0);
+  const fPutts3=scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.putts)||0),0);
+  const fGir3=scores.slice(0,9).filter(h=>calcGir(h)).length, fPsr3=scores.slice(0,9).filter(h=>h.routine).length;
+  const tH=fH2+bH, tB=fB2+bB, tNet=tH-tB, tP=fp2+bp, tS=fs3+bs2, tPutts=fPutts3+bPutts2;
+  const tGir=fGir3+bGir2, tPsr=fPsr3+bPsr2;
+  const holesPlayed=scores.filter(h=>h.strokeScore&&h.par).length||18;
+  ctx.fillStyle=muted;ctx.font="bold 9px 'Avenir Next',-apple-system,sans-serif";ctx.textAlign="center";
+  ctx.fillText("TOT",colX[0]+colW[0]/2,totY+ROW*0.68);ctx.textAlign="left";
+  cell(tH||"—",1,totRowIdx,green,true); cell(tB||"—",2,totRowIdx,red,true);
+  cell(tNet>0?"+"+tNet:tNet,3,totRowIdx,tNet>0?green:tNet<0?red:gold,true);
+  cell(tP||"—",4,totRowIdx,muted,true); cell(tS||"—",5,totRowIdx,white,true);
+  cell(tS&&tP?(tS-tP)===0?"E":((tS-tP)>0?"+":"")+(tS-tP):"—",6,totRowIdx,tS&&tP?(tS-tP)<0?green:(tS-tP)>0?red:gold:muted,true);
+  cell(tPutts||"—",7,totRowIdx,white,true); cell(`${tGir}/18`,8,totRowIdx,accent,true);
+  cell(`${Math.round((tPsr/holesPlayed)*100)}%`,9,totRowIdx,green,true);
+
+  return canvas;
+}
+
+async function buildCombinedShareImage(r, darkMode) {
+  try { await document.fonts.ready; } catch {}
+  const [breakdownCanvas, scorecardCanvas] = await Promise.all([
+    shareRoundAsImage(r, darkMode),
+    scorecardAsImage(r, darkMode),
+  ]);
+  const GAP=16, PAD=16;
+  const W = Math.max(breakdownCanvas.width, scorecardCanvas.width*0.5) + PAD*2;
+  // Scale scorecard to fit width
+  const scScale = (W-PAD*2) / scorecardCanvas.width;
+  const scH = scorecardCanvas.height * scScale;
+  const bdScale = (W-PAD*2) / breakdownCanvas.width;
+  const bdH = breakdownCanvas.height * bdScale;
+  const H = PAD + bdH + GAP + scH + PAD;
+  const canvas = document.createElement("canvas");
+  const bg=darkMode?"#09090b":"#f6f7f4";
+  const pmGold="#c9a84c";
+  canvas.width=W; canvas.height=H;
+  const ctx=canvas.getContext("2d");
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+  // Draw breakdown
+  ctx.drawImage(breakdownCanvas, PAD, PAD, W-PAD*2, bdH);
+  // Divider
+  ctx.strokeStyle=darkMode?"#27272a":"#e0e2dc"; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(PAD, PAD+bdH+GAP/2); ctx.lineTo(W-PAD, PAD+bdH+GAP/2); ctx.stroke();
+  // Draw scorecard
+  ctx.drawImage(scorecardCanvas, PAD, PAD+bdH+GAP, W-PAD*2, scH);
+  // Branding
+  ctx.fillStyle=pmGold; ctx.font="bold 10px 'Avenir Next',-apple-system,sans-serif"; ctx.textAlign="center";
+  ctx.fillText("PAUL MONAHAN GOLF · Mental Game Scorecard", W/2, H-6);
+  ctx.textAlign="left";
   return canvas;
 }
 
@@ -1290,41 +1412,32 @@ function truncate(ctx, text, maxW) {
 }
 
 async function shareRound(r, darkMode) {
+  let canvas;
   try {
-    const canvas = await shareRoundAsImage(r, darkMode);
-    canvas.toBlob(async (blob) => {
-      if (!blob) { fallbackShare(r); return; }
-      try {
-        const file = new File([blob], "scorecard.png", { type: "image/png" });
-        // Try sharing with image file first (works on iOS 15+, Android Chrome)
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: "Mental Game Scorecard", text: buildShareText(r) });
-          return;
-        }
-      } catch(e) {
-        // File share failed or was cancelled — don't fall through to download
-        if (e?.name === "AbortError") return;
-      }
-      // Try sharing just the text via native share sheet (works on all iOS/Android)
-      if (navigator.share) {
-        try {
-          await navigator.share({ title: "Mental Game Scorecard", text: buildShareText(r) });
-          return;
-        } catch(e) {
-          if (e?.name === "AbortError") return;
-        }
-      }
-      // Desktop fallback: download image
-      try {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url; a.download = `scorecard-${r.date||"round"}.png`;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showToast("Image downloaded!", "success");
-      } catch { fallbackShare(r); }
-    }, "image/png");
-  } catch { fallbackShare(r); }
+    canvas = await buildCombinedShareImage(r, darkMode);
+  } catch(err) {
+    console.error("shareRound failed:", err);
+    fallbackShare(r); return;
+  }
+  canvas.toBlob(async (blob) => {
+    if (!blob) { fallbackShare(r); return; }
+    const file = new File([blob], "mental-game-scorecard.png", { type:"image/png" });
+    if (navigator.share && navigator.canShare && navigator.canShare({files:[file]})) {
+      try { await navigator.share({ files:[file] }); return; } catch(e) { if(e?.name==="AbortError") return; }
+    }
+    try {
+      await navigator.clipboard.write([new ClipboardItem({"image/png":blob})]);
+      showToast("Scorecard copied to clipboard!", "success", 3000); return;
+    } catch {}
+    try {
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement("a");
+      a.href=url; a.download=`scorecard-${r.date||"round"}.png`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast("Scorecard downloaded!", "success");
+    } catch { fallbackShare(r); }
+  }, "image/png");
 }
 
 function fallbackShare(r) {
@@ -1337,9 +1450,9 @@ function fallbackShare(r) {
 // ─── STYLE HELPERS ───
 function mkStyles(P) {
   return {
-    shell: { height:"100svh", background:P.bg, color:P.white, fontFamily:"'Avenir Next','SF Pro Display',-apple-system,sans-serif", display:"flex", flexDirection:"column", maxWidth:480, width:"100%", margin:"0 auto", position:"relative", overflowX:"hidden", overflowY:"hidden" },
+    shell: { height:"100%", background:P.bg, color:P.white, fontFamily:"'Avenir Next','SF Pro Display',-apple-system,sans-serif", display:"flex", flexDirection:"column", maxWidth:480, width:"100%", margin:"0 auto", position:"relative", overflowX:"hidden", overflowY:"hidden" },
     iconBtn: { width:38, height:38, borderRadius:10, border:`1.5px solid ${P.border}`, background:P.card, color:P.white, fontSize:17, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 1px 3px rgba(0,0,0,0.06)", transition:"transform 0.1s ease" },
-    input: { flex:1, padding:"10px 12px", borderRadius:10, border:`1.5px solid ${P.border}`, background:P.inputBg, color:P.white, fontSize:15, outline:"none", fontWeight:500 },
+    input: { flex:1, padding:"10px 12px", borderRadius:10, border:`1.5px solid ${P.border}`, background:P.inputBg, color:P.white, fontSize:16, outline:"none", fontWeight:500 },
     miniInput: { padding:"6px", borderRadius:8, border:`1.5px solid ${P.border}`, background:P.inputBg, color:P.white, fontSize:20, textAlign:"center", outline:"none", fontWeight:700, width:48 },
     cell: { padding:"12px 8px", textAlign:"center", borderBottom:`1px solid ${P.border}`, fontSize:16, whiteSpace:"nowrap" },
     pressBtn: { transition:"transform 0.1s ease, opacity 0.1s ease" },
@@ -1585,6 +1698,20 @@ const pp = pressProps;
 // ═══════════════════════════════════════
 // MAIN APP
 // ═══════════════════════════════════════
+function openWithClerk(mode="signUp") {
+  console.log("openWithClerk called:", mode, "signUp fn:", typeof window.__clerkOpenSignUp, "signIn fn:", typeof window.__clerkOpenSignIn);
+  const fn = mode==="signIn" ? window.__clerkOpenSignIn : window.__clerkOpenSignUp;
+  if (fn) { fn(); return; }
+  // Clerk not ready yet — poll for up to 3 seconds
+  let attempts = 0;
+  const interval = setInterval(() => {
+    const f = mode==="signIn" ? window.__clerkOpenSignIn : window.__clerkOpenSignUp;
+    console.log("polling for Clerk, attempt:", attempts, "found:", typeof f);
+    if (f) { clearInterval(interval); f(); return; }
+    if (++attempts > 30) { console.log("Clerk never loaded"); clearInterval(interval); }
+  }, 100);
+}
+
 export default function App() {
   const [darkMode, setDarkMode] = useState(false);
   const [view, setView] = useState("home");
@@ -1593,16 +1720,17 @@ export default function App() {
   const [courseName, setCourseName] = useState(()=>{try{return JSON.parse(localStorage.getItem("mgp_settings")||"{}")?.favCourse||"";}catch{return ""}});
   const [roundDate, setRoundDate] = useState(new Date().toISOString().split("T")[0]);
   const [animKey, setAnimKey] = useState(0);
+  const [preroundKey, setPreroundKey] = useState(0);
   const [savedRounds, setSavedRounds] = useState([]);
   const [selectedRound, setSelectedRound] = useState(null);
   const [postRoundNotes, setPostRoundNotes] = useState("");
   const [carryForward, setCarryForward] = useState(()=>{try{return localStorage.getItem("mgp_carry_forward")||"";}catch{return "";}});
-
-  const [holeNoteOpen, setHoleNoteOpen] = useState(()=>{try{const s=JSON.parse(localStorage.getItem("mgp_settings")||"{}");return s.holeNoteDefault!==false;}catch{return true;}});
+  const [holeNoteOpen, setHoleNoteOpen] = useState(()=>{try{const s=JSON.parse(localStorage.getItem("mgp_settings")||"{}");return s.holeNoteDefault===true;}catch{return false;}});
   const [matchupOpen, setMatchupOpen] = useState(true);
+  const [holeGridOpen, setHoleGridOpen] = useState(true);
   const [tipStep, setTipStep] = useState(()=>{try{const s=localStorage.getItem("mgp_tip_step");return s?parseInt(s):0;}catch{return 0;}});
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const TOTAL_TIPS = 6;
+  const TOTAL_TIPS = 5;
   const tipDone = tipStep >= TOTAL_TIPS;
   const [tipRect, setTipRect] = useState(null);
 
@@ -1619,27 +1747,29 @@ export default function App() {
     grid: React.useRef(null),
     scoreRow: React.useRef(null),
     matchup: React.useRef(null),
-    mentalBar: React.useRef(null),
+    bandits: React.useRef(null),
+    notes5: React.useRef(null),
     nav: React.useRef(null),
   };
-  const TIP_REF_KEYS = ["course","grid","scoreRow","matchup","mentalBar","nav"];
+  const TIP_REF_KEYS = ["course","grid","scoreRow","matchup","notes5"];
   React.useEffect(()=>{
     if(tipDone) return;
     const key = TIP_REF_KEYS[tipStep];
-    // Use rAF to ensure DOM has painted before measuring
     const frame = requestAnimationFrame(()=>{
       const el = tipRefs[key]?.current;
       if(!el) return;
       const r = el.getBoundingClientRect();
-      setTipRect({top:r.top-4, left:r.left-4, width:r.width+8, height:r.height+8});
+      // For slide 5 (notes5), extend rect to bottom of screen to cover notes + mental bar + nav
+      if(key === "notes5") {
+        setTipRect({top:r.top-4, left:r.left-4, width:r.width+8, height:160});
+      } else {
+        setTipRect({top:r.top-4, left:r.left-4, width:r.width+8, height:r.height+8});
+      }
     });
     return ()=>cancelAnimationFrame(frame);
   },[tipStep, tipDone]);
   function nextTip(){const next=tipStep+1;setTipStep(next);try{localStorage.setItem("mgp_tip_step",next);}catch{}}
   function skipTips(){setTipStep(TOTAL_TIPS);try{localStorage.setItem("mgp_tip_step",TOTAL_TIPS);}catch{}}
-  const [mentalBarOpen, setMentalBarOpen] = useState(true);
-  const [user, setUser] = useState(null);
-  const [showLogin, setShowLogin] = useState(false);
   const [inGameCaddie, setInGameCaddie] = useState(true);
   const [caddieCard, setCaddieCard] = useState(null);
   const [caddieQueue, setCaddieQueue] = useState([]);
@@ -1647,13 +1777,16 @@ export default function App() {
   const [completedRound, setCompletedRound] = useState(null);
   const [showOpenRoundModal, setShowOpenRoundModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [isPro, setIsPro] = useState(true); // App is free - paywall hidden
-  const [showPaywall, setShowPaywall] = useState(false);
+  const [isPro, setIsPro] = useState(()=>{try{return localStorage.getItem("mgp_pro")==="true";}catch{return false;}});
+  const [showShare, setShowShare] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(()=>{try{return localStorage.getItem("mgp_pro")!=="true";}catch{return true;}});
   const [showCancelPro, setShowCancelPro] = useState(false);
   const [showRateApp, setShowRateApp] = useState(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showMentalNetInfo, setShowMentalNetInfo] = useState(false);
+  const [showPSRInfo, setShowPSRInfo] = useState(false);
+  const [showIntentionModal, setShowIntentionModal] = useState(false);
   const [streakBanner, setStreakBanner] = useState(null); // {count}
   const [showConfetti, setShowConfetti] = useState(false);
   const [showFireworks, setShowFireworks] = useState(false);
@@ -1661,6 +1794,8 @@ export default function App() {
   const [showFlame, setShowFlame] = useState(false);
   const [showStarburst, setShowStarburst] = useState(false);
   const [showResetPrompt, setShowResetPrompt] = useState(false);
+  const [mindsetCard, setMindsetCard] = useState(null);
+  const [showTurnCheckIn, setShowTurnCheckIn] = useState(false);
   const [newMilestone, setNewMilestone] = useState(null);
   const [toasts, setToasts] = useState([]);
   function showToast(msg, type="info", duration=2800) {
@@ -1681,41 +1816,30 @@ export default function App() {
   const [showProfileGate, setShowProfileGate] = useState(false);
   const [showCoursePrompt, setShowCoursePrompt] = useState(false);
   const [coursePromptCallback, setCoursePromptCallback] = useState(null);
-  const [communityProfile, setCommunityProfile] = useState(()=>{
-    try { return JSON.parse(localStorage.getItem("mgp_community_profile")||"null"); } catch { return null; }
-  });
-  const { weather, loadingWeather } = useWeather(courseData);
   // ─── SETTINGS ───
   const [settings, setSettings] = useState({
     favCourse: "", favTee: "", handicap: "", units: "imperial",
     caddieDefault: true, showStreak: true, showHeatMap: true, showScoreInGrid: false,
-    postRoundPrompt: true, notifications: false, preroundChecklist: true, preroundTimer: true, holeNoteDefault: true,
+    postRoundPrompt: true, notifications: false, preroundChecklist: true, preroundTimer: true, holeNoteDefault: false,
   });
   function updateSetting(key, val) {
     setSettings(prev => {
       const next = { ...prev, [key]: val };
       try { localStorage.setItem("mgp_settings", JSON.stringify(next)); } catch {}
+      if(window.__convexUpsertSettings) {
+        try { window.__convexUpsertSettings(next, localStorage.getItem("mgp_carry_forward")||undefined); } catch {}
+      }
       return next;
     });
   }
 
   // Whether user has created a profile (unlocks unlimited rounds)
-  const hasProfile = !!(communityProfile?.email);
+  const clerkUser = window.__useUser ? window.__useUser() : null;
+  const hasProfile = !!(clerkUser?.isSignedIn);
   const roundsRemaining = hasProfile ? Infinity : Math.max(0, FREE_ROUNDS_LIMIT - savedRounds.length);
   const trialExpired = !hasProfile && savedRounds.length >= FREE_ROUNDS_LIMIT;
 
-  // Keep community profile in sync with latest round data
-  useEffect(() => {
-    if(!communityProfile?.email || savedRounds.length === 0) return;
-    // Debounce: only sync after half a second to avoid rapid saves
-    const topHero = (() => { const ht={}; savedRounds.forEach(r=>{if(!r.scores)return;r.scores.forEach(h=>{Object.keys(h.heroes||{}).forEach(k=>{if(h.heroes[k])ht[k]=(ht[k]||0)+1;});});}); return Object.keys(ht).sort((a,b)=>ht[b]-ht[a])[0]||null; })();
-    const topBandit = (() => { const bt={}; savedRounds.forEach(r=>{if(!r.scores)return;r.scores.forEach(h=>{Object.keys(h.bandits||{}).forEach(k=>{if(h.bandits[k])bt[k]=(bt[k]||0)+1;});});}); return Object.keys(bt).sort((a,b)=>bt[b]-bt[a])[0]||null; })();
-    const avgNet = (savedRounds.reduce((s,r)=>s+(r.net||0),0)/savedRounds.length).toFixed(1);
-    const updated = {...communityProfile, topHero, topBandit, rounds: savedRounds.length, avgNet, lastUpdated: new Date().toISOString()};
-    try { localStorage.setItem("mgp_community_profile", JSON.stringify(updated)); } catch {}
-    setCommunityProfile(updated);
-    // Cloud sync not configured
-  }, [savedRounds.length]);
+  // identity sync removed — handled by Clerk
 
   // Auto-load favCourse on mount so par/yardage pre-fill
   useEffect(() => {
@@ -1752,6 +1876,51 @@ export default function App() {
     })();
   }, []); // run once on mount
 
+  // ── Load from Convex when signed in and data arrives ──
+  const convexSyncDone = React.useRef(false);
+  useEffect(() => {
+    const cloudRounds = window.__convexRounds;
+    const cloudSettings = window.__convexSettings;
+    const isReady = window.__convexReady;
+    if (!isReady || convexSyncDone.current) return;
+    if (!cloudRounds) return;
+    convexSyncDone.current = true;
+
+    // Merge cloud rounds with local — cloud wins on conflict (roundId match)
+    const localRounds = (() => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]"); } catch { return []; } })();
+    const localIds = new Set(localRounds.map(r=>r.roundId).filter(Boolean));
+    const newFromCloud = cloudRounds
+      .filter(r => !localIds.has(r.roundId))
+      .map(r => ({ id: r.savedAt||Date.now(), roundId: r.roundId, course: r.courseName||"Unnamed Course", date: r.date, scores: r.scores, totalPar: r.totalPar, totalStroke: r.totalStroke, notes: r.notes, preRoundMeta: r.preRoundMeta, net: r.net, heroes: r.net >= 0 ? r.net : 0, bandits: r.net < 0 ? Math.abs(r.net) : 0 }));
+
+    if (newFromCloud.length > 0) {
+      const merged = [...localRounds, ...newFromCloud].sort((a,b) => (b.date||"").localeCompare(a.date||""));
+      setSavedRounds(merged);
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)); } catch {}
+      showToast(`Synced ${newFromCloud.length} round${newFromCloud.length>1?"s":""} from cloud`, "success", 3000);
+    }
+
+    // Also push any local rounds that don't have roundIds up to Convex
+    const unsynced = localRounds.filter(r => !r.roundId);
+    if (unsynced.length > 0 && window.__convexBulkUpsertRounds) {
+      const toSync = unsynced.map(r => ({ roundId: String(r.id||Date.now()+Math.random()), date: r.date, courseName: r.course, net: r.net||0, totalStroke: r.totalStroke, totalPar: r.totalPar, scores: r.scores, notes: r.notes, preRoundMeta: r.preRoundMeta, savedAt: r.id||Date.now() }));
+      window.__convexBulkUpsertRounds(toSync);
+    }
+
+    // Load cloud settings if no local settings
+    if (cloudSettings?.data) {
+      const localSettings = (() => { try { return JSON.parse(localStorage.getItem("mgp_settings")||"null"); } catch { return null; } })();
+      if (!localSettings) {
+        setSettings(cloudSettings.data);
+        try { localStorage.setItem("mgp_settings", JSON.stringify(cloudSettings.data)); } catch {}
+      }
+      if (cloudSettings.carryForward && !carryForward) {
+        setCarryForward(cloudSettings.carryForward);
+        try { localStorage.setItem("mgp_carry_forward", cloudSettings.carryForward); } catch {}
+      }
+    }
+  });
+
   useEffect(() => {
     window.addEventListener("online",()=>setIsOffline(false));
     window.addEventListener("offline",()=>setIsOffline(true));
@@ -1768,7 +1937,7 @@ export default function App() {
   function finishOnboarding(){
     setShowOnboarding(false);
     try{if(window.__hideSplash)window.__hideSplash();}catch{}
-    // Ask for notification permission at end of onboarding (high-intent moment)
+    if(!isPro && hasProfile) setTimeout(()=>setShowPaywall(true), 600);
     setTimeout(async ()=>{
       try {
         if("Notification" in window && Notification.permission === "default") {
@@ -1808,8 +1977,6 @@ export default function App() {
       const rated = localStorage.getItem("mgp_rated");
       if(!rated && rounds.length===3) setTimeout(()=>setShowRateApp(true), 2000);
     } catch {}
-    // Community prompt disabled — captured in onboarding now
-    // try { ... } catch {}
   }
   function toggleTheme() { const next=!darkMode; setDarkMode(next); try{localStorage.setItem(THEME_KEY,next?"dark":"light");window.dispatchEvent(new Event("mgp_theme_change"));}catch{} }
 
@@ -1852,15 +2019,14 @@ export default function App() {
     vibrate(type==="heroes"?10:15);
     setScores(prev => {
       const n = JSON.parse(JSON.stringify(prev));
-      const prevVal = n[currentHole][type][name];
-      n[currentHole][type][name] = prevVal === value ? 0 : value;
-
+      const cur = n[currentHole][type][name] || 0;
+      n[currentHole][type][name] = cur >= 5 ? 0 : cur + 1;
       return n;
     });
   }
 
   function updateField(field, value) { setScores(prev=>{const n=JSON.parse(JSON.stringify(prev));n[currentHole][field]=value;return n;}); }
-  function goToHole(h) { setCurrentHole(h); setAnimKey(k=>k+1); setHoleNoteOpen(settings?.holeNoteDefault!==false); }
+  function goToHole(h) { setCurrentHole(h); setAnimKey(k=>k+1); setHoleNoteOpen(false); }
 
   function advanceHole() {
     const nextHole = Math.min(17, currentHole + 1);
@@ -1893,11 +2059,33 @@ export default function App() {
       }
     }
 
+    // ── Turn check-in (hole 9 → 10) ──
+    if (currentHole === 8 && inGameCaddie) {
+      setShowTurnCheckIn(true);
+      return;
+    }
+
+    // ── Scheduled mindset cards (holes 1, 4, 7, 10, 13, 16) ──
+    if (inGameCaddie && [0,3,6,9,12,15].includes(currentHole)) {
+      const MINDSET_CATS = ["Awareness", "Presence", "Possibility Thinking"];
+      const catName = MINDSET_CATS[Math.floor(Math.random() * MINDSET_CATS.length)];
+      const cat = CADDIE_CATEGORIES.find(c => c.name === catName);
+      if (cat) {
+        const used = usedMessages[catName] || new Set();
+        let available = cat.messages.map((_,i) => i).filter(i => !used.has(i));
+        if (available.length === 0) available = cat.messages.map((_,i) => i);
+        const idx = available.sort(() => Math.random() - 0.5)[0];
+        setUsedMessages(prev => ({ ...prev, [catName]: new Set([...(prev[catName]||new Set()), idx]) }));
+        setMindsetCard({ catName, cat, message: cat.messages[idx], nextHole: nextHole });
+        return;
+      }
+    }
+
     // ── In-Game Caddie cards ──
     if (inGameCaddie) {
       const hs = scores[currentHole];
-      const aB = BANDITS.filter(b => hs.bandits[b] === 1);
-      const aH = HEROES.filter(h => hs.heroes[h] === 1);
+      const aB = BANDITS.filter(b => hs.bandits[b] > 0);
+      const aH = HEROES.filter(h => hs.heroes[h] > 0);
       const cards = [];
 
       function pickMessage(catName) {
@@ -1986,22 +2174,17 @@ export default function App() {
     return s.slice(0, last + 1);
   }
 
-  // FIR eligible holes = scored holes where par is 4 or 5
-  function getFirEligible(sc) {
-    return sc.filter(h=>h.strokeScore&&(parseInt(h.par)===4||parseInt(h.par)===5));
-  }
-  function getFirHits(sc) {
-    return getFirEligible(sc).filter(h=>h.fairway===true).length;
-  }
-
   function saveRound() {
     if(saving) return;
     setSaving(true); setTimeout(()=>setSaving(false), 2000);
     const ts=getTrimmedScores(scores);
     const course = courseName||"Unnamed Course";
     const existing = savedRounds.find(r=>r.date===roundDate&&r.course===course);
-    const round = { id:existing?.id||Date.now(), course, date:roundDate, scores:ts, totalPar:getTotalPar(ts), totalStroke:getTotalStroke(ts), notes:postRoundNotes, ...getRoundTotals(ts).total };
+    const roundId = existing?.roundId || String(Date.now());
+    const round = { id:existing?.id||Date.now(), roundId, course, date:roundDate, scores:ts, totalPar:getTotalPar(ts), totalStroke:getTotalStroke(ts), notes:postRoundNotes, ...getRoundTotals(ts).total };
     persistRounds(existing ? savedRounds.map(r=>r.id===existing.id?round:r) : [round, ...savedRounds]);
+    // Sync to Convex
+    if(window.__convexUpsertRound) window.__convexUpsertRound({ roundId, date:round.date, courseName:round.course, net:round.net||0, totalStroke:round.totalStroke, totalPar:round.totalPar, scores:ts, notes:round.notes });
     vibrate([10,20,10]);
     showToast(existing ? "Draft updated!" : "Draft saved!", "success");
   }
@@ -2013,24 +2196,99 @@ export default function App() {
   function saveAndFinish() {
     const trimmedScores = getTrimmedScores(scores);
     const holesPlayed = trimmedScores.filter(h=>h.strokeScore||Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)).length;
-    const round = { id:Date.now(), course:courseName||"Unnamed Course", date:roundDate, scores:trimmedScores, holesPlayed, totalPar:getTotalPar(trimmedScores), totalStroke:getTotalStroke(trimmedScores), notes:postRoundNotes, savedRoundsCount: savedRounds.length + 1, ...getRoundTotals(trimmedScores).total };
+    const roundId = String(Date.now());
+    const round = { id:Date.now(), roundId, course:courseName||"Unnamed Course", date:roundDate, scores:trimmedScores, holesPlayed, totalPar:getTotalPar(trimmedScores), totalStroke:getTotalStroke(trimmedScores), notes:postRoundNotes, savedRoundsCount: savedRounds.length + 1, ...getRoundTotals(trimmedScores).total };
     persistRounds([round, ...savedRounds]);
+    // Sync to Convex
+    if(window.__convexUpsertRound) window.__convexUpsertRound({ roundId, date:round.date, courseName:round.course, net:round.net||0, totalStroke:round.totalStroke, totalPar:round.totalPar, scores:trimmedScores, notes:round.notes });
     setCompletedRound(round);
     try { localStorage.setItem("mgp_carry_forward", carryForward); } catch {}
-    // Share prompt
     if(round.net>=3){ setTimeout(()=>showToast(`Mental Net ${round.net>0?"+":""}${round.net} — great round!`, "success", 4000), 800); }
     try { localStorage.removeItem("mgp_checklist_date"); } catch {}
-    setScores(initScores()); setCurrentHole(0); setCourseName(""); setRoundDate(new Date().toISOString().split("T")[0]); setPostRoundNotes(""); setHoleNoteOpen(settings?.holeNoteDefault!==false); setUsedMessages({});
-    // Fireworks on round save!
+    setScores(initScores()); setCurrentHole(0); setCourseName(""); setRoundDate(new Date().toISOString().split("T")[0]); setPostRoundNotes(""); setHoleNoteOpen(settings?.holeNoteDefault===true); setUsedMessages({}); setPreRoundMeta({sleep:3,energy:3,partners:"friends"});
     setShowFireworks(true);
     setView("roundstats");
   }
 
-  function deleteRound(id) { persistRounds(savedRounds.filter(r=>r.id!==id)); if(selectedRound?.id===id)setSelectedRound(null); }
+  function deleteRound(id) {
+    const round = savedRounds.find(r=>r.id===id);
+    persistRounds(savedRounds.filter(r=>r.id!==id));
+    if(selectedRound?.id===id) setSelectedRound(null);
+    if(round?.roundId && window.__convexDeleteRound) window.__convexDeleteRound(round.roundId);
+  }
   function startNewRound() {
-    // Gate: require profile after FREE_ROUNDS_LIMIT completed rounds
     if(trialExpired) { setShowProfileGate(true); return; }
-    const roundHasData=scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts); if(roundHasData){setShowOpenRoundModal(true);return;} setScores(initScores());setCurrentHole(0);setCourseName(settings?.favCourse||"");setRoundDate(new Date().toISOString().split("T")[0]);setPostRoundNotes("");setHoleNoteOpen(settings?.holeNoteDefault!==false);setCourseData(null);setSelectedTee(settings?.favTee||null);try{const cf=localStorage.getItem("mgp_carry_forward");if(cf)setCarryForward(cf);}catch{}setView(settings.preroundChecklist!==false?"preround":"play"); }
+    const roundHasData=scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts);
+    if(roundHasData){setShowOpenRoundModal(true);return;}
+    setView("courseselect");
+  }
+
+  function resetAndStartNew(courseOverride) {
+    const freshScores = initScores();
+    const tee = courseOverride?.selectedTee || settings?.favTee || null;
+    const name = courseOverride?.courseName || settings?.favCourse || "";
+    setScores(freshScores);
+    setCurrentHole(0);
+    setCourseName(name);
+    setRoundDate(new Date().toISOString().split("T")[0]);
+    setPostRoundNotes("");
+    setHoleNoteOpen(settings?.holeNoteDefault===true);
+    setSelectedTee(tee);
+    setShowOpenRoundModal(false);
+    setShowIntentionModal(false);
+    setMindsetCard(null);
+    setShowTurnCheckIn(false);
+    try{const cf=localStorage.getItem("mgp_carry_forward");if(cf)setCarryForward(cf);}catch{}
+    try{localStorage.removeItem("mgp_checklist_date");sessionStorage.removeItem("mgp_preround_checked");}catch{}
+    // Reset tips so they start from slide 1 on each new round
+    if(tipStep < TOTAL_TIPS) { setTipStep(0); try{localStorage.setItem("mgp_tip_step","0");}catch{} }
+    setPreroundKey(k=>k+1);
+
+    // If courseData passed directly, load it
+    if(courseOverride?.courseData) {
+      const cd = courseOverride.courseData;
+      const male=(cd.tees?.male||[]).map(t=>({...t,gender:"Male"}));
+      const female=(cd.tees?.female||[]).map(t=>({...t,gender:"Female"}));
+      cd._tees=[...male,...female];
+      setCourseData(cd);
+      onCourseLoaded(cd, tee);
+    } else if(name) {
+      // Fetch course data for the favorite
+      setCourseData(null);
+      (async()=>{
+        try{
+          const r1=await fetch(`${GOLF_API_BASE}/search?search_query=${encodeURIComponent(name)}`,{headers:{Authorization:`Key ${GOLF_API_KEY}`}});
+          const d1=await r1.json();
+          const match=(d1.courses||[]).find(c=>c.club_name===name||(c.club_name+(c.course_name&&c.course_name!==c.club_name?` — ${c.course_name}`:""))===name)||d1.courses?.[0];
+          if(!match) return;
+          const r2=await fetch(`${GOLF_API_BASE}/courses/${match.id}`,{headers:{Authorization:`Key ${GOLF_API_KEY}`}});
+          const d2=await r2.json();
+          const full=d2.course;
+          if(!full) return;
+          const male=(full.tees?.male||[]).map(t=>({...t,gender:"Male"}));
+          const female=(full.tees?.female||[]).map(t=>({...t,gender:"Female"}));
+          full._tees=[...male,...female];
+          setCourseData(full);
+          onCourseLoaded(full, tee);
+        }catch(e){console.warn('course load failed',e);}
+      })();
+    } else {
+      setCourseData(null);
+    }
+
+    setView(settings.preroundChecklist!==false?"preround":"play");
+  }
+
+  function saveDraftAndStartNew() {
+    saveRound();
+    setShowOpenRoundModal(false);
+    setView("courseselect");
+  }
+
+  function discardAndStartNew() {
+    setShowOpenRoundModal(false);
+    setView("courseselect");
+  }
 
   const nav=(v)=>()=>setView(v);
   function ToastLayer() {
@@ -2045,24 +2303,20 @@ export default function App() {
       ))}
     </div>;
   }
+  function handleSignOut() {
+    const keysToRemove = ["mental_game_rounds","mgp_settings","mgp_carry_forward","mgp_carry_forward_draft","mgp_avatar","mgp_avatar_changed","mgp_badge_tiers","mgp_milestones","mgp_onboarded","mgp_pro_date","mgp_rated","mgp_checklist_count","mgp_coach_code","mgp_coach_code_own","mgp_coach_name","mgp_coach_roster","mgp_community_joined","mgp_display_name","mgp_uid","mgp_tip_step"];
+    keysToRemove.forEach(k=>{try{localStorage.removeItem(k);}catch{}});
+    if(window.__clerkSignOut) window.__clerkSignOut(); else window.location.href="/";
+  }
+  window.__handleSignOut = handleSignOut;
+
   function navTo(v) {
     if(v==="caddie") setPrevView(view);
-    // Intercept checklist/new round when current round has data
     if(v==="checklist"||v==="preround"){
       const roundHasData = scores.some(h=>Object.values(h.heroes).some(x=>x!==0)||Object.values(h.bandits).some(x=>x!==0)||h.strokeScore||h.putts);
       if(roundHasData){ setShowOpenRoundModal(true); return; }
       try{const cf=localStorage.getItem("mgp_carry_forward");if(cf)setCarryForward(cf);}catch{}
-      // "checklist" = explicit tap, always show it
-      // "preround" = auto-start, respect the setting
-      if(v==="preround" && settings.preroundChecklist===false){setView("play");return;}
       setView("preround"); return;
-    }
-    if(v==="preround"){
-      try{const cf=localStorage.getItem("mgp_carry_forward");if(cf)setCarryForward(cf);}catch{}
-      const today = new Date().toISOString().split("T")[0];
-      const roundHasData = scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts);
-      const checklistDoneToday = roundDate === today && (roundHasData || localStorage.getItem("mgp_checklist_date") === today);
-      if(checklistDoneToday || settings.preroundChecklist===false){setView("play");return;}
     }
     setView(v);
   }
@@ -2155,65 +2409,32 @@ export default function App() {
 
   function ProfileGateModal() {
     if(!showProfileGate) return null;
-    const [email, setEmailVal] = React.useState("");
-    const [name, setNameVal] = React.useState("");
-    const [loading, setLoading] = React.useState(false);
-    const [done, setDone] = React.useState(false);
-
-    async function submit() {
-      if(!email.trim()||!email.includes("@")) { showToast("Please enter a valid email","warn"); return; }
-      setLoading(true);
-      const uid = (() => { try { let id=localStorage.getItem("mgp_uid"); if(!id){id="user_"+Math.random().toString(36).slice(2,10);localStorage.setItem("mgp_uid",id);} return id; } catch { return "anon"; } })();
-      const profile = { email:email.trim().toLowerCase(), name:name.trim()||null, joinedAt:new Date().toISOString(), uid, source:"round_gate", cloudSync:true };
-      try { localStorage.setItem("mgp_community_profile",JSON.stringify(profile)); localStorage.setItem("mgp_community_joined","true"); } catch {}
-      setCommunityProfile(profile);
-      // Profile saved to localStorage only
-      setLoading(false);
-      setDone(true);
-      setTimeout(()=>{ setShowProfileGate(false); if(view!=="settings") startNewRound(); }, 1500);
-    }
-
     return (
       <div onClick={()=>setShowProfileGate(false)} style={{position:"fixed",inset:0,zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.75)",backdropFilter:"blur(10px)",padding:"0 20px"}}>
         <div onClick={e=>e.stopPropagation()} style={{background:P.card,borderRadius:20,padding:"28px 22px",width:"100%",maxWidth:400,border:`1.5px solid ${PM_GOLD}44`,boxShadow:"0 24px 60px rgba(0,0,0,0.5)"}}>
-          {done ? (
-            <div style={{textAlign:"center",padding:"16px 0"}}>
-              <div style={{width:48,height:48,borderRadius:14,background:P.green+"18",border:`1.5px solid ${P.green}44`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}><Icons.Check color={P.green} size={22}/></div>
-              <div style={{fontSize:18,fontWeight:900,color:P.white,marginBottom:6}}>Profile created</div>
-              <div style={{fontSize:13,color:P.muted}}>Starting your round...</div>
-            </div>
-          ) : (
-            <>
-              <div style={{textAlign:"center",marginBottom:20}}>
-                <div style={{width:52,height:52,borderRadius:15,background:PM_GOLD+"18",border:`1.5px solid ${PM_GOLD}44`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}><Icons.Shield color={PM_GOLD} size={24}/></div>
-                <div style={{fontSize:19,fontWeight:900,color:P.white,marginBottom:8}}>Your 3 free rounds are up</div>
-                <div style={{fontSize:13,color:P.muted,lineHeight:1.6}}>Create your free profile to keep playing and back up your rounds to the cloud. It takes 20 seconds.</div>
+          <div style={{textAlign:"center",marginBottom:20}}>
+            <div style={{width:52,height:52,borderRadius:15,background:PM_GOLD+"18",border:`1.5px solid ${PM_GOLD}44`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}><Icons.Shield color={PM_GOLD} size={24}/></div>
+            <div style={{fontSize:19,fontWeight:900,color:P.white,marginBottom:8}}>Your 3 free rounds are up</div>
+            <div style={{fontSize:13,color:P.muted,lineHeight:1.6}}>Create your free account to keep playing and back up your rounds to the cloud. It takes 20 seconds.</div>
+          </div>
+          <div style={{background:PM_GOLD+"08",border:`1px solid ${PM_GOLD}33`,borderRadius:12,padding:"12px 14px",marginBottom:18}}>
+            {["Unlimited rounds, forever free","Cloud backup — rounds safe if you switch phones","Personalized insights from Paul based on your Heroes and Bandits"].map((t,i)=>(
+              <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:i<2?8:0}}>
+                <Icons.Check color={PM_GOLD} size={13}/>
+                <span style={{fontSize:12,color:P.white,lineHeight:1.5}}>{t}</span>
               </div>
-              {/* What they get */}
-              <div style={{background:PM_GOLD+"08",border:`1px solid ${PM_GOLD}33`,borderRadius:12,padding:"12px 14px",marginBottom:18}}>
-                {[
-                  "Unlimited rounds, forever free",
-                  "Cloud backup — rounds safe if you switch phones",
-                  "Personalized insights from Paul based on your Heroes and Bandits",
-                ].map((t,i)=>(
-                  <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:i<2?8:0}}>
-                    <Icons.Check color={PM_GOLD} size={13} style={{flexShrink:0,marginTop:2}}/>
-                    <span style={{fontSize:12,color:P.white,lineHeight:1.5}}>{t}</span>
-                  </div>
-                ))}
-              </div>
-              {/* Form */}
-              <input value={name} onChange={e=>setNameVal(sanitiseName(e.target.value))} placeholder="First name" style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",marginBottom:8}}/>
-              <input value={email} onChange={e=>setEmailVal(sanitiseEmail(e.target.value))} placeholder="Email address" inputMode="email" autoCapitalize="none" autoComplete="email" style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",marginBottom:12}}/>
-              <button onClick={submit} disabled={loading} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:P.green,color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",marginBottom:10,opacity:loading?0.7:1}}>
-                {loading?"Creating profile...":"Create Free Profile"}
-              </button>
-              <div style={{fontSize:10,color:P.muted,textAlign:"center",lineHeight:1.5}}>
-                Free forever. No payment required. By continuing you agree to Paul Monahan Golf's{" "}
-                <span style={{color:PM_GOLD,cursor:"pointer"}} onClick={()=>{setShowProfileGate(false);setShowPrivacyPolicy(true);}}>Privacy Policy</span>.
-              </div>
-            </>
-          )}
+            ))}
+          </div>
+          <button onClick={()=>{setShowProfileGate(false);openWithClerk("signUp");}} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:P.green,color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",marginBottom:8}}>
+            Create Free Account
+          </button>
+          <button onClick={()=>setShowProfileGate(false)} style={{width:"100%",padding:"10px",borderRadius:12,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:13,fontWeight:600,cursor:"pointer"}}>
+            Maybe later
+          </button>
+          <div style={{fontSize:10,color:P.muted,textAlign:"center",lineHeight:1.5,marginTop:10}}>
+            Free forever. No payment required. By continuing you agree to Paul Monahan Golf's{" "}
+            <span style={{color:PM_GOLD,cursor:"pointer"}} onClick={()=>{setShowProfileGate(false);setShowPrivacyPolicy(true);}}>Privacy Policy</span>.
+          </div>
         </div>
       </div>
     );
@@ -2221,80 +2442,29 @@ export default function App() {
 
   function CommunityPromptModal() {
     if(!showCommunityPrompt) return null;
-    const [email, setEmailVal] = React.useState("");
-    const [name, setNameVal] = React.useState(user?.name||"");
-    const [loading, setLoading] = React.useState(false);
-    const [done, setDone] = React.useState(false);
-    const topBandit = (() => {
-      const bt={};
-      savedRounds.forEach(r=>{if(!r.scores)return;r.scores.forEach(h=>{Object.keys(h.bandits||{}).forEach(k=>{if(h.bandits[k])bt[k]=(bt[k]||0)+1;});});});
-      return Object.keys(bt).sort((a,b)=>bt[b]-bt[a])[0]||null;
-    })();
-    const topHero = (() => {
-      const ht={};
-      savedRounds.forEach(r=>{if(!r.scores)return;r.scores.forEach(h=>{Object.keys(h.heroes||{}).forEach(k=>{if(h.heroes[k])ht[k]=(ht[k]||0)+1;});});});
-      return Object.keys(ht).sort((a,b)=>ht[b]-ht[a])[0]||null;
-    })();
-
-    async function submitProfile() {
-      if(!email.trim()||!email.includes("@")) { showToast("Please enter a valid email","warn"); return; }
-      setLoading(true);
-      const profile = {
-        email: email.trim().toLowerCase(),
-        name: name.trim()||null,
-        topHero, topBandit,
-        rounds: savedRounds.length,
-        avgNet: savedRounds.length ? (savedRounds.reduce((s,r)=>s+(r.net||0),0)/savedRounds.length).toFixed(1) : null,
-        handicap: settings?.handicap||null,
-        joinedAt: new Date().toISOString(),
-        uid: (()=>{try{let id=localStorage.getItem("mgp_uid");if(!id){id="user_"+Math.random().toString(36).slice(2,10);localStorage.setItem("mgp_uid",id);}return id;}catch{return "anon";}})(),
-        source: "app_post_round_1",
-      };
-      // Save locally
-      try { localStorage.setItem("mgp_community_profile", JSON.stringify(profile)); localStorage.setItem("mgp_community_joined","true"); } catch {}
-      setCommunityProfile(profile);
-      // Cloud sync not configured
-      setShowCommunityPrompt(false);
-    }
-
+    function dismiss() { setShowCommunityPrompt(false); }
+    const topBandit = (() => { const bt={}; savedRounds.forEach(r=>{if(!r.scores)return;r.scores.forEach(h=>{Object.keys(h.bandits||{}).forEach(k=>{if(h.bandits[k])bt[k]=(bt[k]||0)+1;});});}); return Object.keys(bt).sort((a,b)=>bt[b]-bt[a])[0]||null; })();
     return (
       <div style={{position:"fixed",inset:0,zIndex:9997,display:"flex",alignItems:"flex-end",justifyContent:"center",background:"rgba(0,0,0,0.6)",backdropFilter:"blur(8px)",padding:"0 0 20px"}}>
         <div style={{background:P.card,borderRadius:"20px 20px 16px 16px",padding:"24px 20px 28px",width:"100%",maxWidth:480,border:`1.5px solid ${P.border}`,boxShadow:"0 -20px 60px rgba(0,0,0,0.4)",animation:"slideUpSheet 0.35s cubic-bezier(0.16,1,0.3,1)"}}>
-          {done ? (
-            <div style={{textAlign:"center",padding:"20px 0"}}>
-              
-              <div style={{fontSize:18,fontWeight:900,color:P.white,marginBottom:6}}>You're in!</div>
-              <div style={{fontSize:13,color:P.muted}}>Paul will be in touch with insights tailored to your game.</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
+            <div>
+              <div style={{fontSize:17,fontWeight:900,color:P.white,marginBottom:4}}>Join Paul's Community</div>
+              {topBandit&&<div style={{fontSize:12,color:PM_GOLD,fontWeight:600}}>Your round showed {topBandit} as your biggest challenge. Paul has specific drills for this.</div>}
             </div>
-          ) : (
-            <>
-              {/* Header */}
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
-                <div>
-                  <div style={{fontSize:17,fontWeight:900,color:P.white,marginBottom:4}}>Join Paul's Community</div>
-                  {topBandit&&<div style={{fontSize:12,color:PM_GOLD,fontWeight:600}}>Your round showed {topBandit} as your biggest challenge. Paul has specific drills for this.</div>}
-                </div>
-                <button onClick={dismiss} style={{background:"none",border:"none",color:P.muted,fontSize:18,cursor:"pointer",padding:"0 0 0 12px",flexShrink:0}}>✕</button>
-              </div>
-              {/* Value prop */}
-              <div style={{background:PM_GOLD+"10",border:`1px solid ${PM_GOLD}33`,borderRadius:12,padding:"10px 14px",marginBottom:16}}>
-                <div style={{fontSize:12,color:P.white,lineHeight:1.6}}>
-                  Get <span style={{fontWeight:700,color:PM_GOLD}}>personalized coaching insights</span> based on your actual Heroes & Bandits data — delivered by Paul directly to your inbox.
-                </div>
-              </div>
-              {/* Form */}
-              <div style={{marginBottom:10}}>
-                <input value={name} onChange={e=>setNameVal(sanitiseName(e.target.value))} placeholder="Your first name" style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",marginBottom:8}}/>
-                <input value={email} onChange={e=>setEmailVal(sanitiseEmail(e.target.value))} placeholder="Email address" inputMode="email" autoCapitalize="none" style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none"}}/>
-              </div>
-              <button onClick={submitProfile} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:`linear-gradient(135deg,${PM_NAVY},#2563eb)`,color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",marginBottom:10,opacity:loading?0.7:1}}>
-                {loading?"Joining...":"Join Paul's Community →"}
-              </button>
-              <div style={{fontSize:10,color:P.muted,textAlign:"center",lineHeight:1.5}}>
-                By joining you agree to receive coaching content from Paul Monahan Golf. No spam — unsubscribe anytime. Your mental game data is used only to personalize your experience.
-              </div>
-            </>
-          )}
+            <button onClick={dismiss} style={{background:"none",border:"none",color:P.muted,fontSize:18,cursor:"pointer",padding:"0 0 0 12px",flexShrink:0}}>✕</button>
+          </div>
+          <div style={{background:PM_GOLD+"10",border:`1px solid ${PM_GOLD}33`,borderRadius:12,padding:"10px 14px",marginBottom:16}}>
+            <div style={{fontSize:12,color:P.white,lineHeight:1.6}}>
+              Get <span style={{fontWeight:700,color:PM_GOLD}}>personalized coaching insights</span> based on your actual Heroes & Bandits data — delivered by Paul directly to your inbox.
+            </div>
+          </div>
+          <button onClick={()=>{dismiss();openWithClerk("signUp");}} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:`linear-gradient(135deg,${PM_NAVY},#2563eb)`,color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",marginBottom:10}}>
+            Create Free Account →
+          </button>
+          <div style={{fontSize:10,color:P.muted,textAlign:"center",lineHeight:1.5}}>
+            Free forever. No spam — unsubscribe anytime. Your mental game data personalizes your experience.
+          </div>
         </div>
         <style>{`@keyframes slideUpSheet{from{opacity:0;transform:translateY(40px);}to{opacity:1;transform:translateY(0);}}`}</style>
       </div>
@@ -2323,22 +2493,25 @@ export default function App() {
   }
 
   // ─── ROUTING ───
-  if (showOnboarding) return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><OpenRoundModal/><OnboardingFlow onFinish={finishOnboarding} onPrivacy={()=>setShowPrivacyPolicy(true)} P={P} S={S} communityProfile={communityProfile}/></ThemeCtx.Provider>;
-  // paywall disabled
-  if (view==="home") return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><CommunityPromptModal/><ProfileGateModal/><CoursePromptModal/><OpenRoundModal/><HomeScreen onNav={(v)=>{if(v==="upgrade")return;navTo(v);}} onContinueRound={()=>{const firstEmpty=scores.findIndex(h=>!h.strokeScore&&!Object.values(h.heroes).some(v=>v>0)&&!Object.values(h.bandits).some(v=>v>0));setCurrentHole(Math.max(0,firstEmpty));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} user={user} setUser={setUser} showLogin={showLogin} setShowLogin={setShowLogin} savedRounds={savedRounds} settings={settings} isPro={isPro} roundsRemaining={roundsRemaining} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ if(window.__clerkSignOut) window.__clerkSignOut(); else window.location.href="/"; }} /></ThemeCtx.Provider>;
-  if (view==="checklist") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist onBack={nav("home")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",new Date().toISOString().split("T")[0]);const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setView("play");}} S={S} lastIntention={carryForward} settings={settings} /></ThemeCtx.Provider>;
-  if (view==="preround") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist onBack={nav("home")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",new Date().toISOString().split("T")[0]);const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setView("play");}} S={S} lastIntention={carryForward} settings={settings} /></ThemeCtx.Provider>;
+  if (showPaywall) return <ThemeCtx.Provider value={P}><PaywallView onUnlock={(plan)=>unlockPro(plan)} onBack={()=>setShowPaywall(false)} onPrivacy={()=>setShowPrivacyPolicy(true)} P={P} S={S}/></ThemeCtx.Provider>;
+  if (showOnboarding) return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><OpenRoundModal/><OnboardingFlow onFinish={finishOnboarding} onPrivacy={()=>setShowPrivacyPolicy(true)} P={P} S={S}/></ThemeCtx.Provider>;
+  if (showShare) return <ThemeCtx.Provider value={P}><ShareView onBack={()=>setShowShare(false)} P={P}/></ThemeCtx.Provider>;
+  if (view==="home") return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><CommunityPromptModal/><ProfileGateModal/><CoursePromptModal/><OpenRoundModal/><HomeScreen onNav={(v)=>{if(v==="upgrade"){setShowPaywall(true);return;}if(v==="share"){setShowShare(true);return;}navTo(v);}} onContinueRound={()=>{const firstEmpty=scores.findIndex(h=>!h.strokeScore&&!Object.values(h.heroes).some(v=>v>0)&&!Object.values(h.bandits).some(v=>v>0));setCurrentHole(Math.max(0,firstEmpty));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} isPro={isPro} roundsRemaining={roundsRemaining} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }} onUpgrade={()=>setShowPaywall(true)} /></ThemeCtx.Provider>;
+  if (view==="checklist") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist key={preroundKey} onBack={nav("home")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",new Date().toISOString().split("T")[0]);const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setView("play");}} onSkip={()=>{setView("play");}} S={S} lastIntention={carryForward} settings={settings} updateSetting={updateSetting} /></ThemeCtx.Provider>;
+  if (view==="courseselect") return <ThemeCtx.Provider value={P}><ToastLayer/><div style={{height:"100%",background:P.bg,position:"relative"}}><HomeScreen onNav={()=>{}} onContinueRound={()=>{}} roundInProgress={false} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} isPro={isPro} roundsRemaining={roundsRemaining} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }}/><CourseSelectModal P={P} S={S} settings={settings} onSkip={()=>resetAndStartNew()} onConfirm={(data)=>resetAndStartNew(data)}/></div></ThemeCtx.Provider>;
+  if (view==="preround") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist key={preroundKey} onBack={nav("home")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",new Date().toISOString().split("T")[0]);const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setView("play");}} onSkip={()=>{setView("play");}} S={S} lastIntention={carryForward} settings={settings} updateSetting={updateSetting} /></ThemeCtx.Provider>;
+  if (view==="tiger5") return <ThemeCtx.Provider value={P}><ToastLayer/><Tiger5View onBack={()=>setView(prevView||"home")} S={S}/></ThemeCtx.Provider>;
   if (view==="caddie") return <ThemeCtx.Provider value={P}><ToastLayer/><InnerCaddieView onBack={nav(prevView)} S={S} /></ThemeCtx.Provider>;
   if (view==="coach") return <ThemeCtx.Provider value={P}><ToastLayer/><CoachDashboardView onBack={nav("home")} S={S}/></ThemeCtx.Provider>;
   if (view==="coachportal") return <ThemeCtx.Provider value={P}><ToastLayer/><CoachPortalView onBack={nav("home")} S={S}/></ThemeCtx.Provider>;
-  if (view==="guide") return <ThemeCtx.Provider value={P}><ToastLayer/><OnboardingFlow onFinish={nav("home")} onPrivacy={()=>setShowPrivacyPolicy(true)} P={P} S={S} communityProfile={communityProfile}/></ThemeCtx.Provider>;
+  if (view==="guide") return <ThemeCtx.Provider value={P}><ToastLayer/><OnboardingFlow onFinish={nav("home")} onPrivacy={()=>setShowPrivacyPolicy(true)} P={P} S={S}/></ThemeCtx.Provider>;
   if (view==="transform") return <ThemeCtx.Provider value={P}><ToastLayer/><TransformView onBack={nav("home")} S={S} P={P}/></ThemeCtx.Provider>;
   if (view==="dashboard") return <ThemeCtx.Provider value={P}><ToastLayer/><DashboardView rounds={savedRounds} onBack={nav("home")} isHome={true} S={S} onSelectRound={r=>{setSelectedRound(r);setView("rounddetail");}}/></ThemeCtx.Provider>;
   if (view==="history") return <ThemeCtx.Provider value={P}><ToastLayer/><HistoryView rounds={savedRounds} onBack={()=>{setView("home");setSelectedRound(null);}} onDelete={deleteRound} selectedRound={selectedRound} setSelectedRound={setSelectedRound} onShare={(r)=>shareRound(r,darkMode)} onEdit={r=>{setEditingRound(r);setView("editround");}} S={S} /></ThemeCtx.Provider>;
   if (view==="rounddetail") return <ThemeCtx.Provider value={P}><ToastLayer/><RoundDetailView round={selectedRound} onBack={nav("dashboard")} onShare={(r)=>shareRound(r,darkMode)} S={S} /></ThemeCtx.Provider>;
   if (showPrivacyPolicy) return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><PrivacyPolicyView onBack={()=>setShowPrivacyPolicy(false)} S={S}/></ThemeCtx.Provider>;
   if (showHelp) return <ThemeCtx.Provider value={P}><ToastLayer/><HelpView onBack={()=>setShowHelp(false)} S={S}/></ThemeCtx.Provider>;
-  if (view==="settings") return <ThemeCtx.Provider value={P}><ToastLayer/><ProfileGateModal/><SettingsView settings={settings} updateSetting={updateSetting} darkMode={darkMode} toggleTheme={toggleTheme} onBack={nav("home")} S={S} savedRounds={savedRounds} inGameCaddie={inGameCaddie} setInGameCaddie={setInGameCaddie} onResetTour={()=>{try{localStorage.removeItem("mgp_tip_step");}catch{}setTipStep(0);setView("play");}} isPro={isPro} onManageSubscription={()=>setShowPaywall(true)} onCancelPro={()=>setShowCancelPro(true)} onPrivacyPolicy={()=>setShowPrivacyPolicy(true)} communityProfile={communityProfile} onHelp={()=>setShowHelp(true)} onCreateProfile={()=>setShowProfileGate(true)} onGuide={()=>setView("guide")} /></ThemeCtx.Provider>;
+  if (view==="settings") return <ThemeCtx.Provider value={P}><ToastLayer/><ProfileGateModal/><SettingsView settings={settings} updateSetting={updateSetting} darkMode={darkMode} toggleTheme={toggleTheme} onBack={nav("home")} S={S} savedRounds={savedRounds} inGameCaddie={inGameCaddie} setInGameCaddie={setInGameCaddie} onResetTour={()=>{try{localStorage.removeItem("mgp_tip_step");}catch{}setTipStep(0);setView("play");}} isPro={isPro} onManageSubscription={()=>setShowPaywall(true)} onCancelPro={()=>setShowCancelPro(true)} onPrivacyPolicy={()=>setShowPrivacyPolicy(true)} onHelp={()=>setShowHelp(true)} onCreateProfile={()=>setShowProfileGate(true)} onGuide={()=>setView("guide")} onShare={()=>setShowShare(true)} /></ThemeCtx.Provider>;
   if (view==="scorecard") return <ThemeCtx.Provider value={P}><ToastLayer/><ScorecardView scores={scores} front={front} back={back} total={total} courseName={courseName} roundDate={roundDate} onBack={()=>setView(prevView||"play")} onHome={()=>setView("home")} onSelectHole={h=>{setCurrentHole(h);setView("play");}} S={S} handicap={settings.handicap} /></ThemeCtx.Provider>;
   if (view==="editround") return <ThemeCtx.Provider value={P}><ToastLayer/><RoundEditView round={editingRound} onSave={updatedRound=>{const updated=savedRounds.map(r=>r.id===updatedRound.id?updatedRound:r);persistRounds(updated);setEditingRound(null);setView("history");}} onBack={()=>{setEditingRound(null);setView("history");}} S={S} /></ThemeCtx.Provider>;
   if (view==="badges") return <ThemeCtx.Provider value={P}><ToastLayer/><BadgesView rounds={savedRounds} onBack={nav("home")} S={S} /></ThemeCtx.Provider>;
@@ -2354,11 +2527,11 @@ export default function App() {
 
   return (
     <ThemeCtx.Provider value={P}>
-      <div style={{...S.shell,overflow:"hidden"}}>
-        <ConfettiCanvas active={!caddieCard&&showConfetti} onDone={()=>setShowConfetti(false)}/>
-        <BalloonCanvas active={!caddieCard&&showBalloons} onDone={()=>setShowBalloons(false)}/>
-        <FlameCanvas active={!caddieCard&&showFlame} onDone={()=>setShowFlame(false)}/>
-        <StarburstCanvas active={!caddieCard&&showStarburst} onDone={()=>setShowStarburst(false)}/>
+      <div style={{...S.shell,overflow:"hidden",display:"flex",flexDirection:"column"}}>
+        {!caddieCard&&showConfetti&&<ConfettiCanvas active={true} onDone={()=>setShowConfetti(false)}/>}
+        {!caddieCard&&showBalloons&&<BalloonCanvas active={true} onDone={()=>setShowBalloons(false)}/>}
+        {!caddieCard&&showFlame&&<FlameCanvas active={true} onDone={()=>setShowFlame(false)}/>}
+        {!caddieCard&&showStarburst&&<StarburstCanvas active={true} onDone={()=>setShowStarburst(false)}/>}
 
         {/* Mental Net Info Modal */}
         {showMentalNetInfo&&(
@@ -2385,15 +2558,35 @@ export default function App() {
           </div>
         )}
 
+        {/* PSR Info Modal */}
+        {showPSRInfo&&(
+          <div onClick={()=>setShowPSRInfo(false)} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 20px"}}>
+            <div onClick={e=>e.stopPropagation()} style={{background:P.card,borderRadius:20,padding:"24px 20px",width:"100%",maxWidth:360,border:`1.5px solid ${P.border}`}}>
+              <div style={{fontSize:17,fontWeight:900,color:P.white,marginBottom:4}}>Pre-Shot Routine (PSR)</div>
+              <div style={{fontSize:13,color:P.muted,lineHeight:1.6,marginBottom:14}}>Your pre-shot routine is the repeatable sequence of actions you take before every shot — alignment, visualization, a breath, a trigger word. It's one of the most powerful tools in your mental game.</div>
+              <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+                <div style={{padding:"10px 14px",borderRadius:10,background:P.green+"12",border:`1px solid ${P.green}33`}}>
+                  <div style={{fontSize:12,fontWeight:700,color:P.green,marginBottom:2}}>Tap ✓ if you completed your routine on every shot this hole</div>
+                  <div style={{fontSize:12,color:P.muted}}>This includes tee shots, approach shots, chips, and putts.</div>
+                </div>
+                <div style={{padding:"10px 14px",borderRadius:10,background:P.card,border:`1px solid ${P.border}`}}>
+                  <div style={{fontSize:12,fontWeight:700,color:P.white,marginBottom:2}}>Why it matters</div>
+                  <div style={{fontSize:12,color:P.muted}}>Research shows consistent pre-shot routines reduce anxiety, improve focus, and lead to more committed shots. Your PSR% tracks how disciplined your process is over time.</div>
+                </div>
+              </div>
+              <button onClick={()=>setShowPSRInfo(false)} style={{width:"100%",padding:"12px",borderRadius:12,border:"none",background:P.green,color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer"}}>Got it</button>
+            </div>
+          </div>
+        )}
+
         {/* Multi-step tooltip tour */}
         {!tipDone&&!dropdownOpen&&(()=>{
           const tips=[
-            {step:1,title:"Add Your Course",body:"Search for your course to auto-fill hole data and yardages. The In-Game Caddie toggle also lives here.",icon:"Flag",cardPos:"below"},
-            {step:2,title:"Hole Grid",body:"Tap any hole to jump to it. Colored dots show mental activity — green for heroes, red for bandits.",icon:"Grid",cardPos:"below"},
-            {step:3,title:"PAR, SCORE & STATS",body:"Enter par and your stroke score. Running score vs par shows on the left. Log putts, FIR and GIR on the right.",icon:"Flag",cardPos:"below"},
-            {step:4,title:"Heroes & Bandits",body:"After each hole, tap which Heroes showed up and which Bandits crept in. This is the heart of your mental game.",icon:"Shield",cardPos:"above"},
-            {step:5,title:"Mental Score Bar",body:"Your live Mental Net — Heroes minus Bandits. Tap MENTAL SCORE to collapse it and save space.",icon:"Chart",cardPos:"above"},
-            {step:6,title:"Notes & Navigation",body:"Add a quick hole note, use ← → to move between holes, Save to draft, or Finish when your round is complete.",icon:"Note",cardPos:"above"},
+            {step:1,title:"Course & Caddie",body:"Before your round, select your course to auto-fill hole data and yardages. Turn on the In-Game Caddie for mental guidance during play.",icon:"Flag",cardPos:"below"},
+            {step:2,title:"Hole Grid",body:"Tap any hole to jump to it. Holes will fill in green when Heroes showed up. Red holes mean Bandits interfered.",icon:"Grid",cardPos:"below"},
+            {step:3,title:"PAR, SCORE & STATS",body:"Enter your stroke score and putts. Toggle PSR to track your pre-shot routine. Then use the → arrow to move to the next hole. Hit Save to lock in the round.",icon:"Flag",cardPos:"below"},
+            {step:4,title:"Heroes & Bandits",body:"After each shot, tap which Heroes showed up and which Bandits crept in. This is the heart of your mental game. (A hero or bandit can show up more than once a hole.)",icon:"Shield",cardPos:"above"},
+            {step:5,title:"Notes, Net & Intentions",body:"Add a Hole Note to capture what happened. Your Mental Net shows Heroes minus Bandits for the round. Tap Intention to keep your focus for the day front of mind.",icon:"Note",cardPos:"above"},
           ];
           const t=tips[tipStep];
           const isLast=tipStep===TOTAL_TIPS-1;
@@ -2486,6 +2679,57 @@ export default function App() {
           </div>
         )}
 
+        {/* Mindset Card (scheduled holes 1/4/7/10/13/16) */}
+        {mindsetCard&&(
+          <div onClick={()=>{setMindsetCard(null);goToHole(mindsetCard.nextHole);}} style={{position:"fixed",inset:0,zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.65)",backdropFilter:"blur(8px)",animation:"fadeIn 0.25s ease-out"}}>
+            <div onClick={e=>e.stopPropagation()} style={{background:P.card,borderRadius:20,padding:"24px 22px",width:"88%",maxWidth:360,border:`2px solid ${mindsetCard.cat.color}33`,boxShadow:`0 20px 48px rgba(0,0,0,0.3)`,animation:"cardFlip 0.4s ease-out",textAlign:"center"}}>
+              <div style={{fontSize:10,color:mindsetCard.cat.color,fontWeight:800,letterSpacing:2,marginBottom:6,textTransform:"uppercase"}}>Mindset Check</div>
+              <div style={{fontSize:16,fontWeight:900,color:P.white,marginBottom:4}}>{mindsetCard.catName}</div>
+              <div style={{fontSize:12,color:P.muted,marginBottom:14,fontStyle:"italic"}}>{mindsetCard.cat.subtitle}</div>
+              <div style={{background:P.cardAlt,borderRadius:14,padding:"18px 16px",marginBottom:18,border:`1px solid ${P.border}`}}>
+                <div style={{fontSize:15,lineHeight:1.6,color:P.white,fontWeight:500,fontStyle:"italic"}}>"{mindsetCard.message}"</div>
+              </div>
+              <button onClick={()=>{setMindsetCard(null);goToHole(mindsetCard.nextHole);}} {...pp()} style={{width:"100%",padding:"12px",borderRadius:12,border:`1.5px solid ${mindsetCard.cat.color}`,background:mindsetCard.cat.color+"15",color:mindsetCard.cat.color,fontSize:15,fontWeight:800,cursor:"pointer"}}>Got it →</button>
+            </div>
+          </div>
+        )}
+
+        {/* Turn Check-In (hole 9 → 10) */}
+        {showTurnCheckIn&&(()=>{
+          const front = scores.slice(0,9);
+          const fNet = front.reduce((s,h)=>s+(Object.values(h.heroes).reduce((a,v)=>a+v,0)-Object.values(h.bandits).reduce((a,v)=>a+v,0)),0);
+          const fHeroes = front.reduce((s,h)=>s+Object.values(h.heroes).reduce((a,v)=>a+v,0),0);
+          const fBandits = front.reduce((s,h)=>s+Object.values(h.bandits).reduce((a,v)=>a+v,0),0);
+          const msg = fNet>=3?"You're playing with the Heroes. Stay in it — the back 9 is yours.":fNet<=-3?"The Bandits have been loud. The back 9 is a clean slate — choose your mindset now.":"Solid front 9. Stay present hole by hole — W.I.N.";
+          const color = fNet>0?P.green:fNet<0?P.red:P.gold;
+          return (
+            <div onClick={()=>{setShowTurnCheckIn(false);goToHole(9);}} style={{position:"fixed",inset:0,zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.65)",backdropFilter:"blur(8px)",animation:"fadeIn 0.25s ease-out"}}>
+              <div onClick={e=>e.stopPropagation()} style={{background:P.card,borderRadius:20,padding:"24px 22px",width:"88%",maxWidth:360,border:`2px solid ${color}33`,boxShadow:"0 20px 48px rgba(0,0,0,0.3)",animation:"cardFlip 0.4s ease-out",textAlign:"center"}}>
+                <div style={{fontSize:10,color:P.muted,fontWeight:800,letterSpacing:2,marginBottom:6}}>THE TURN</div>
+                <div style={{fontSize:17,fontWeight:900,color:P.white,marginBottom:14}}>Halfway There</div>
+                <div style={{display:"flex",justifyContent:"center",gap:20,marginBottom:14}}>
+                  <div style={{textAlign:"center"}}>
+                    <div style={{fontSize:24,fontWeight:900,color:P.green}}>{fHeroes}</div>
+                    <div style={{fontSize:10,color:P.muted,fontWeight:600}}>Heroes</div>
+                  </div>
+                  <div style={{textAlign:"center"}}>
+                    <div style={{fontSize:28,fontWeight:900,color,lineHeight:1}}>{fNet>0?"+":""}{fNet}</div>
+                    <div style={{fontSize:10,color:P.muted,fontWeight:600}}>Net</div>
+                  </div>
+                  <div style={{textAlign:"center"}}>
+                    <div style={{fontSize:24,fontWeight:900,color:P.red}}>{fBandits}</div>
+                    <div style={{fontSize:10,color:P.muted,fontWeight:600}}>Bandits</div>
+                  </div>
+                </div>
+                <div style={{background:P.cardAlt,borderRadius:14,padding:"14px 16px",marginBottom:18,border:`1px solid ${P.border}`}}>
+                  <div style={{fontSize:14,lineHeight:1.6,color:P.white,fontWeight:500,fontStyle:"italic"}}>"{msg}"</div>
+                </div>
+                <button onClick={()=>{setShowTurnCheckIn(false);goToHole(9);}} {...pp()} style={{width:"100%",padding:"12px",borderRadius:12,border:`1.5px solid ${color}`,background:color+"15",color,fontSize:15,fontWeight:800,cursor:"pointer"}}>Back 9 →</button>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Caddie Card Overlay */}
         {caddieCard && (
           <div style={{position:"fixed",inset:0,zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.5)",backdropFilter:"blur(6px)",animation:"fadeIn 0.2s ease-out"}} onClick={dismissCaddieCard}>
@@ -2510,18 +2754,19 @@ export default function App() {
             OFFLINE — all data saves locally, syncs when back online
           </div>
         )}
-        <div style={{padding:"4px 12px 2px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{padding:"8px 12px 4px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <button onClick={nav("home")} style={S.iconBtn} {...pp()}><Icons.Home color={P.muted} size={17}/></button>
           <div style={{textAlign:"center"}}><div style={{fontSize:17,fontWeight:800,color:P.white}}>Scorecard</div></div>
           <div style={{display:"flex",gap:4}}>
             {themeToggle}
             <button onClick={()=>navTo("caddie")} style={S.iconBtn} {...pp()}><Icons.Brain color={P.muted} size={16}/></button>
+            <button onClick={()=>{setPrevView(view);setView("tiger5");}} style={S.iconBtn} {...pp()} aria-label="Tiger 5"><span style={{fontSize:15}}>🐅</span></button>
             <button onClick={()=>{try{localStorage.removeItem("mgp_tip_step");}catch{}setTipStep(0);}} style={S.iconBtn} {...pp()} aria-label="App guide"><Icons.Info color={P.muted} size={15}/></button>
             <button onClick={()=>{setPrevView(view);setView("scorecard");}} style={S.iconBtn} {...pp()}><Icons.Grid color={P.muted} size={15}/></button>
           </div>
         </div>
 
-        <div ref={tipRefs.course} style={{flexShrink:0}}>
+        <div ref={tipRefs.course} style={{flexShrink:0,paddingTop:6}}>
         <CourseSearchBar
           P={P} S={S}
           courseName={courseName}
@@ -2532,44 +2777,45 @@ export default function App() {
           courseData={courseData}
           setCourseData={setCourseData}
         />
-        </div>
-        <div style={{padding:"0 12px 6px",display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
-          <input type="date" value={roundDate} onChange={e=>setRoundDate(e.target.value)} style={{...S.input,flex:"0 0 auto",width:130,fontSize:12,padding:"6px 8px"}}/>
-          <div style={{flex:1,display:"flex",justifyContent:"center"}}>
-            <LiveClock P={P}/>
-          </div>
-          <button onClick={()=>setInGameCaddie(!inGameCaddie)} {...pp()} style={{display:"flex",alignItems:"center",gap:4,padding:"5px 8px",borderRadius:8,border:`1.5px solid ${inGameCaddie?"#006747":P.border}`,background:inGameCaddie?"#00674715":"transparent",cursor:"pointer",transition:"all 0.15s",flexShrink:0}}>
-            <Icons.Brain color={inGameCaddie?"#006747":P.muted} size={12}/>
-            <span style={{fontSize:10,fontWeight:700,color:inGameCaddie?"#006747":P.muted}}>Caddie</span>
+        <div style={{padding:"0 12px 4px",display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
+          <input type="date" value={roundDate} onChange={e=>setRoundDate(e.target.value)} style={{...S.input,flex:"0 0 auto",width:130,fontSize:16,padding:"6px 8px"}}/>
+          <div style={{flex:1}}/>
+          <button onClick={()=>setInGameCaddie(!inGameCaddie)} {...pp()} style={{display:"flex",alignItems:"center",gap:4,padding:"6px 8px",borderRadius:10,border:`1.5px solid ${inGameCaddie?"#006747":P.border}`,background:inGameCaddie?"#00674715":"transparent",cursor:"pointer",transition:"all 0.15s",flexShrink:0,fontSize:12,fontWeight:600,color:inGameCaddie?"#006747":P.muted}}>
+            <Icons.Brain color={inGameCaddie?"#006747":P.muted} size={13}/>
+            <span>Caddie</span>
             <div style={{width:22,height:12,borderRadius:6,background:inGameCaddie?"#006747":P.border,position:"relative",transition:"background 0.2s",flexShrink:0}}><div style={{width:8,height:8,borderRadius:"50%",background:"#fff",position:"absolute",top:2,left:inGameCaddie?12:2,transition:"left 0.2s",boxShadow:"0 1px 2px rgba(0,0,0,0.2)"}}/></div>
           </button>
+        </div>
         </div>
 
         {/* Hole Grid */}
         <div ref={tipRefs.grid} style={{padding:"0 10px 2px",flexShrink:0}}>
-          {[0,9].map(start=>(
+          {/* Grid toggle header */}
+          <button onClick={()=>setHoleGridOpen(o=>!o)} {...pp()} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",padding:"2px 2px",background:"transparent",border:"none",cursor:"pointer",marginBottom:holeGridOpen?2:0}}>
+            <div style={{transform:holeGridOpen?"rotate(-90deg)":"rotate(90deg)",transition:"transform 0.2s",lineHeight:0}}><Icons.Chev color={P.muted} size={11}/></div>
+          </button>
+          {holeGridOpen&&[0,9].map(start=>(
             <div key={start} style={{display:"grid",gridTemplateColumns:"repeat(9, 1fr)",gap:2,marginBottom:start===0?2:0}}>
               {Array.from({length:9},(_,j)=>{
                 const i=start+j,s=getHoleStats(scores,i),act=i===currentHole,has=s.bandits>0||s.heroes>0;
-                const nt=settings.showScoreInGrid?scoreNotation(scores[i].strokeScore,scores[i].par):null;
+                const nt=scoreNotation(scores[i].strokeScore,scores[i].par);
                 const diff=nt?.diff??null;
-                // Border/color based on notation, active overrides
+                const bgFill=has?(s.net>0?P.green:s.net<0?P.red:P.cardAlt):act?P.accent+"15":P.card;
                 const borderColor=act?P.accent:diff===null?P.border:diff<=-1?P.green:diff>=1?P.red:P.border;
                 const borderWidth=act?"2px":"1.5px";
-                const textColor=act?P.accent:diff===null?(has?P.white:P.muted):diff<0?P.green:diff>0?P.red:P.white;
-                return <button key={i} onClick={()=>goToHole(i)} {...pp()} style={{aspectRatio:"1",borderRadius:diff===-1&&!act?"50%":diff===1&&!act?"5px":7,border:`${borderWidth} solid ${borderColor}`,background:act?P.accent+"15":has?P.cardAlt:P.card,color:textColor,fontWeight:act||diff!==null?700:500,fontSize:12,cursor:"pointer",transition:"all 0.12s ease",position:"relative",display:"flex",alignItems:"center",justifyContent:"center",minWidth:0,padding:0}}>
-                  {/* Double notation: inner ring */}
-                  {!act&&diff!==null&&Math.abs(diff)>=2&&<span style={{position:"absolute",inset:3,borderRadius:diff<=-2?"50%":"3px",border:`1px solid ${diff<0?P.green:P.red}`,pointerEvents:"none"}}/>}
+                const numColor=has?"#ffffff":(act?P.accent:(P.muted));
+                const textShadow=has?"0 0 0 1px rgba(0,0,0,0.6), 0 1px 2px rgba(0,0,0,0.5)":undefined;
+                return <button key={i} onClick={()=>goToHole(i)} {...pp()} style={{aspectRatio:"1",borderRadius:diff<=-1&&!act?"50%":diff>=1&&!act?"5px":7,border:`${borderWidth} solid ${borderColor}`,background:bgFill,color:numColor,fontWeight:700,fontSize:12,cursor:"pointer",transition:"all 0.12s ease",position:"relative",display:"flex",alignItems:"center",justifyContent:"center",minWidth:0,padding:0,textShadow}}>
+                  {!act&&diff!==null&&Math.abs(diff)>=2&&<span style={{position:"absolute",inset:3,borderRadius:diff<=-2?"50%":"3px",border:`1.5px solid rgba(255,255,255,0.7)`,pointerEvents:"none"}}/>}
                   {i+1}
-                  {has&&!act&&diff===null&&<div style={{position:"absolute",bottom:1,left:"50%",transform:"translateX(-50%)",width:3,height:3,borderRadius:"50%",background:s.net>0?P.green:s.net<0?P.red:P.gold}}/>}
-                  {scores[i].holeNote&&!act&&<div style={{position:"absolute",top:1,right:2,width:3,height:3,borderRadius:"50%",background:P.accent}}/>}
+                  {scores[i].holeNote&&!act&&<div style={{position:"absolute",top:1,right:2,width:3,height:3,borderRadius:"50%",background:has?"rgba(255,255,255,0.7)":P.accent}}/>}
                 </button>;
               })}
             </div>
           ))}
         </div>
 
-        {/* Single row: Hole N · PAR · SCORE · PUTTS · FIR/GIR */}
+        {/* Single row: Hole N · PAR · SCORE · PUTTS */}
         {(()=>{
           const notation = scoreNotation(scores[currentHole].strokeScore, scores[currentHole].par);
           // Include all completed holes (score + par both entered)
@@ -2585,50 +2831,102 @@ export default function App() {
           const runningPar = completedPar + curPar;
           const runningDiff = (completedHoles.length > 0 || (hasCurrentScore && hasCurrentPar)) ? runningStroke - runningPar : null;
           return (
-        <div ref={tipRefs.scoreRow} key={animKey} style={{padding:"2px 4px 4px",display:"flex",alignItems:"center",gap:3,animation:"fadeSlide 0.25s ease-out",flexShrink:0}}>
+        <div ref={tipRefs.scoreRow} key={animKey} style={{padding:"2px 8px 4px",display:"flex",flexDirection:"column",gap:0,animation:"fadeSlide 0.25s ease-out",flexShrink:0}}>
 
-          {/* Hole N — left */}
-          <div style={{flex:1,minWidth:0,paddingTop:12}}>
-            {notation&&notation.diff!==0&&<div style={{fontSize:9,fontWeight:700,color:notation.diff<0?P.green:P.red,letterSpacing:0.5,marginBottom:1}}>{notation.label}</div>}
-            <div style={{display:"flex",alignItems:"baseline",gap:6,flexWrap:"nowrap"}}>
-              {streak>=3&&<div style={{display:"flex",alignItems:"center",gap:2,padding:"2px 6px",borderRadius:20,background:P.green+"15",border:`1px solid ${P.green}33`}}><Icons.Fire color={P.green} size={11}/><span style={{fontSize:10,fontWeight:700,color:P.green}}>{streak}</span></div>}
-              <span style={{fontSize:22,fontWeight:900,lineHeight:1,color:P.white,whiteSpace:"nowrap"}}>Hole {currentHole+1}</span>
-              {runningDiff!==null&&<span style={{fontSize:14,fontWeight:700,color:runningDiff<0?P.green:runningDiff>0?P.red:P.gold,whiteSpace:"nowrap"}}>{runningDiff>0?"+":""}{runningDiff===0?"E":runningDiff}</span>}
+          {/* Row 1: Hole info + nav arrows */}
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <button onClick={()=>goToHole(Math.max(0,currentHole-1))} disabled={currentHole===0} style={{...navBtnS(P,currentHole===0),padding:"6px 10px",flexShrink:0}} aria-label="Previous hole">←</button>
+            <div style={{flex:1,minWidth:0,textAlign:"center"}}>
+              {notation&&notation.diff!==0&&<div style={{fontSize:9,fontWeight:700,color:notation.diff<0?P.green:P.red,letterSpacing:0.5}}>{notation.label}</div>}
+              <div style={{display:"flex",alignItems:"baseline",gap:6,flexWrap:"nowrap",justifyContent:"center"}}>
+                <span style={{fontSize:20,fontWeight:900,lineHeight:1,color:P.white,whiteSpace:"nowrap"}}>Hole {currentHole+1}</span>
+                {scores[currentHole].yardage&&<span style={{fontSize:12,fontWeight:600,color:P.muted}}>{scores[currentHole].yardage} yds</span>}
+                {runningDiff!==null&&<span style={{fontSize:13,fontWeight:700,color:runningDiff<0?P.green:runningDiff>0?P.red:P.gold,whiteSpace:"nowrap"}}>{runningDiff>0?"+":""}{runningDiff===0?"E":runningDiff}</span>}
+                {streak>=3&&<div style={{display:"flex",alignItems:"center",gap:2,padding:"1px 5px",borderRadius:20,background:P.green+"15",border:`1px solid ${P.green}33`}}><Icons.Fire color={P.green} size={10}/><span style={{fontSize:10,fontWeight:700,color:P.green}}>{streak}</span></div>}
+              </div>
             </div>
-            {scores[currentHole].yardage&&<div style={{fontSize:13,fontWeight:600,color:P.muted,marginTop:2}}>{scores[currentHole].yardage} yds</div>}
+            <button onClick={()=>currentHole<17?advanceHole():goToHole(currentHole)} disabled={currentHole===17} style={{...navBtnS(P,currentHole===17),padding:"6px 10px",flexShrink:0}} aria-label="Next hole">→</button>
           </div>
 
-          {/* PAR */}
-          <div style={{textAlign:"center",flexShrink:0}}>
-            <div style={{fontSize:11,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:4}}>PAR</div>
-            <input value={scores[currentHole].par} onChange={e=>updateField("par",e.target.value.replace(/\D/g,"").slice(0,1))} style={{...S.miniInput,width:38,fontSize:18}} inputMode="numeric" aria-label="Par"/>
-          </div>
+          {/* Row 2: PAR | SCORE | PUTTS | PSR | SAVE */}
+          <div style={{display:"flex",alignItems:"center",gap:8,paddingTop:4}}>
 
-          {/* SCORE */}
-          <div style={{textAlign:"center",flexShrink:0}}>
-            <div style={{fontSize:11,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:4}}>SCORE</div>
-            <input value={scores[currentHole].strokeScore} onChange={e=>updateField("strokeScore",e.target.value.replace(/\D/g,"").slice(0,2))} aria-label="Score" style={{...S.miniInput,width:38,fontSize:18,borderRadius:notation?.circle?"50%":notation?.square?"4px":"8px",borderColor:notation?.diff&&notation.diff!==0?(notation.diff<0?P.green:P.red):undefined,borderWidth:notation?.diff&&Math.abs(notation.diff)>=2?"3px":"1.5px",borderStyle:notation?.diff&&Math.abs(notation.diff)>=2?"double":"solid"}} inputMode="numeric"/>
-          </div>
-
-          {/* FIR / GIR */}
-          <div style={{textAlign:"center",flexShrink:0}}>
-            <div style={{fontSize:11,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:4}}>FIR / GIR</div>
-            <div style={{display:"flex",gap:4,alignItems:"center"}}>
-              <button onClick={()=>updateField("fairway",scores[currentHole].fairway===true?null:true)} {...pp()} style={{width:38,height:38,borderRadius:8,border:`1.5px solid ${scores[currentHole].fairway===true?P.green:P.border}`,background:scores[currentHole].fairway===true?P.green+"20":"transparent",color:scores[currentHole].fairway===true?P.green:P.muted,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{scores[currentHole].fairway===true?<Icons.Check color={P.green} size={14}/>:null}</button>
-              <button onClick={()=>updateField("gir",scores[currentHole].gir===true?null:true)} {...pp()} style={{width:38,height:38,borderRadius:8,border:`1.5px solid ${scores[currentHole].gir===true?P.accent:P.border}`,background:scores[currentHole].gir===true?P.accent+"20":"transparent",color:scores[currentHole].gir===true?P.accent:P.muted,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{scores[currentHole].gir===true?<Icons.Check color={P.accent} size={14}/>:null}</button>
+            {/* PAR */}
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0}}>
+              <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700}}>PAR</div>
+              <input value={scores[currentHole].par} onChange={e=>{const p=e.target.value.replace(/\D/g,"").slice(0,1);updateField("par",p);if(p&&!scores[currentHole].strokeScore)updateField("strokeScore",p);}} style={{width:40,height:40,borderRadius:8,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:18,textAlign:"center",outline:"none",fontWeight:700,boxSizing:"border-box",padding:0,flexShrink:0,display:"block"}} inputMode="numeric" aria-label="Par"/>
             </div>
-          </div>
 
-          {/* PUTTS */}
-          <div style={{textAlign:"center",flexShrink:0}}>
-            <div style={{fontSize:11,color:P.muted,letterSpacing:1,fontWeight:700,marginBottom:4}}>PUTTS</div>
-            <div style={{display:"flex",alignItems:"center",gap:3,height:38,background:P.card,borderRadius:9,border:`1.5px solid ${P.border}`,padding:"0 4px"}}>
-              <button onClick={()=>updateField("putts",Math.max(0,(parseInt(scores[currentHole].putts)||0)-1)||"")} style={{width:28,height:36,borderRadius:7,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}} {...pp()}>−</button>
-              <span style={{fontSize:24,fontWeight:800,color:scores[currentHole].putts?P.white:P.muted,minWidth:20,textAlign:"center"}}>{scores[currentHole].putts||"—"}</span>
-              <button onClick={()=>updateField("putts",(parseInt(scores[currentHole].putts)||0)+1)} style={{width:28,height:36,borderRadius:7,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}} {...pp()}>+</button>
+            {/* SCORE */}
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0}}>
+              <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700}}>SCORE</div>
+              {(()=>{
+                const sv = scores[currentHole].strokeScore;
+                const parsed = parseInt(sv);
+                const num = (sv!==""&&sv!==null&&sv!==undefined&&!isNaN(parsed)) ? parsed : null;
+                const parNum = parseInt(scores[currentHole].par)||null;
+                const display = num!==null ? num : (parNum||"—");
+                const displayColor = num!==null ? P.white : P.muted;
+                const diff = (num!==null&&parNum) ? num-parNum : null;
+                const borderRadius = diff!=null&&diff<=-1 ? "50%" : diff!=null&&diff>=1 ? "6px" : "8px";
+                const borderColor = diff!=null&&diff<0 ? P.green : diff!=null&&diff>0 ? P.red : P.border;
+                const borderWidth = diff!=null&&Math.abs(diff)>=2 ? "2.5px" : "1.5px";
+                return (
+                  <div style={{position:"relative",display:"flex",alignItems:"center",borderRadius,border:`${borderWidth} solid ${borderColor}`,overflow:"hidden",background:P.inputBg,flexShrink:0}}>
+                    {diff!=null&&Math.abs(diff)>=2&&<div style={{position:"absolute",inset:3,borderRadius:diff<=-2?"50%":"3px",border:`1px solid ${diff<0?P.green:P.red}`,pointerEvents:"none",zIndex:1}}/>}
+                    <button onClick={()=>{const cur=num!==null?num:(parNum||1);if(cur>1)updateField("strokeScore",String(cur-1));}} style={{width:32,height:40,background:"transparent",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",zIndex:2}}>
+                      <svg width="16" height="3" viewBox="0 0 16 3"><rect x="0" y="0" width="16" height="3" rx="1.5" fill={P.muted}/></svg>
+                    </button>
+                    <div style={{minWidth:28,textAlign:"center",fontSize:18,fontWeight:700,color:displayColor,lineHeight:1,userSelect:"none",flexShrink:0,padding:"0 2px",zIndex:2}}>{display}</div>
+                    <button onClick={()=>{const cur=num!==null?num:(parNum||1);if(cur<15)updateField("strokeScore",String(cur+1));}} style={{width:32,height:40,background:"transparent",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",zIndex:2}}>
+                      <svg width="16" height="16" viewBox="0 0 16 16"><rect x="0" y="6.5" width="16" height="3" rx="1.5" fill={P.muted}/><rect x="6.5" y="0" width="3" height="16" rx="1.5" fill={P.muted}/></svg>
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
-          </div>
 
+            {/* PUTTS */}
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0}}>
+              <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700}}>PUTTS</div>
+              {(()=>{
+                const pv = scores[currentHole].putts;
+                const parsed = parseInt(pv);
+                const num = (pv!==""&&pv!==null&&pv!==undefined&&!isNaN(parsed)) ? parsed : null;
+                const display = num!==null ? num : 2;
+                const displayColor = num!==null ? P.white : P.muted;
+                return (
+                  <div style={{display:"flex",alignItems:"center",borderRadius:8,border:`1.5px solid ${P.border}`,overflow:"hidden",background:P.inputBg,flexShrink:0}}>
+                    <button onClick={()=>{const cur=num!==null?num:2;if(cur<=0){updateField("putts","");return;}updateField("putts",String(cur-1));}} style={{width:32,height:40,background:"transparent",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent"}}>
+                      <svg width="16" height="3" viewBox="0 0 16 3"><rect x="0" y="0" width="16" height="3" rx="1.5" fill={P.muted}/></svg>
+                    </button>
+                    <div style={{minWidth:28,textAlign:"center",fontSize:18,fontWeight:700,color:displayColor,lineHeight:1,userSelect:"none",flexShrink:0,padding:"0 2px"}}>{display}</div>
+                    <button onClick={()=>{const cur=num!==null?num:2;if(cur<9)updateField("putts",String(cur+1));}} style={{width:32,height:40,background:"transparent",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent"}}>
+                      <svg width="16" height="16" viewBox="0 0 16 16"><rect x="0" y="6.5" width="16" height="3" rx="1.5" fill={P.muted}/><rect x="6.5" y="0" width="3" height="16" rx="1.5" fill={P.muted}/></svg>
+                    </button>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* PSR */}
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0}}>
+              <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700,display:"flex",alignItems:"center",gap:2}}>
+                PSR
+                <button onClick={()=>setShowPSRInfo(true)} style={{width:13,height:13,borderRadius:"50%",border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:7,cursor:"pointer",display:"inline-flex",alignItems:"center",justifyContent:"center",padding:0,lineHeight:1,flexShrink:0}}>?</button>
+              </div>
+              <button onClick={()=>updateField("routine",scores[currentHole].routine?0:1)} style={{width:40,height:40,borderRadius:8,border:`1.5px solid ${scores[currentHole].routine?P.green:P.border}`,background:scores[currentHole].routine?P.green+"18":"transparent",color:scores[currentHole].routine?P.green:P.muted,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent",flexShrink:0}}>
+                {scores[currentHole].routine?"✓":"—"}
+              </button>
+            </div>
+
+            {/* SAVE */}
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0,marginLeft:"auto"}}>
+              <div style={{fontSize:10,color:"transparent",fontWeight:700}}>·</div>
+              <SaveBtn P={P} onSave={saveRound}/>
+            </div>
+
+          </div>
         </div>
           );})()}
 
@@ -2636,48 +2934,53 @@ export default function App() {
         <div ref={tipRefs.matchup} style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minHeight:0}}>
         <div style={{padding:"0 10px 2px",flexShrink:0}}>
 
-          {/* Toggle header — matches grid column layout */}
-          <button onClick={()=>setMatchupOpen(o=>!o)} {...pp()} style={{width:"100%",display:"grid",gridTemplateColumns:"44px 1fr 56px 1fr 44px",alignItems:"center",gap:4,padding:"3px 2px",background:"transparent",border:"none",cursor:"pointer",transition:"transform 0.1s"}}>
-            <div style={{textAlign:"center",fontSize:11,fontWeight:800,letterSpacing:1.5,color:P.green}}>
-              {!matchupOpen&&hT>0?<span style={{fontSize:15,fontWeight:900,color:P.green}}>{hT}</span>:""}
-            </div>
-            <div style={{textAlign:"center",fontSize:11,fontWeight:800,letterSpacing:1.5,color:P.green}}>HEROES</div>
-            <div style={{textAlign:"center",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
-              {!matchupOpen&&hT===0&&bT===0&&<span style={{fontSize:11,color:P.muted,fontWeight:500,fontStyle:"italic"}}>tap to log</span>}
-              <div style={{transform:matchupOpen?"rotate(-90deg)":"rotate(90deg)",transition:"transform 0.2s",lineHeight:0}}><Icons.Chev color={P.muted} size={13}/></div>
-            </div>
-            <div style={{textAlign:"center",fontSize:11,fontWeight:800,letterSpacing:1.5,color:P.red}}>BANDITS</div>
-            <div style={{textAlign:"center",fontSize:11,fontWeight:800,letterSpacing:1.5,color:P.red}}>
-              {!matchupOpen&&bT>0?<span style={{fontSize:15,fontWeight:900,color:P.red}}>{bT}</span>:""}
-            </div>
+          {/* Toggle header */}
+          <button onClick={()=>setMatchupOpen(o=>!o)} {...pp()} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"3px 2px",background:"transparent",border:"none",cursor:"pointer",transition:"transform 0.1s"}}>
+            {!matchupOpen&&hT>0&&<span style={{fontSize:13,fontWeight:900,color:P.green}}>{hT} Heroes</span>}
+            {!matchupOpen&&bT>0&&<span style={{fontSize:13,fontWeight:900,color:P.red}}>{bT} Bandits</span>}
+            {!matchupOpen&&hT===0&&bT===0&&<span style={{fontSize:11,color:P.muted,fontWeight:500,fontStyle:"italic"}}>tap to log</span>}
+            <div style={{transform:matchupOpen?"rotate(-90deg)":"rotate(90deg)",transition:"transform 0.2s",lineHeight:0}}><Icons.Chev color={P.muted} size={13}/></div>
           </button>
         </div>
 
-        {matchupOpen&&<div style={{flex:1,overflowY:"auto",overflowX:"hidden",padding:"0 10px 4px",animation:"fadeIn 0.15s ease-out",display:"flex",flexDirection:"column",justifyContent:"space-evenly"}}>
+        {matchupOpen&&<div style={{flex:1,overflowY:"auto",overflowX:"hidden",padding:"0 10px 4px",animation:"fadeIn 0.15s ease-out",display:"flex",flexDirection:"column",gap:2}}>
           {MATCHUPS.map(({hero,verb,bandit},idx)=>{
             const heroColor = P.green;
-            const hActive = hH[hero]===1, bActive = hB[bandit]===1;
+            const hVal = hH[hero]||0, bVal = hB[bandit]||0;
+            const hActive = hVal>0, bActive = bVal>0;
             return (
-            <div key={idx} style={{display:"grid",gridTemplateColumns:"44px 1fr 56px 1fr 44px",alignItems:"center",gap:4,padding:"10px 6px",borderRadius:10,background:hActive?heroColor+"10":bActive?P.red+"08":idx%2===0?P.card:"transparent",border:`1px solid ${hActive?heroColor+"33":bActive?P.red+"22":"transparent"}`,transition:"all 0.18s ease"}}>
-              <button onClick={()=>setScore("heroes",hero,1)} aria-label={`${hero} hero`} aria-pressed={hActive} style={{...toggleBtn(P,"green",hActive),width:40,height:40,borderColor:hActive?heroColor:P.greenDim,background:hActive?heroColor:"transparent",boxShadow:hActive?`0 0 12px ${heroColor}44`:"none"}}>{hActive?<Icons.Check color="#fff" size={16}/>:""}</button>
-              <div style={{fontSize:16,color:hActive?heroColor:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{hero}</div>
-              <div style={{textAlign:"center",fontSize:13,color:P.muted,fontStyle:"italic",fontWeight:600}}>{verb}</div>
-              <div style={{fontSize:16,color:bActive?P.red:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{bandit}</div>
-              <button onClick={()=>setScore("bandits",bandit,1)} aria-label={`${bandit} bandit`} aria-pressed={bActive} style={{...toggleBtn(P,"red",bActive),width:40,height:40,borderRadius:10}}>{bActive?<Icons.Check color="#fff" size={16}/>:""}</button>
+            <div key={idx} style={{display:"grid",gridTemplateColumns:"38px 1fr 50px 1fr 38px",alignItems:"center",gap:"clamp(2px,1vw,4px)",padding:"clamp(3px,0.8vh,7px) 6px",borderRadius:10,background:hActive?heroColor+"10":bActive?P.red+"08":idx%2===0?P.card:"transparent",border:`1px solid ${hActive?heroColor+"33":bActive?P.red+"22":"transparent"}`,transition:"all 0.18s ease"}}>
+              <button onClick={()=>setScore("heroes",hero,1)} aria-label={`${hero} hero`} aria-pressed={hActive} style={{...toggleBtn(P,"green",hActive),width:"clamp(30px,8vw,36px)",height:"clamp(30px,8vw,36px)",borderColor:hActive?heroColor:P.greenDim,background:hActive?heroColor:"transparent",boxShadow:hActive?`0 0 12px ${heroColor}44`:"none",fontSize:"clamp(12px,3vw,14px)",fontWeight:900,color:hActive?"#fff":"transparent"}}>{hVal>0?hVal:""}</button>
+              <div style={{fontSize:"clamp(12px,3.5vw,14px)",color:hActive?heroColor:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{hero}</div>
+              <div style={{textAlign:"center",fontSize:"clamp(10px,2.5vw,12px)",color:P.muted,fontStyle:"italic",fontWeight:600}}>{verb}</div>
+              <div style={{fontSize:"clamp(12px,3.5vw,14px)",color:bActive?P.red:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{bandit}</div>
+              <button onClick={()=>setScore("bandits",bandit,1)} aria-label={`${bandit} bandit`} aria-pressed={bActive} style={{...toggleBtn(P,"red",bActive),width:"clamp(30px,8vw,36px)",height:"clamp(30px,8vw,36px)",borderRadius:10,fontSize:"clamp(12px,3vw,14px)",fontWeight:900,color:bActive?"#fff":"transparent"}}>{bVal>0?bVal:""}</button>
             </div>
           );})}
         </div>}
+        </div>{/* end matchup ref wrapper */}
 
-        {/* Carry-forward intention reminder */}
-        {carryForward&&currentHole===0&&(
-          <div style={{margin:"0 12px 4px",padding:"8px 12px",borderRadius:9,background:"#ca8a0410",border:"1px solid #ca8a0430",display:"flex",alignItems:"flex-start",gap:8}}>
-            <Icons.Note color="#ca8a04" size={14}/>
-            <div><div style={{fontSize:9,fontWeight:800,letterSpacing:1.5,color:"#ca8a04",marginBottom:2}}>YOUR INTENTION TODAY</div><div style={{fontSize:12,color:P.white,fontStyle:"italic",lineHeight:1.4}}>{carryForward}</div></div>
-          </div>
-        )}
+        {/* Hole Note — above intentions */}
+        <div ref={tipRefs.notes5} style={{margin:"0 10px 6px",flexShrink:0}}>
+          <button onClick={()=>setHoleNoteOpen(!holeNoteOpen)} style={{width:"100%",padding:"6px 12px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.card,color:P.white,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",transition:"transform 0.1s ease"}} {...pp()}>
+            <span style={{display:"flex",alignItems:"center",gap:5}}><Icons.Note color={scores[currentHole].holeNote?P.accent:P.muted} size={13}/> {scores[currentHole].holeNote?"Hole Note ✓":"Add Hole Note"}</span>
+            <span style={{fontSize:10,color:P.muted,transition:"transform 0.2s",transform:holeNoteOpen?"rotate(180deg)":"rotate(0)"}}>▼</span>
+          </button>
+          {holeNoteOpen&&<div style={{marginTop:4,animation:"fadeIn 0.2s ease-out"}}><textarea
+            key={`note-${currentHole}`}
+            defaultValue={scores[currentHole].holeNote}
+            onBlur={e=>updateField("holeNote",sanitiseNote(e.target.value))}
+            onInput={e=>updateField("holeNote",sanitiseNote(e.target.value))}
+            placeholder={`Hole ${currentHole+1} notes...`}
+            rows={2}
+            style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:13,outline:"none",resize:"none",lineHeight:1.4}}
+          /></div>}
+        </div>
 
-        {/* Mental Net Bar — merged with matchup toggle */}
-        <div ref={tipRefs.mentalBar}>
+        
+
+        {/* Mental Net Bar */}
+        <div style={{marginTop:2}}>
         {matchupOpen&&(()=>{
           const scoredHoles=scores.slice(0,currentHole+1).filter(h=>h.strokeScore&&h.par);
           const rs=scoredHoles.reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0);
@@ -2686,36 +2989,38 @@ export default function App() {
           const holeHeroes=hH?Object.values(hH).filter(v=>v>0).length:0;
           const holeBandits=hB?Object.values(hB).filter(v=>v>0).length:0;
           return (
-          <div style={{margin:"0 12px 4px",padding:"8px 12px",borderRadius:12,background:total.net>0?P.green+"12":total.net<0?P.red+"12":P.card,border:`1.5px solid ${total.net>0?P.green+"44":total.net<0?P.red+"44":P.border}`,display:"flex",alignItems:"center",gap:6,transition:"all 0.3s ease"}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
-              <img src={darkMode?HEROES_LOGO_WHITE:HEROES_LOGO_DARK} alt="Heroes" style={{width:44,height:44,objectFit:"contain",flexShrink:0}}/>
+          <div style={{margin:"0 12px 4px",padding:"6px 10px",borderRadius:12,background:total.net>0?P.green+"12":total.net<0?P.red+"12":P.card,border:`1.5px solid ${total.net>0?P.green+"44":total.net<0?P.red+"44":P.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",gap:6,transition:"all 0.3s ease"}}>
+            <div style={{display:"flex",alignItems:"center",gap:5,flex:1}}>
+              <img src={darkMode?HEROES_LOGO_WHITE:HEROES_LOGO_DARK} alt="Heroes" style={{width:32,height:32,objectFit:"contain",flexShrink:0}}/>
               <div>
-                <div style={{fontSize:9,color:P.green,letterSpacing:1,fontWeight:700,marginBottom:1}}>HEROES</div>
-                <div style={{display:"flex",alignItems:"baseline",gap:4}}>
-                  <span style={{fontSize:30,fontWeight:900,color:P.green,lineHeight:1}}>{hT}</span>
-                  {holeHeroes>0&&<span style={{fontSize:10,fontWeight:700,color:P.green,background:P.green+"20",padding:"1px 5px",borderRadius:8}}>+{holeHeroes}</span>}
+                <div style={{fontSize:10,color:P.green,letterSpacing:1,fontWeight:700}}>HEROES</div>
+                <div style={{display:"flex",alignItems:"baseline",gap:3}}>
+                  <span style={{fontSize:22,fontWeight:900,color:P.green,lineHeight:1}}>{hT}</span>
+                  {holeHeroes>0&&<span style={{fontSize:9,fontWeight:700,color:P.green,background:P.green+"20",padding:"1px 4px",borderRadius:6}}>+{holeHeroes}</span>}
                 </div>
               </div>
             </div>
-            <div style={{textAlign:"center",flexShrink:0}}>
-              <div style={{fontSize:8,color:P.muted,letterSpacing:1.5,fontWeight:700,marginBottom:1,display:"flex",alignItems:"center",gap:3,justifyContent:"center"}}>MENTAL NET <button onClick={()=>setShowMentalNetInfo(true)} {...pp()} style={{width:15,height:15,borderRadius:"50%",border:`1px solid ${P.border}`,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:8,color:P.muted,cursor:"pointer",flexShrink:0,background:"transparent",padding:0,lineHeight:1}}>?</button></div>
-              <div style={{fontSize:36,fontWeight:900,lineHeight:1,color:total.net>0?P.green:total.net<0?P.red:P.gold,textShadow:total.net!==0?`0 0 20px ${total.net>0?P.green:P.red}44`:"none",transition:"all 0.2s"}}>{total.net>0?"+":""}{total.net}</div>
-              {rd!==null&&<div style={{fontSize:10,fontWeight:700,color:rd<0?P.green:rd>0?P.red:P.gold,marginTop:1}}>{rd>0?"+":""}{rd===0?"E par":rd+" vs par"}</div>}
+            <div style={{textAlign:"center",flexShrink:0,position:"relative"}}>
+              <div style={{fontSize:9,color:P.muted,letterSpacing:1,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                NET
+                <button onClick={()=>setShowMentalNetInfo(true)} {...pp()} style={{width:12,height:12,borderRadius:"50%",border:`1px solid ${P.border}`,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:7,color:P.muted,cursor:"pointer",flexShrink:0,background:"transparent",padding:0,lineHeight:1,marginLeft:2,position:"absolute",right:-14,top:0}}>?</button>
+              </div>
+              <div style={{fontSize:26,fontWeight:900,lineHeight:1,color:total.net>0?P.green:total.net<0?P.red:P.gold,transition:"all 0.2s"}}>{total.net>0?"+":""}{total.net}</div>
+              {rd!==null&&<div style={{fontSize:9,fontWeight:700,color:rd<0?P.green:rd>0?P.red:P.gold}}>{rd>0?"+":""}{rd===0?"E":rd}</div>}
             </div>
-            <div style={{display:"flex",alignItems:"center",gap:8,flex:1,justifyContent:"flex-end"}}>
+            <div style={{display:"flex",alignItems:"center",gap:5,flex:1,justifyContent:"flex-end"}}>
               <div style={{textAlign:"right"}}>
-                <div style={{fontSize:9,color:P.red,letterSpacing:1,fontWeight:700,marginBottom:1}}>BANDITS</div>
-                <div style={{display:"flex",alignItems:"baseline",gap:4,justifyContent:"flex-end"}}>
-                  {holeBandits>0&&<span style={{fontSize:10,fontWeight:700,color:P.red,background:P.red+"20",padding:"1px 5px",borderRadius:8}}>+{holeBandits}</span>}
-                  <span style={{fontSize:30,fontWeight:900,color:P.red,lineHeight:1}}>{bT}</span>
+                <div style={{fontSize:10,color:P.red,letterSpacing:1,fontWeight:700}}>BANDITS</div>
+                <div style={{display:"flex",alignItems:"baseline",gap:3,justifyContent:"flex-end"}}>
+                  {holeBandits>0&&<span style={{fontSize:9,fontWeight:700,color:P.red,background:P.red+"20",padding:"1px 4px",borderRadius:6}}>+{holeBandits}</span>}
+                  <span style={{fontSize:22,fontWeight:900,color:P.red,lineHeight:1}}>{bT}</span>
                 </div>
               </div>
-              <img src={darkMode?BANDIT_LOGO_WHITE:BANDIT_LOGO_DARK} alt="Bandits" style={{width:44,height:44,objectFit:"contain",flexShrink:0}}/>
+              <img src={darkMode?BANDIT_LOGO_WHITE:BANDIT_LOGO_DARK} alt="Bandits" style={{width:32,height:32,objectFit:"contain",flexShrink:0}}/>
             </div>
           </div>
           );
         })()}
-        {/* Collapsed mental net when matchup is closed */}
         {!matchupOpen&&(
           <div style={{margin:"0 12px 4px",padding:"6px 14px",borderRadius:10,background:P.card,border:`1.5px solid ${total.net>0?P.green+"44":total.net<0?P.red+"44":P.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <span style={{fontSize:12,fontWeight:700,color:P.green}}>{hT>0?`${hT} Heroes`:""}</span>
@@ -2723,39 +3028,48 @@ export default function App() {
             <span style={{fontSize:12,fontWeight:700,color:P.red}}>{bT>0?`${bT} Bandits`:""}</span>
           </div>
         )}
-        </div>{/* end mentalBar ref wrapper */}
-
-        </div>{/* end matchup ref wrapper — scrollable area ends here */}
-
-        {/* Step 6 ref: Hole Note + Nav — fixed at bottom */}
-        <div ref={tipRefs.nav} style={{flexShrink:0,borderTop:`1px solid ${P.border}`,background:P.bg}}>
-        {/* Hole Note */}
-        <div style={{padding:"0 12px 3px"}}>
-          <button onClick={()=>setHoleNoteOpen(!holeNoteOpen)} style={{width:"100%",padding:"6px 12px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.card,color:P.white,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",transition:"transform 0.1s ease"}} {...pp()}>
-            <span style={{display:"flex",alignItems:"center",gap:5}}><Icons.Note color={scores[currentHole].holeNote?P.accent:P.muted} size={13}/> {scores[currentHole].holeNote?"Hole Note ✓":"Add Hole Note"}</span>
-            <span style={{fontSize:10,color:P.muted,transition:"transform 0.2s",transform:holeNoteOpen?"rotate(180deg)":"rotate(0)"}}>▼</span>
-          </button>
-          {holeNoteOpen&&<div style={{marginTop:4,animation:"fadeIn 0.2s ease-out"}}><textarea value={scores[currentHole].holeNote} onChange={e=>updateField("holeNote",sanitiseNote(e.target.value))} placeholder={`Hole ${currentHole+1} notes...`} rows={2} style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:13,outline:"none",resize:"none",lineHeight:1.4}}/></div>}
         </div>
-        {/* Navigation + actions */}
-        <div style={{padding:"4px 10px calc(10px + env(safe-area-inset-bottom, 0px))",display:"flex",gap:5,alignItems:"center"}}>
-          {/* Back */}
-          <button onClick={()=>goToHole(Math.max(0,currentHole-1))} disabled={currentHole===0} style={{...navBtnS(P,currentHole===0),padding:"10px 12px",flexShrink:0}} aria-label="Previous hole">←</button>
-          <SaveBtn P={P} onSave={saveRound} hint={savedRounds.length===0&&currentHole>0?"Tap Save to finish early":null}/>
-          <ShareBtn P={P} onShare={()=>{const hasData=scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0));if(!hasData){showToast("No data yet — log some heroes or bandits first.", "warn");return;}shareRound({course:courseName||"Unnamed Course",date:roundDate,scores,notes:postRoundNotes,totalPar:getTotalPar(scores),totalStroke:getTotalStroke(scores),...getRoundTotals(scores).total},darkMode);}}/>
+
+        {/* Bottom row: next arrow + finish */}
+        <div ref={tipRefs.nav} style={{flexShrink:0,borderTop:`1px solid ${P.border}`,background:P.bg,padding:"6px 12px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+          {/* Intention pill — shown throughout round */}
+          {carryForward?(
+            <button onClick={()=>setShowIntentionModal(true)} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 10px",borderRadius:8,border:"1px solid #ca8a0440",background:"#ca8a0410",cursor:"pointer",flexShrink:0,maxWidth:160}} {...pp()}>
+              <Icons.Note color="#ca8a04" size={11}/>
+              <span style={{fontSize:11,fontWeight:700,color:"#ca8a04",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>Intention</span>
+            </button>
+          ):<div style={{flex:1}}/>}
 
           <div style={{flex:1}}/>
-          {/* Finish or Forward */}
-          {currentHole===17?(
-            <button onClick={completeRound} aria-label="Finish round" style={{padding:"10px 14px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green+"12",color:P.green,fontSize:13,fontWeight:700,cursor:"pointer",transition:"transform 0.1s ease",flexShrink:0}}>Finish ✓</button>
-          ):(
-            <div style={{display:"flex",gap:4,alignItems:"center"}}>
-              {currentHole>=8&&<button onClick={completeRound} aria-label="Finish round" style={{padding:"10px 10px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green+"12",color:P.green,fontSize:11,fontWeight:700,cursor:"pointer",transition:"transform 0.1s ease",flexShrink:0}}>Finish ✓</button>}
-              <button onClick={advanceHole} style={{...navBtnS(P,false),padding:"10px 12px",flexShrink:0}} aria-label="Next hole">→</button>
-            </div>
+
+          {/* Finish button (holes 9+) */}
+          {currentHole>=8&&currentHole<17&&(
+            <button onClick={completeRound} style={{padding:"8px 12px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green+"12",color:P.green,fontSize:11,fontWeight:700,cursor:"pointer",flexShrink:0}}>Finish ✓</button>
+          )}
+          {currentHole===17&&(
+            <button onClick={completeRound} style={{padding:"10px 16px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green,color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",flexShrink:0}} {...pp()}>Finish ✓</button>
+          )}
+
+          {/* Next arrow */}
+          {currentHole<17&&(
+            <button onClick={advanceHole} style={{width:44,height:44,borderRadius:12,border:`1.5px solid ${P.border}`,background:P.card,color:P.white,fontSize:20,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent"}} {...pp()}>→</button>
           )}
         </div>
-        </div>{/* end nav ref wrapper */}
+        <div style={{height:"calc(4px + env(safe-area-inset-bottom, 0px))"}}/>
+
+        {/* Intention modal */}
+        {showIntentionModal&&(
+          <div onClick={()=>setShowIntentionModal(false)} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}>
+            <div onClick={e=>e.stopPropagation()} style={{background:P.card,borderRadius:20,padding:"24px 20px",width:"100%",maxWidth:360,border:`1.5px solid #ca8a0444`}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                <Icons.Note color="#ca8a04" size={16}/>
+                <div style={{fontSize:13,fontWeight:800,letterSpacing:1,color:"#ca8a04"}}>YOUR INTENTION TODAY</div>
+              </div>
+              <div style={{fontSize:16,color:P.white,fontStyle:"italic",lineHeight:1.6,fontWeight:500}}>"{carryForward}"</div>
+              <button onClick={()=>setShowIntentionModal(false)} style={{width:"100%",marginTop:20,padding:"12px",borderRadius:12,border:"none",background:P.cardAlt,color:P.muted,fontSize:14,fontWeight:700,cursor:"pointer"}}>Close</button>
+            </div>
+          </div>
+        )}
 
 
         <style>{`
@@ -2774,114 +3088,119 @@ export default function App() {
 // ═══════════════════════════════════════
 // LOGIN MODAL
 // ═══════════════════════════════════════
-function LoginModal({P,onClose,onLogin}) {
-  const [email,setEmail]=useState("");
-  const [pass,setPass]=useState("");
-  const [name,setName]=useState("");
-  const [mode,setMode]=useState("login");
-  const [error,setError]=useState("");
-  const [loading,setLoading]=useState(false);
-  const pp=pressProps;
-
-  async function handleSubmit() {
-    if(!email.trim()||!pass.trim()){setError("Please fill in all fields.");return;}
-    if(mode==="signup"&&pass.length<6){setError("Password must be at least 6 characters.");return;}
-    setLoading(true); setError("");
-    try {
-      onLogin({email:email.trim(),name:name||email.split("@")[0]});
-    } catch(e) {
-      onLogin({email:email.trim(),name:name||email.split("@")[0]});
-    }
-    setLoading(false);
-  }
-
-  const inputStyle = {
-    width:"100%", padding:"12px 14px", borderRadius:10,
-    border:`1.5px solid ${P.border}`, background:P.inputBg||P.cardAlt,
-    color:P.white, fontSize:14, outline:"none", boxSizing:"border-box",
-    fontFamily:"inherit",
+// ═══════════════════════════════════════
+// HOME
+// ═══════════════════════════════════════
+function AvatarSVG({id, initial, size=38}) {
+  const s = size, h = s/2;
+  const avatars = {
+    golfer: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#1a3a2a"/><ellipse cx="0" cy="18" rx="14" ry="10" fill="#c9a84c"/><circle cx="0" cy="-2" r="11" fill="#c9a84c"/><ellipse cx="0" cy="-12" rx="13" ry="5" fill="#2d6a4f"/><rect x="-3" y="-17" width="16" height="5" rx="2" fill="#2d6a4f"/><line x1="12" y1="8" x2="24" y2="30" stroke="#c9a84c" strokeWidth="2.5" strokeLinecap="round"/><ellipse cx="25" cy="32" rx="4" ry="3" fill="#c9a84c"/></svg>,
+    course: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#0f4c35"/><clipPath id="cc"><circle cx="0" cy="0" r="38"/></clipPath><g clipPath="url(#cc)"><ellipse cx="0" cy="28" rx="50" ry="22" fill="#1a6b47"/><ellipse cx="6" cy="24" rx="18" ry="8" fill="#22804f" opacity="0.6"/><ellipse cx="2" cy="18" rx="5" ry="2.5" fill="#0a2e1e"/><line x1="2" y1="18" x2="2" y2="-26" stroke="#e8e0cc" strokeWidth="2.5" strokeLinecap="round"/><polygon points="2,-26 26,-16 2,-8" fill="#dc2626"/></g></svg>,
+    champion: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#2a1f00"/><path d="M-13,-16 Q-15,8 -6,18 L6,18 Q15,8 13,-16 Z" fill="#c9a84c"/><rect x="-15" y="-18" width="30" height="5" rx="2" fill="#e8b84c"/><path d="M-13,-8 Q-22,-8 -22,4 Q-22,10 -13,10" fill="none" stroke="#c9a84c" strokeWidth="3" strokeLinecap="round"/><path d="M13,-8 Q22,-8 22,4 Q22,10 13,10" fill="none" stroke="#c9a84c" strokeWidth="3" strokeLinecap="round"/><rect x="-3" y="18" width="6" height="8" fill="#c9a84c"/><rect x="-10" y="26" width="20" height="5" rx="2" fill="#e8b84c"/><text x="0" y="10" fontSize="13" textAnchor="middle" fill="#fffbe6">★</text></svg>,
+    ball: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#1e3a5f"/><circle cx="0" cy="0" r="26" fill="#f5f5f0"/><circle cx="0" cy="0" r="26" fill="none" stroke="#d8d8d0" strokeWidth="0.5"/><circle cx="-9" cy="-8" r="3" fill="#e2e2da"/><circle cx="7" cy="-10" r="3" fill="#e2e2da"/><circle cx="1" cy="4" r="3" fill="#e2e2da"/><circle cx="-12" cy="7" r="3" fill="#e2e2da"/><circle cx="11" cy="6" r="3" fill="#e2e2da"/><circle cx="-4" cy="-18" r="3" fill="#e2e2da"/><circle cx="16" cy="-3" r="3" fill="#e2e2da"/><circle cx="-17" cy="-2" r="3" fill="#e2e2da"/><rect x="-4" y="22" width="8" height="18" rx="2" fill="#d4a84c"/><ellipse cx="0" cy="22" rx="8" ry="4" fill="#e8c068"/></svg>,
+    mountain: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#0a2a3a"/><clipPath id="mc"><circle cx="0" cy="0" r="38"/></clipPath><g clipPath="url(#mc)"><rect x="-38" y="-38" width="76" height="76" fill="#0a2a3a"/><polygon points="-38,22 0,-28 38,22" fill="#1a4a5a"/><polygon points="-8,-18 0,-28 8,-18" fill="#dde8f0"/><polygon points="-38,38 -12,-8 22,38" fill="#1e3d2a"/><rect x="-38" y="24" width="76" height="14" fill="#1a4f30"/></g></svg>,
+    sunrise: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#1a2a4a"/><clipPath id="sc"><circle cx="0" cy="0" r="38"/></clipPath><g clipPath="url(#sc)"><rect x="-38" y="5" width="76" height="33" fill="#0f1e38"/><ellipse cx="0" cy="5" rx="38" ry="10" fill="#1a3a5a"/><circle cx="0" cy="5" r="18" fill="#c9a84c"/><g stroke="#c9a84c" strokeWidth="2" strokeLinecap="round" opacity="0.7"><line x1="-22" y1="5" x2="-30" y2="5"/><line x1="22" y1="5" x2="30" y2="5"/><line x1="-16" y1="-13" x2="-21" y2="-18"/><line x1="16" y1="-13" x2="21" y2="-18"/><line x1="0" y1="-22" x2="0" y2="-30"/></g></g></svg>,
+    navigator: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#1a2a1a"/><circle cx="0" cy="0" r="30" fill="none" stroke="#c9a84c" strokeWidth="1.5"/><circle cx="0" cy="0" r="4" fill="#c9a84c"/><polygon points="0,-26 4,-6 0,-2 -4,-6" fill="#dc2626"/><polygon points="0,26 4,6 0,2 -4,6" fill="#e8e0cc"/><polygon points="26,0 6,4 2,0 6,-4" fill="#e8e0cc"/><polygon points="-26,0 -6,4 -2,0 -6,-4" fill="#e8e0cc"/><g stroke="#c9a84c" strokeWidth="1" opacity="0.5"><line x1="0" y1="-30" x2="0" y2="-26"/><line x1="0" y1="26" x2="0" y2="30"/><line x1="26" y1="0" x2="30" y2="0"/><line x1="-30" y1="0" x2="-26" y2="0"/></g></svg>,
+    zen: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#0e1520"/><g transform="rotate(0)"><ellipse cx="0" cy="-16" rx="7" ry="13" fill="#2a4a7a"/></g><g transform="rotate(40)"><ellipse cx="0" cy="-16" rx="7" ry="13" fill="#2a4a7a"/></g><g transform="rotate(80)"><ellipse cx="0" cy="-16" rx="7" ry="13" fill="#2a4a7a"/></g><g transform="rotate(120)"><ellipse cx="0" cy="-16" rx="7" ry="13" fill="#2a4a7a"/></g><g transform="rotate(160)"><ellipse cx="0" cy="-16" rx="7" ry="13" fill="#2a4a7a"/></g><g transform="rotate(200)"><ellipse cx="0" cy="-16" rx="7" ry="13" fill="#2a4a7a"/></g><g transform="rotate(240)"><ellipse cx="0" cy="-16" rx="7" ry="13" fill="#2a4a7a"/></g><g transform="rotate(280)"><ellipse cx="0" cy="-16" rx="7" ry="13" fill="#2a4a7a"/></g><g transform="rotate(320)"><ellipse cx="0" cy="-16" rx="7" ry="13" fill="#3a6a9a"/></g><circle cx="0" cy="0" r="11" fill="#c9a84c"/><circle cx="0" cy="0" r="6" fill="#e8c870"/><circle cx="0" cy="0" r="3" fill="#fff8e0"/></svg>,
+    fire: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#0e1008"/><clipPath id="fc"><circle cx="0" cy="0" r="38"/></clipPath><g clipPath="url(#fc)"><ellipse cx="0" cy="28" rx="30" ry="8" fill="#1a1206"/><rect x="-22" y="16" width="44" height="8" rx="4" fill="#3a1e08" transform="rotate(-15 0 20)"/><rect x="-22" y="16" width="44" height="8" rx="4" fill="#4a2610" transform="rotate(15 0 20)"/><circle cx="-18" cy="22" r="4" fill="#c84000" opacity="0.8"/><circle cx="18" cy="22" r="4" fill="#c84000" opacity="0.8"/><path d="M-10,20 C-18,8 -14,-8 -6,-18 C-8,-6 -4,4 -2,12Z" fill="#c93a00"/><path d="M10,20 C18,8 14,-8 6,-18 C8,-6 4,4 2,12Z" fill="#c93a00"/><path d="M0,20 C-12,10 -10,-6 0,-22 C10,-6 12,10 0,20Z" fill="#e86820"/><path d="M0,18 C-6,10 -4,0 0,-14 C4,0 6,10 0,18Z" fill="#ffc040"/><ellipse cx="0" cy="-4" rx="3" ry="6" fill="#fff8c0" opacity="0.9"/><circle cx="-14" cy="4" r="1.5" fill="#ff8020" opacity="0.8"/><circle cx="16" cy="0" r="1.5" fill="#ff8020" opacity="0.7"/></g></svg>,
+    monogram: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#1a1a2e"/><circle cx="0" cy="0" r="32" fill="none" stroke="#c9a84c" strokeWidth="1.5"/><circle cx="0" cy="0" r="34" fill="none" stroke="#c9a84c" strokeWidth="0.5" opacity="0.4"/><text x="0" y="12" fontFamily="system-ui,sans-serif" fontSize="30" fontWeight="500" textAnchor="middle" fill="#c9a84c">{initial}</text></svg>,
+    guitar: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#120608"/><clipPath id="gtc"><circle cx="0" cy="0" r="38"/></clipPath><g clipPath="url(#gtc)"><rect x="-3.5" y="-36" width="7" height="28" rx="3" fill="#c9a84c"/><rect x="-6" y="-38" width="12" height="7" rx="2" fill="#e8c060"/><circle cx="-8" cy="-35" r="2.2" fill="#fff" opacity="0.9"/><circle cx="8" cy="-35" r="2.2" fill="#fff" opacity="0.9"/><circle cx="-8" cy="-29" r="2.2" fill="#fff" opacity="0.9"/><circle cx="8" cy="-29" r="2.2" fill="#fff" opacity="0.9"/><circle cx="0" cy="-22" r="1.2" fill="#fff" opacity="0.5"/><circle cx="0" cy="-14" r="1.2" fill="#fff" opacity="0.5"/><ellipse cx="0" cy="2" rx="14" ry="12" fill="#a04010"/><ellipse cx="0" cy="22" rx="19" ry="15" fill="#c04a14"/><rect x="-10" y="8" width="20" height="10" fill="#120608"/><ellipse cx="0" cy="8" rx="10" ry="5" fill="#a04010"/><ellipse cx="0" cy="18" rx="10" ry="5" fill="#c04a14"/><path d="M-16,18 Q-10,10 -14,28" fill="none" stroke="#e06020" strokeWidth="1.5" opacity="0.3"/><circle cx="0" cy="20" r="7" fill="#120608"/><circle cx="0" cy="20" r="5.5" fill="none" stroke="#e8c060" strokeWidth="1.2"/><rect x="-10" y="30" width="20" height="3.5" rx="1.5" fill="#c9a84c"/><line x1="-2" y1="-36" x2="-2.5" y2="33" stroke="#e8e0cc" strokeWidth="0.6" opacity="0.5"/><line x1="0" y1="-36" x2="0" y2="33" stroke="#e8e0cc" strokeWidth="0.6" opacity="0.5"/><line x1="2" y1="-36" x2="2.5" y2="33" stroke="#e8e0cc" strokeWidth="0.6" opacity="0.5"/></g></svg>,
+    rocket: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#0a0820"/><clipPath id="rkc"><circle cx="0" cy="0" r="38"/></clipPath><g clipPath="url(#rkc)"><circle cx="-26" cy="-22" r="1.2" fill="#fff" opacity="0.5"/><circle cx="22" cy="-28" r="1" fill="#fff" opacity="0.4"/><circle cx="28" cy="18" r="1" fill="#fff" opacity="0.5"/><circle cx="-10" cy="28" r="1" fill="#fff" opacity="0.3"/><g transform="rotate(-35)"><path d="M-8,28 C-12,36 -6,44 0,42 C6,44 12,36 8,28Z" fill="#e86820"/><path d="M-5,28 C-7,34 -2,40 0,38 C2,40 7,34 5,28Z" fill="#ffc040"/><path d="M-2,28 C-3,32 0,35 2,32Z" fill="#fff8c0"/><rect x="-11" y="-16" width="22" height="44" rx="11" fill="#e8e0f0"/><path d="M-11,-16 Q0,-34 11,-16Z" fill="#dc2626"/><circle cx="0" cy="4" r="7" fill="#1a2a4a"/><circle cx="0" cy="4" r="5.5" fill="#2a4a7a"/><circle cx="-2" cy="2" r="2" fill="#6a8aba" opacity="0.6"/><path d="M-11,18 L-20,30 L-11,26Z" fill="#dc2626"/><path d="M11,18 L20,30 L11,26Z" fill="#dc2626"/><rect x="-11" y="-4" width="22" height="5" fill="#dc2626"/></g></g></svg>,
+    clover: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#0a1a08"/><clipPath id="clc"><circle cx="0" cy="0" r="38"/></clipPath><g clipPath="url(#clc)"><g transform="rotate(0)"><path d="M0,0 C0,-4 -4,-14 -10,-14 C-16,-14 -18,-8 -14,-4 C-10,0 0,0 0,0Z" fill="#16a34a"/><path d="M0,0 C0,-4 4,-14 10,-14 C16,-14 18,-8 14,-4 C10,0 0,0 0,0Z" fill="#16a34a"/></g><g transform="rotate(90)"><path d="M0,0 C0,-4 -4,-14 -10,-14 C-16,-14 -18,-8 -14,-4 C-10,0 0,0 0,0Z" fill="#16a34a"/><path d="M0,0 C0,-4 4,-14 10,-14 C16,-14 18,-8 14,-4 C10,0 0,0 0,0Z" fill="#16a34a"/></g><g transform="rotate(180)"><path d="M0,0 C0,-4 -4,-14 -10,-14 C-16,-14 -18,-8 -14,-4 C-10,0 0,0 0,0Z" fill="#16a34a"/><path d="M0,0 C0,-4 4,-14 10,-14 C16,-14 18,-8 14,-4 C10,0 0,0 0,0Z" fill="#16a34a"/></g><g transform="rotate(270)"><path d="M0,0 C0,-4 -4,-14 -10,-14 C-16,-14 -18,-8 -14,-4 C-10,0 0,0 0,0Z" fill="#16a34a"/><path d="M0,0 C0,-4 4,-14 10,-14 C16,-14 18,-8 14,-4 C10,0 0,0 0,0Z" fill="#16a34a"/></g><circle cx="0" cy="0" r="3.5" fill="#15803d"/></g></svg>,
+    skyline: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#080c16"/><clipPath id="skc"><circle cx="0" cy="0" r="38"/></clipPath><g clipPath="url(#skc)"><rect x="-38" y="26" width="76" height="12" fill="#0e1624"/><rect x="-38" y="18" width="9" height="8" fill="#151f30"/><rect x="-30" y="2" width="16" height="24" fill="#1e2c48"/><polygon points="-22,2 -18,-6 -14,2" fill="#1e2c48"/><rect x="-28" y="4" width="3" height="3" fill="#c9a84c" opacity="0.7"/><rect x="-22" y="4" width="3" height="3" fill="#fff" opacity="0.5"/><rect x="-28" y="10" width="3" height="3" fill="#fff" opacity="0.6"/><rect x="-22" y="10" width="3" height="3" fill="#c9a84c" opacity="0.5"/><rect x="-28" y="16" width="3" height="3" fill="#c9a84c" opacity="0.4"/><rect x="-11" y="-20" width="17" height="46" fill="#2a3c60"/><rect x="-3" y="-28" width="2" height="10" fill="#c9a84c"/><circle cx="-2" cy="-29" r="1.5" fill="#dc2626"/><rect x="-9" y="-16" width="3" height="3" fill="#fff" opacity="0.9"/><rect x="-4" y="-16" width="3" height="3" fill="#c9a84c" opacity="0.8"/><rect x="1" y="-16" width="3" height="3" fill="#fff" opacity="0.6"/><rect x="-9" y="-9" width="3" height="3" fill="#c9a84c" opacity="0.6"/><rect x="-4" y="-9" width="3" height="3" fill="#fff" opacity="0.9"/><rect x="1" y="-9" width="3" height="3" fill="#fff" opacity="0.5"/><rect x="-9" y="-2" width="3" height="3" fill="#fff" opacity="0.7"/><rect x="-4" y="-2" width="3" height="3" fill="#c9a84c" opacity="0.9"/><rect x="1" y="-2" width="3" height="3" fill="#fff" opacity="0.6"/><rect x="-9" y="5" width="3" height="3" fill="#fff" opacity="0.5"/><rect x="-4" y="5" width="3" height="3" fill="#fff" opacity="0.7"/><rect x="1" y="5" width="3" height="3" fill="#c9a84c" opacity="0.5"/><rect x="8" y="4" width="12" height="22" fill="#1e2c48"/><polygon points="14,4 17,-4 20,4" fill="#1e2c48"/><rect x="10" y="6" width="2" height="2" fill="#fff" opacity="0.6"/><rect x="15" y="6" width="2" height="2" fill="#c9a84c" opacity="0.7"/><rect x="10" y="11" width="2" height="2" fill="#c9a84c" opacity="0.5"/><rect x="15" y="11" width="2" height="2" fill="#fff" opacity="0.7"/><rect x="10" y="16" width="2" height="2" fill="#fff" opacity="0.6"/><rect x="22" y="12" width="16" height="14" fill="#151f30"/><rect x="24" y="14" width="2" height="2" fill="#c9a84c" opacity="0.4"/><rect x="28" y="14" width="2" height="2" fill="#fff" opacity="0.5"/><rect x="33" y="14" width="2" height="2" fill="#c9a84c" opacity="0.3"/><rect x="24" y="19" width="2" height="2" fill="#fff" opacity="0.4"/></g></svg>,
+    pine: <svg width={s} height={s} viewBox="-38 -38 76 76"><circle cx="0" cy="0" r="38" fill="#060e04"/><clipPath id="pic"><circle cx="0" cy="0" r="38"/></clipPath><g clipPath="url(#pic)"><rect x="10" y="14" width="5" height="16" rx="2" fill="#5a2e0a"/><polygon points="12,-20 22,4 2,4" fill="#166534"/><polygon points="12,-10 25,14 -1,14" fill="#15803d"/><rect x="-5" y="18" width="7" height="18" rx="2" fill="#6b3a1a"/><polygon points="-2,-28 12,-2 -16,-2" fill="#22c55e"/><polygon points="-2,-14 16,12 -20,12" fill="#16a34a"/><polygon points="-2,0 18,26 -22,26" fill="#15803d"/></g></svg>,
   };
-  const labelStyle = {fontSize:10,color:P.muted,fontWeight:700,letterSpacing:1.2,marginBottom:5,display:"block"};
+  return avatars[id] || avatars.monogram;
+}
 
+function AvatarPicker({P, onClose, onSelect, current, initial}) {
+  const pp = pressProps;
+  const clerkUser = window.__useUser ? window.__useUser() : null;
+  const clerkPhoto = clerkUser?.user?.imageUrl;
+  const options = [
+    {id:"monogram"},{id:"golfer"},{id:"course"},{id:"champion"},{id:"ball"},
+    {id:"mountain"},{id:"sunrise"},{id:"navigator"},{id:"zen"},{id:"fire"},
+    {id:"guitar"},{id:"rocket"},{id:"clover"},{id:"skyline"},{id:"pine"},
+  ];
   return (
-    <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",animation:"fadeIn 0.2s ease-out",padding:"0 20px"}}>
-      <div onClick={e=>e.stopPropagation()} style={{background:P.card,borderRadius:20,padding:"28px 24px",width:"100%",maxWidth:360,border:`1.5px solid ${P.border}`}}>
-
-        {/* Header */}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24}}>
-          <div>
-            <div style={{fontSize:20,fontWeight:900,color:P.white,marginBottom:2}}>{mode==="login"?"Welcome back":"Create account"}</div>
-            <div style={{fontSize:12,color:P.muted}}>{mode==="login"?"Sign in to sync your rounds":"Start tracking your mental game"}</div>
-          </div>
-          <button onClick={onClose} {...pp()} style={{width:30,height:30,borderRadius:8,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>✕</button>
+    <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:50001,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 20px"}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:340,background:P.bg,borderRadius:20,border:`1.5px solid ${P.border}`,boxShadow:"0 24px 60px rgba(0,0,0,0.5)",overflow:"hidden"}}>
+        <div style={{padding:"16px 16px 12px",borderBottom:`1px solid ${P.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div style={{fontSize:16,fontWeight:800,color:P.white}}>Choose Avatar</div>
+          <button onClick={onClose} style={{background:"transparent",border:"none",color:P.muted,fontSize:18,cursor:"pointer",lineHeight:1,padding:4}}>×</button>
         </div>
-
-        {/* Fields */}
-        {mode==="signup"&&(
-          <div style={{marginBottom:14}}>
-            <label style={labelStyle}>NAME</label>
-            <input value={name} onChange={e=>{setName(sanitiseName(e.target.value));setError("");}} placeholder="First name" style={inputStyle}/>
+        {/* Account photo row — shown if they have a Clerk/Google photo */}
+        {clerkPhoto&&(
+          <div style={{padding:"10px 16px",borderBottom:`1px solid ${P.border}`}}>
+            <button onClick={()=>{onSelect("clerk_photo");onClose();}} style={{display:"flex",alignItems:"center",gap:10,width:"100%",background:current==="clerk_photo"?P.accent+"12":"transparent",border:`1.5px solid ${current==="clerk_photo"?P.accent:P.border}`,borderRadius:12,padding:"8px 12px",cursor:"pointer",textAlign:"left"}} {...pp()}>
+              <img src={clerkPhoto} style={{width:38,height:38,borderRadius:"50%",objectFit:"cover",flexShrink:0}}/>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:700,color:P.white}}>Account Photo</div>
+                <div style={{fontSize:11,color:P.muted}}>Your Google or uploaded photo</div>
+              </div>
+              {current==="clerk_photo"&&<div style={{width:8,height:8,borderRadius:"50%",background:P.accent,flexShrink:0}}/>}
+            </button>
           </div>
         )}
-        <div style={{marginBottom:14}}>
-          <label style={labelStyle}>EMAIL</label>
-          <input value={email} onChange={e=>{setEmail(sanitiseEmail(e.target.value));setError("");}} placeholder="you@email.com" inputMode="email" autoCapitalize="none" autoComplete="email" style={inputStyle}/>
+        {/* Preset avatars */}
+        <div style={{padding:"16px",display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:"12px 8px"}}>
+          {options.map(o=>(
+            <button key={o.id} onClick={()=>{onSelect(o.id);onClose();}} style={{display:"flex",alignItems:"center",justifyContent:"center",background:"transparent",border:"none",cursor:"pointer",padding:"4px",borderRadius:12,outline:current===o.id?`2.5px solid #c9a84c`:"2.5px solid transparent",outlineOffset:2}} {...pp()}>
+              <AvatarSVG id={o.id} initial={initial} size={48}/>
+            </button>
+          ))}
         </div>
-        <div style={{marginBottom:error?12:20}}>
-          <label style={labelStyle}>PASSWORD</label>
-          <input value={pass} onChange={e=>{setPass(e.target.value);setError("");}} type="password" autoComplete="current-password" placeholder="••••••••" style={inputStyle}/>
-        </div>
-
-        {error&&<div style={{fontSize:12,color:P.red,marginBottom:14,padding:"8px 12px",borderRadius:8,background:P.red+"12",border:`1px solid ${P.red}33`}}>{error}</div>}
-
-        <button onClick={handleSubmit} {...pp()} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:P.green,color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",marginBottom:14,opacity:loading?0.7:1}}>
-          {loading?"...":(mode==="login"?"Sign In":"Create Account")}
-        </button>
-
-        <div style={{textAlign:"center",fontSize:12,color:P.muted}}>
-          {mode==="login"?"No account yet? ":"Already have an account? "}
-          <button onClick={()=>{setMode(mode==="login"?"signup":"login");setError("");}} style={{background:"none",border:"none",color:P.green,cursor:"pointer",fontSize:12,fontWeight:700,padding:0}}>
-            {mode==="login"?"Sign Up":"Sign In"}
-          </button>
-        </div>
+        <div style={{height:"calc(8px + env(safe-area-inset-bottom,0px))"}}/>
       </div>
     </div>
   );
 }
 
-// ═══════════════════════════════════════
-// HOME
-// ═══════════════════════════════════════
 function UserDropdown({firstName, overlay1, overlay2, textHigh, textMid, P, onSettings, onSignOut}) {
   const [open, setOpen] = React.useState(false);
-  const [pos, setPos] = React.useState({top:0,left:0});
-  const btnRef = React.useRef(null);
+  const [showPicker, setShowPicker] = React.useState(false);
+  const [avatarId, setAvatarId] = React.useState(()=>{try{return localStorage.getItem("mgp_avatar")||"monogram";}catch{return "monogram";}});
+  const clerkUser = window.__useUser ? window.__useUser() : null;
+  const initial = (firstName||"?")[0].toUpperCase();
+  // Only use Clerk photo if user hasn't picked a custom avatar
+  const hasCustomAvatar = avatarId && avatarId !== "monogram";
+  const useClerkPhoto = avatarId === "clerk_photo" || (!hasCustomAvatar && clerkUser?.user?.imageUrl);
+  const imageUrl = useClerkPhoto ? clerkUser?.user?.imageUrl : null;
 
-  function toggle() {
-    if (!open && btnRef.current) {
-      const r = btnRef.current.getBoundingClientRect();
-      setPos({top: r.bottom + 6, left: r.left});
-    }
-    setOpen(o=>!o);
+  function saveAvatar(id) {
+    setAvatarId(id);
+    try{localStorage.setItem("mgp_avatar",id);}catch{}
   }
 
+  const avatarEl = imageUrl
+    ? <img src={imageUrl} alt={firstName||"User"} style={{width:28,height:28,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:`1.5px solid ${overlay2}`}}/>
+    : <div style={{width:28,height:28,borderRadius:"50%",overflow:"hidden",flexShrink:0,border:`1.5px solid ${overlay2}`}}><AvatarSVG id={avatarId} initial={initial} size={28}/></div>;
+
+  const avatarLg = imageUrl
+    ? <img src={imageUrl} alt={firstName} style={{width:40,height:40,borderRadius:"50%",objectFit:"cover",border:`2px solid ${P.border}`}}/>
+    : <div style={{width:40,height:40,borderRadius:"50%",overflow:"hidden",border:`2px solid ${P.border}`,flexShrink:0}}><AvatarSVG id={avatarId} initial={initial} size={40}/></div>;
+
   return (
-    <div>
-      <button ref={btnRef} onClick={toggle} style={{display:"flex",alignItems:"center",gap:8,background:overlay1,border:`1px solid ${overlay2}`,borderRadius:10,padding:"6px 12px",cursor:"pointer"}}>
-        <div style={{width:24,height:24,borderRadius:"50%",background:overlay2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:textHigh}}>{(firstName||"?")[0].toUpperCase()}</div>
+    <div style={{position:"relative"}}>
+      {showPicker&&<AvatarPicker P={P} onClose={()=>setShowPicker(false)} onSelect={saveAvatar} current={avatarId} initial={initial}/>}
+      <button onClick={()=>setOpen(o=>!o)} style={{display:"flex",alignItems:"center",gap:8,background:overlay1,border:`1px solid ${overlay2}`,borderRadius:10,padding:"5px 10px 5px 5px",cursor:"pointer"}}>
+        {avatarEl}
         <span style={{fontSize:12,color:textMid,fontWeight:500}}>{firstName||"Account"}</span>
         <Icons.Chev color={textMid} size={12}/>
       </button>
       {open&&(
         <>
-          <div onClick={()=>setOpen(false)} style={{position:"fixed",inset:0,zIndex:9998}}/>
-          <div style={{position:"fixed",top:pos.top,left:pos.left,zIndex:9999,background:P.card,border:`1.5px solid ${P.border}`,borderRadius:12,minWidth:160,boxShadow:"0 8px 24px rgba(0,0,0,0.4)",padding:"4px"}}>
-            <button onClick={()=>{setOpen(false);onSettings&&onSettings();}} style={{display:"block",width:"100%",padding:"12px 14px",background:"transparent",border:"none",color:P.white,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>
-              My Profile
-            </button>
-            <button onClick={()=>{setOpen(false);onSignOut&&onSignOut();}} style={{display:"block",width:"100%",padding:"12px 14px",background:"transparent",border:"none",color:P.red,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>
-              Sign Out
-            </button>
+          <div onClick={()=>setOpen(false)} style={{position:"fixed",inset:0,zIndex:49999}}/>
+          <div style={{position:"absolute",top:"calc(100% + 6px)",left:0,zIndex:50000,background:P.card,border:`1.5px solid ${P.border}`,borderRadius:12,minWidth:190,boxShadow:"0 8px 24px rgba(0,0,0,0.4)",padding:"4px",overflow:"hidden"}}>
+            <div style={{padding:"12px 14px 10px",display:"flex",alignItems:"center",gap:10,borderBottom:`1px solid ${P.border}`,marginBottom:4}}>
+              {avatarLg}
+              <div>
+                <div style={{fontSize:13,fontWeight:700,color:P.white}}>{firstName||"Account"}</div>
+                <button onClick={()=>{setOpen(false);setShowPicker(true);}} style={{background:"transparent",border:"none",color:P.accent,fontSize:11,fontWeight:600,cursor:"pointer",padding:0,marginTop:1}}>Change avatar →</button>
+              </div>
+            </div>
+            <button onClick={()=>{setOpen(false);onSettings&&onSettings();}} style={{display:"block",width:"100%",padding:"11px 14px",background:"transparent",border:"none",color:P.white,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>Settings</button>
+            <button onClick={()=>{setOpen(false);if(window.__handleSignOut)window.__handleSignOut();}} style={{display:"block",width:"100%",padding:"11px 14px",background:"transparent",border:"none",color:P.red,fontSize:14,fontWeight:600,cursor:"pointer",textAlign:"left",borderRadius:8}}>Sign Out</button>
           </div>
         </>
       )}
@@ -2889,11 +3208,28 @@ function UserDropdown({firstName, overlay1, overlay2, textHigh, textMid, P, onSe
   );
 }
 
-function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggle,S,user,setUser,showLogin,setShowLogin,savedRounds,settings,isPro,roundsRemaining,hasProfile,onSettings,onSignOut}) {
+function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggle,S,savedRounds,settings,isPro,roundsRemaining,hasProfile,onSettings,onSignOut}) {
   const P=useTheme();
   const darkMode = P.bg === "#09090b";
   const [loaded,setLoaded]=useState(false);
   const [logoPopped,setLogoPopped]=useState(false);
+  const [heroBounce,setHeroBounce]=useState(false);
+  const [banditBounce,setBanditBounce]=useState(false);
+  const [clerkTick, setClerkTick] = useState(0);
+  // Update when Clerk fires its own state change events, not on a timer
+  useEffect(()=>{
+    const handler = () => setClerkTick(t=>t+1);
+    window.addEventListener("clerk:statechange", handler);
+    // Fallback: check once after 2s for initial load
+    const t = setTimeout(()=>setClerkTick(t=>t+1), 2000);
+    return ()=>{ window.removeEventListener("clerk:statechange", handler); clearTimeout(t); };
+  },[]);
+  const clerkUser = window.__useUser ? window.__useUser() : null;
+  function tapLogo(which) {
+    if(which==="hero"){setHeroBounce(true);setTimeout(()=>setHeroBounce(false),500);}
+    else{setBanditBounce(true);setTimeout(()=>setBanditBounce(false),500);}
+    vibrate(15);
+  }
   useEffect(()=>{
     setTimeout(()=>setLoaded(true),60);
     setTimeout(()=>setLogoPopped(true),900);
@@ -2918,6 +3254,7 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
     {key:"dashboard",IconKey:"Chart",label:"Dashboard",color:"#7c3aed"},
     {key:"badges",IconKey:"Medal",label:"Milestones",color:"#ca8a04"},
     {key:"history",IconKey:"Clock",label:"History",color:"#0d9488"},
+    {key:"tiger5",emoji:"🐅",label:"Tiger 5",color:"#dc2626"},
     {key:"transform",IconKey:"Star",label:"Framework",color:"#fbbf24"},
     {key:"guide",IconKey:"Info",label:"Help",color:"#64748b"},
     {key:"settings",IconKey:"Gear",label:"Settings",color:"#475569"},
@@ -2943,7 +3280,6 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
 
   return (
     <div style={{...S.shell,position:"relative",overflow:"hidden",background:P.bg}}>
-      {showLogin&&<LoginModal P={P} onClose={()=>setShowLogin(false)} onLogin={u=>{setUser(u);setShowLogin(false);}}/>}
 
       {/* Full-bleed background glows */}
       <div style={{position:"absolute",inset:0,background:`radial-gradient(ellipse 80% 50% at 50% -10%, ${darkMode?"rgba(22,163,74,0.18)":"rgba(22,163,74,0.10)"} 0%, transparent 60%)`,zIndex:0,pointerEvents:"none"}}/>
@@ -2955,18 +3291,14 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
       <div style={{position:"absolute",top:"28%",left:"50%",transform:"translateX(-50%)",width:320,height:320,borderRadius:"50%",border:`1px solid ${ringColor}`,zIndex:1,pointerEvents:"none"}}/>
       <div style={{position:"absolute",top:"22%",left:"50%",transform:"translateX(-50%)",width:480,height:480,borderRadius:"50%",border:`1px solid ${ringColor}`,zIndex:1,pointerEvents:"none"}}/>
       {/* Top bar */}
-      <div style={{padding:"16px 20px 0",display:"flex",justifyContent:"space-between",alignItems:"center",position:"relative",zIndex:2}}>
-        {(()=>{
-          const clerkUser = window.__useUser ? window.__useUser() : null;
-          if (clerkUser?.isSignedIn) return (
-            <UserDropdown firstName={clerkUser.user?.firstName} overlay1={overlay1} overlay2={overlay2} textHigh={textHigh} textMid={textMid} P={P} onSettings={onSettings} onSignOut={onSignOut}/>
-          );
-          return (
-            <button onClick={()=>window.__clerkOpenSignIn ? window.__clerkOpenSignIn() : setShowLogin(true)} style={{display:"flex",alignItems:"center",gap:6,background:overlay1,border:`1px solid ${overlay2}`,borderRadius:10,padding:"7px 12px",fontSize:12,fontWeight:600,color:textMid,cursor:"pointer"}} {...pp()}>
-              <Icons.User color={textMid} size={14}/> Sign In
-            </button>
-          );
-        })()}
+      <div style={{padding:"16px 20px 0",display:"flex",justifyContent:"space-between",alignItems:"center",position:"relative",zIndex:50001}}>
+        {clerkUser?.isSignedIn ? (
+          <UserDropdown firstName={clerkUser.user?.firstName} overlay1={overlay1} overlay2={overlay2} textHigh={textHigh} textMid={textMid} P={P} onSettings={onSettings} onSignOut={onSignOut}/>
+        ) : (
+          <button onClick={()=>openWithClerk("signIn")} style={{display:"flex",alignItems:"center",gap:6,background:overlay1,border:`1px solid ${overlay2}`,borderRadius:10,padding:"7px 12px",fontSize:12,fontWeight:600,color:textMid,cursor:"pointer"}} {...pp()}>
+            <Icons.User color={textMid} size={14}/> Sign In
+          </button>
+        )}
         <div style={{display:"flex",gap:6,alignItems:"center"}}>
           {themeToggle}
         </div>
@@ -2978,14 +3310,14 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
         {/* Logos collision */}
         <div style={{display:"flex",alignItems:"flex-end",justifyContent:"center",marginBottom:20,height:120,position:"relative",width:"100%"}}>
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,transform:loaded?"translateX(0)":"translateX(-100px)",opacity:loaded?1:0,transition:"transform 1s cubic-bezier(0.34,1.4,0.64,1) 0.1s, opacity 0.5s ease 0.1s"}}>
-            <img src={logoSrc} alt="Heroes" style={{width:logoPopped?96:90,height:logoPopped?96:90,objectFit:"contain",filter:`drop-shadow(0 6px 24px rgba(22,163,74,${darkMode?0.65:0.4}))`,transition:"width 0.4s cubic-bezier(0.34,1.56,0.64,1), height 0.4s cubic-bezier(0.34,1.56,0.64,1)"}}/>
+            <img src={logoSrc} alt="Heroes" onClick={()=>tapLogo("hero")} style={{width:logoPopped?96:90,height:logoPopped?96:90,objectFit:"contain",filter:`drop-shadow(0 6px 24px rgba(22,163,74,${darkMode?0.65:0.4}))`,transition:"width 0.4s cubic-bezier(0.34,1.56,0.64,1), height 0.4s cubic-bezier(0.34,1.56,0.64,1)",cursor:"pointer",animation:heroBounce?"logoBounce 0.5s cubic-bezier(0.36,0.07,0.19,0.97)":undefined}}/>
             <span style={{fontSize:9,fontWeight:800,letterSpacing:2.5,color:heroLabel}}>HEROES</span>
           </div>
           <div style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#ca8a04,#fbbf24)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 24px rgba(202,138,4,0.8), 0 0 48px rgba(202,138,4,0.3)",opacity:loaded?1:0,transition:"opacity 0.4s ease 0.9s",flexShrink:0,margin:"0 14px 22px",zIndex:1}}>
             <span style={{fontSize:10,fontWeight:900,color:"#fff",letterSpacing:0.5}}>VS</span>
           </div>
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,transform:loaded?"translateX(0)":"translateX(100px)",opacity:loaded?1:0,transition:"transform 1s cubic-bezier(0.34,1.4,0.64,1) 0.1s, opacity 0.5s ease 0.1s"}}>
-            <img src={banditSrc} alt="Bandits" style={{width:logoPopped?96:90,height:logoPopped?96:90,objectFit:"contain",filter:`drop-shadow(0 6px 24px rgba(220,38,38,${darkMode?0.65:0.4}))`,transition:"width 0.4s cubic-bezier(0.34,1.56,0.64,1), height 0.4s cubic-bezier(0.34,1.56,0.64,1)"}}/>
+            <img src={banditSrc} alt="Bandits" onClick={()=>tapLogo("bandit")} style={{width:logoPopped?96:90,height:logoPopped?96:90,objectFit:"contain",filter:`drop-shadow(0 6px 24px rgba(220,38,38,${darkMode?0.65:0.4}))`,transition:"width 0.4s cubic-bezier(0.34,1.56,0.64,1), height 0.4s cubic-bezier(0.34,1.56,0.64,1)",cursor:"pointer",animation:banditBounce?"logoBounce 0.5s cubic-bezier(0.36,0.07,0.19,0.97)":undefined}}/>
             <span style={{fontSize:9,fontWeight:800,letterSpacing:2.5,color:heroLabel}}>BANDITS</span>
           </div>
         </div>
@@ -3000,15 +3332,6 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
         <div style={{textAlign:"center",marginBottom:32,opacity:loaded?1:0,transition:"opacity 0.7s ease 0.6s",padding:"0 16px"}}>
           <div style={{fontSize:12,color:textLow,fontStyle:"italic",lineHeight:1.5,fontWeight:500}}>"{quote}"</div>
         </div>
-
-        {/* UPGRADE NUDGE for non-pro */}
-        {false&&(
-          <button onClick={()=>onNav("upgrade")} {...pp()} style={{marginBottom:10,padding:"8px 18px",borderRadius:20,background:"linear-gradient(135deg,#16a34a22,#22c55e18)",border:"1px solid #16a34a44",cursor:"pointer",display:"flex",alignItems:"center",gap:8,opacity:loaded?1:0,transition:"opacity 0.6s ease 0.58s"}}>
-            <Icons.Star color="#16a34a" size={13}/>
-            <span style={{fontSize:12,fontWeight:700,color:"#16a34a"}}>Upgrade to Pro</span>
-            <span style={{fontSize:11,color:"#16a34a",opacity:0.6}}>$4.99/mo →</span>
-          </button>
-        )}
 
         {/* PRIMARY CTA */}
         <button onClick={()=>roundInProgress?onContinueRound():onNav("preround")} {...pp()} style={{
@@ -3031,6 +3354,34 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
           </button>
         )}
 
+        {/* Upgrade to Pro — shown for non-pro users */}
+        {!isPro&&(
+          <button onClick={()=>onNav("upgrade")} {...pp()} style={{
+            marginBottom:8,padding:"10px 20px",borderRadius:14,
+            background:`linear-gradient(135deg,${PM_NAVY},#1a3a5c)`,
+            border:`1.5px solid ${PM_GOLD}55`,color:PM_GOLD,
+            fontSize:13,fontWeight:700,cursor:"pointer",
+            display:"flex",alignItems:"center",gap:8,
+            opacity:loaded?1:0,transition:"opacity 0.6s ease 0.58s",
+          }}>
+            <Icons.Star color={PM_GOLD} size={14}/>
+            Start free 7-day trial → Pro
+          </button>
+        )}
+
+        {/* Share button */}
+        <button onClick={()=>onNav("share")} {...pp()} style={{
+          marginBottom:12,padding:"10px 20px",borderRadius:14,
+          background:"transparent",
+          border:`1.5px solid ${P.border}`,color:P.muted,
+          fontSize:13,fontWeight:700,cursor:"pointer",
+          display:"flex",alignItems:"center",gap:8,
+          opacity:loaded?1:0,transition:"opacity 0.6s ease 0.59s",
+        }}>
+          <Icons.Share color={P.muted} size={14}/>
+          Share the app
+        </button>
+
         {/* Trial counter — shown when not yet profiled and rounds remain */}
         {!hasProfile&&roundsRemaining<=FREE_ROUNDS_LIMIT&&roundsRemaining>0&&!roundInProgress&&(
           <div style={{marginBottom:8,padding:"7px 14px",borderRadius:10,background:roundsRemaining===1?P.red+"12":PM_GOLD+"10",border:`1px solid ${roundsRemaining===1?P.red:PM_GOLD}33`,width:"100%",maxWidth:320,textAlign:"center",opacity:loaded?1:0,transition:"opacity 0.6s ease 0.58s"}}>
@@ -3044,12 +3395,12 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
           const bestStroke=Math.min(...savedRounds.filter(r=>r.totalStroke>0).map(r=>r.totalStroke));
           const streak=(()=>{let best=0;savedRounds.forEach(r=>{if(!r.scores)return;let cur=0;r.scores.forEach(h=>{const hv=Object.values(h.heroes).reduce((a,c)=>a+c,0),bv=Object.values(h.bandits).reduce((a,c)=>a+c,0);if(hv+bv>0&&hv>bv){cur++;best=Math.max(best,cur);}else cur=0;});});return best;})();
           const noStroke = !savedRounds.some(r=>r.totalStroke>0);
-          return <div style={{display:"flex",gap:5,marginBottom:10,width:"100%",maxWidth:320,opacity:loaded?1:0,transition:"opacity 0.6s ease 0.6s"}}>
+          return <div style={{display:"flex",gap:5,marginBottom:10,justifyContent:"center",width:"100%",maxWidth:320,opacity:loaded?1:0,transition:"opacity 0.6s ease 0.6s"}}>
             {[
-              {label:"Best Net",val:(bestNet>0?"+":"")+bestNet,color:P.green,flex:1},
-              {label:"Best Streak",val:streak||"—",color:P.gold,flex:"0 0 90px"}
+              {label:"Best Net",val:(bestNet>0?"+":"")+bestNet,color:P.green},
+              {label:"Best Streak",val:streak||"—",color:P.gold}
             ].map((s,i)=>(
-              <div key={i} style={{flex:s.flex,textAlign:"center",padding:"5px 4px",borderRadius:8,background:P.card,border:`1px solid ${P.border}`,minWidth:0}}>
+              <div key={i} style={{width:80,textAlign:"center",padding:"5px 4px",borderRadius:8,background:P.card,border:`1px solid ${P.border}`}}>
                 <div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:0.3,marginBottom:1,whiteSpace:"nowrap"}}>{s.label}</div>
                 <div style={{fontSize:14,fontWeight:900,color:s.color,lineHeight:1}}>{s.val}</div>
               </div>
@@ -3073,7 +3424,7 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
         <div style={{display:"flex",gap:6,justifyContent:"center",opacity:loaded?1:0,transition:"opacity 0.6s ease 0.72s",flexWrap:"wrap",maxWidth:340}}>
           {secondaryItems.map(it=>{const Ic=Icons[it.IconKey];return(
             <button key={it.key} onClick={()=>onNav(it.key)} {...pp()} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,padding:"10px 14px",borderRadius:14,border:`1px solid ${dockBorder}`,background:dockBg,cursor:"pointer",backdropFilter:"blur(8px)",minWidth:60,transition:"transform 0.1s ease"}}>
-              <Ic color={it.color} size={20}/>
+              {it.emoji?<span style={{fontSize:20,lineHeight:1}}>{it.emoji}</span>:<Ic color={it.color} size={20}/>}
               <span style={{fontSize:9,fontWeight:700,color:textMid,letterSpacing:0.5}}>{it.label}</span>
             </button>
           );})}
@@ -3091,6 +3442,7 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
 
       <style>{`
         @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+        @keyframes logoBounce{0%{transform:scale(1);}20%{transform:scale(1.25) rotate(-8deg);}40%{transform:scale(0.92) rotate(6deg);}60%{transform:scale(1.1) rotate(-4deg);}80%{transform:scale(0.97) rotate(2deg);}100%{transform:scale(1) rotate(0deg);}}
         *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
       `}</style>
     </div>
@@ -3100,7 +3452,7 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
 // ═══════════════════════════════════════
 // PRE-ROUND CHECKLIST
 // ═══════════════════════════════════════
-function PreRoundChecklist({onBack,onStartRound,S,lastIntention,settings}) {
+function PreRoundChecklist({onBack,onStartRound,onSkip,S,lastIntention,settings,updateSetting}) {
   const P=useTheme();
   const [checked,setChecked]=useState(()=>{try{const s=sessionStorage.getItem("mgp_preround_checked");return s?JSON.parse(s):{}}catch{return{}}});
   const [complete,setComplete]=useState(false);
@@ -3194,7 +3546,7 @@ function PreRoundChecklist({onBack,onStartRound,S,lastIntention,settings}) {
             <div style={{fontSize:13,color:P.gold,fontWeight:600,fontStyle:"italic",marginBottom:20}}>"You can choose the mental and emotional stance from which you play."</div>
             <div style={{display:"flex",gap:10}}>
               <button onClick={()=>setShowSkipWarn(false)} {...pp()} style={{flex:1,padding:"11px",borderRadius:10,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:14,fontWeight:600,cursor:"pointer"}}>Go Back</button>
-              <button onClick={onStartRound} {...pp()} style={{flex:1,padding:"11px",borderRadius:10,border:`1.5px solid ${P.red}44`,background:P.red+"12",color:P.red,fontSize:14,fontWeight:600,cursor:"pointer"}}>Skip Anyway</button>
+              <button onClick={onSkip||onStartRound} {...pp()} style={{flex:1,padding:"11px",borderRadius:10,border:`1.5px solid ${P.red}44`,background:P.red+"12",color:P.red,fontSize:14,fontWeight:600,cursor:"pointer"}}>Skip Anyway</button>
             </div>
           </div>
         </div>
@@ -3232,17 +3584,23 @@ function PreRoundChecklist({onBack,onStartRound,S,lastIntention,settings}) {
             <div style={{fontSize:11,color:P.muted,marginTop:6,fontWeight:500}}>Let this guide who you want to BE today.</div>
           </div>
         )}
-
-        {/* Timer block */}
+        {/* Timer block — below Before You Play */}
         {timerEnabled&&(
           <div style={{marginBottom:14,borderRadius:14,background:timerActive?"#16a34a12":P.card,border:`1.5px solid ${timerActive?"#16a34a44":P.border}`,padding:"12px 14px",transition:"all 0.3s"}}>
             {!timerStarted?(
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                <div>
-                  <div style={{fontSize:13,fontWeight:700,color:P.white}}>{timerLong?"6-Minute":"3-Minute"} Guided Timer</div>
-                  <div style={{fontSize:11,color:P.muted,marginTop:1}}>A nudge every {INTERVAL}s to move to the next item</div>
+              <div>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:700,color:P.white}}>{timerLong?"6-Minute":"3-Minute"} Guided Timer</div>
+                    <div style={{fontSize:11,color:P.muted,marginTop:1}}>A nudge every {INTERVAL}s to move to the next item</div>
+                  </div>
+                  <button onClick={()=>{setTimerStarted(true);setTimerActive(true);}} {...pp()} style={{padding:"8px 14px",borderRadius:10,border:"none",background:P.green,color:"#fff",fontSize:12,fontWeight:800,cursor:"pointer",flexShrink:0,marginLeft:10}}>Start</button>
                 </div>
-                <button onClick={()=>{setTimerStarted(true);setTimerActive(true);}} {...pp()} style={{padding:"8px 14px",borderRadius:10,border:"none",background:P.green,color:"#fff",fontSize:12,fontWeight:800,cursor:"pointer",flexShrink:0,marginLeft:10}}>Start</button>
+                <div style={{display:"flex",alignItems:"center",gap:6,marginTop:8}}>
+                  <span style={{fontSize:11,color:P.muted}}>Need more time?</span>
+                  <button onClick={()=>updateSetting("preroundTimerLong",false)} {...pp()} style={{padding:"3px 10px",borderRadius:6,border:`1.5px solid ${!timerLong?P.green:P.border}`,background:!timerLong?P.green+"18":"transparent",color:!timerLong?P.green:P.muted,fontSize:11,fontWeight:700,cursor:"pointer"}}>3 min</button>
+                  <button onClick={()=>updateSetting("preroundTimerLong",true)} {...pp()} style={{padding:"3px 10px",borderRadius:6,border:`1.5px solid ${timerLong?P.green:P.border}`,background:timerLong?P.green+"18":"transparent",color:timerLong?P.green:P.muted,fontSize:11,fontWeight:700,cursor:"pointer"}}>6 min</button>
+                </div>
               </div>
             ):(
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -3266,9 +3624,12 @@ function PreRoundChecklist({onBack,onStartRound,S,lastIntention,settings}) {
                     <div style={{fontSize:11,color:P.muted}}>Item {Math.min(currentItemIdx+1,totalItems)} of {totalItems}</div>
                   </div>
                 </div>
-                <button onClick={()=>setTimerActive(a=>!a)} {...pp()} style={{padding:"6px 10px",borderRadius:8,border:`1px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:11,fontWeight:700,cursor:"pointer"}}>
-                  {timerActive?"Pause":"Resume"}
-                </button>
+                <div style={{display:"flex",gap:6}}>
+                  <button onClick={()=>setTimerActive(a=>!a)} {...pp()} style={{padding:"6px 10px",borderRadius:8,border:`1px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                    {timerActive?"Pause":"Resume"}
+                  </button>
+                  <button onClick={()=>{setTimerActive(false);setTimerStarted(false);setElapsed(0);setTimerComplete(false);lastPulseItem.current=-1;}} {...pp()} style={{padding:"6px 10px",borderRadius:8,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:11,fontWeight:700,cursor:"pointer"}}>↺</button>
+                </div>
               </div>
             )}
           </div>
@@ -3315,6 +3676,135 @@ function PreRoundChecklist({onBack,onStartRound,S,lastIntention,settings}) {
         @keyframes pulseWash{0%{opacity:0;}20%{opacity:1;}80%{opacity:1;}100%{opacity:0;}}
         *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
       `}</style>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════
+// TIGER 5 VIEW
+// ═══════════════════════════════════════
+const TIGER_5 = [
+  {
+    number: 1,
+    title: "No Bogeys on Par 5s",
+    icon: "Flag",
+    color: "#16a34a",
+    short: "Par 5s are scoring holes — not charity holes.",
+    detail: "Tiger treated every par 5 as a guaranteed scoring opportunity. He expected to birdie them. A bogey on a par 5 meant he had squandered a hole where the field gains strokes, effectively giving back two shots to the field — one for the bogey, one for the missed birdie. Even recreational golfers should be able to reach a par 5 in regulation or close enough for an easy par. The mental key is not getting greedy: don't force a second shot at the green when the smarter play is a layup to your favorite yardage. Let the scorecard take care of itself.",
+    rule: "Treat par 5s as your most important scoring holes. Birdie is the goal. Par is acceptable. Bogey is unacceptable.",
+  },
+  {
+    number: 2,
+    title: "No Double Bogeys",
+    icon: "Shield",
+    color: "#dc2626",
+    short: "One bad shot is allowed. Two is a choice.",
+    detail: "Doubles are round-killers. A single bogey barely dents your score — but doubles compound mentally and statistically. Tiger's rule was simple: after a bad shot, the next shot is damage control. Get back in play. Don't compound a mistake by getting aggressive from a difficult lie or position. The mental damage of a double — the frustration, the spiral thinking, the score-consciousness — is just as costly as the strokes themselves. Your job after a bad shot is to make the next decision correctly. One mistake is golf. Two mistakes in a row is a choice.",
+    rule: "After any bad shot, your only goal is to get back to bogey or better. Never let one mistake become two.",
+  },
+  {
+    number: 3,
+    title: "No Three-Putts",
+    icon: "Golf",
+    color: "#2563eb",
+    short: "Lag putting is a skill. Speed is everything.",
+    detail: "Three-putts don't just cost strokes — they destroy momentum and confidence. Tiger spent enormous time on lag putting, not short putts. His philosophy: if you control speed from long range, you eliminate the three-putt entirely. From inside 8 feet, he expected to make the putt. From outside 25 feet, he expected to leave himself inside 3 feet. The mental damage of a three-putt is compounding — frustration bleeds into the next tee shot. Develop a stock pace-control routine, and commit fully to every lag putt. Pace over line, always.",
+    rule: "From long range, your target is a 3-foot circle around the hole. Two-putt pars keep momentum. Three-putts stop rounds cold.",
+  },
+  {
+    number: 4,
+    title: "No Bogeys with a Short Iron",
+    icon: "Target",
+    color: "#ca8a04",
+    short: "Inside 150 yards, you're in control. Act like it.",
+    detail: "Tiger believed that holding a 9-iron, wedge, or any short iron removed all excuses for a bogey. You have the club that should hit the green — so hit the green. The mistake most golfers make is attacking pins with short irons when the smart play is the center of the green. A 40-foot putt from the center is infinitely better than a chip from behind a tucked pin. Tiger played short irons to the fat part of the green, took his two-putt par, and moved on without ego. The ability to give up the aggressive shot when you have a short iron is a mark of real course management.",
+    rule: "With any short iron, aim for the center of the green. Be happy with two putts. Save your aggression for when you actually need it.",
+  },
+  {
+    number: 5,
+    title: "No Blown Easy Up-and-Downs",
+    icon: "FlagHole",
+    color: "#7c3aed",
+    short: "Around the green, get it on. Then putt.",
+    detail: "An easy up-and-down means you're within 30 yards of the green with a clear path. Tiger's rule: get the ball on the green with your first shot, always. The worst outcome around the green is a double chip — leaving it short, or advancing it only a few yards. Pick one reliable short-game shot you can execute under pressure — whether a bump-and-run, a flop, or a standard chip — and use it. Don't get cute. Don't try to hole it. The goal is green, then putt. If you can chip on and two-putt consistently, you will save a minimum of three to five shots per round.",
+    rule: "First priority around the green is getting on, anywhere on. Hole location is secondary. A missed green is not a crisis — a chip that misses the green is.",
+  },
+];
+
+function Tiger5View({onBack, S}) {
+  const P = useTheme();
+  const [expanded, setExpanded] = React.useState(null);
+  const PM_GOLD = "#ca8a04";
+
+  return (
+    <div style={S.shell}>
+      <div style={{padding:"16px 20px 8px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+        <button onClick={onBack} style={S.iconBtn} {...pp()}><Icons.Back color={P.muted}/></button>
+        <div style={{textAlign:"center"}}>
+          <div style={{fontSize:17,fontWeight:700,color:P.white}}>The Tiger 5</div>
+          <div style={{fontSize:11,color:P.muted,fontWeight:500}}>5 mistakes that cost you rounds</div>
+        </div>
+        <div style={{width:38}}/>
+      </div>
+
+      <div style={{flex:1,overflowY:"auto",padding:"0 16px 32px"}}>
+
+        {/* Intro card */}
+        <div style={{background:P.card,borderRadius:14,padding:"14px 16px",marginBottom:16,border:`1.5px solid ${PM_GOLD}44`}}>
+          <div style={{fontSize:10,color:PM_GOLD,fontWeight:800,letterSpacing:2,marginBottom:6}}>THE SYSTEM</div>
+          <div style={{fontSize:14,color:P.white,lineHeight:1.7,fontWeight:500}}>
+            Tiger Woods tracked five specific mistakes throughout his career. His benchmark: keep the combined total under <span style={{color:PM_GOLD,fontWeight:800}}>6 per tournament</span> — roughly 1.5 per round — and he would win.
+          </div>
+          <div style={{marginTop:10,fontSize:13,color:P.muted,lineHeight:1.6,fontStyle:"italic"}}>
+            Not out-driving the field. Not making every putt. Just eliminating the avoidable errors that compound into lost rounds.
+          </div>
+        </div>
+
+        {/* The 5 mistakes */}
+        {TIGER_5.map((item, i) => {
+          const Ic = Icons[item.icon];
+          const isOpen = expanded === i;
+          return (
+            <div key={i} style={{marginBottom:10,borderRadius:14,border:`1.5px solid ${isOpen?item.color+"66":P.border}`,background:isOpen?item.color+"0a":P.card,transition:"all 0.2s ease",overflow:"hidden"}}>
+              <button onClick={()=>setExpanded(isOpen?null:i)} {...pp()} style={{width:"100%",padding:"14px 16px",background:"transparent",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
+                <div style={{width:38,height:38,borderRadius:10,background:item.color+"18",border:`1.5px solid ${item.color}44`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <Ic color={item.color} size={18}/>
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:9,color:item.color,fontWeight:800,letterSpacing:1.5,marginBottom:2}}>MISTAKE {item.number}</div>
+                  <div style={{fontSize:14,fontWeight:800,color:P.white,lineHeight:1.2}}>{item.title}</div>
+                  <div style={{fontSize:12,color:P.muted,marginTop:2,fontStyle:"italic"}}>{item.short}</div>
+                </div>
+                <div style={{transform:isOpen?"rotate(90deg)":"rotate(0)",transition:"transform 0.2s",flexShrink:0}}>
+                  <Icons.Chev color={P.muted} size={16}/>
+                </div>
+              </button>
+
+              {isOpen&&(
+                <div style={{padding:"0 16px 16px",animation:"fadeIn 0.2s ease-out"}}>
+                  <div style={{height:1,background:item.color+"22",marginBottom:14}}/>
+                  <div style={{fontSize:14,color:P.white,lineHeight:1.75,fontWeight:400,marginBottom:14}}>
+                    {item.detail}
+                  </div>
+                  <div style={{background:item.color+"12",borderRadius:10,padding:"10px 14px",border:`1px solid ${item.color}33`}}>
+                    <div style={{fontSize:9,color:item.color,fontWeight:800,letterSpacing:1.5,marginBottom:4}}>THE RULE</div>
+                    <div style={{fontSize:13,color:P.white,lineHeight:1.6,fontWeight:600}}>{item.rule}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Footer context */}
+        <div style={{marginTop:8,padding:"12px 14px",borderRadius:12,background:P.card,border:`1px solid ${P.border}`}}>
+          <div style={{fontSize:12,color:P.muted,lineHeight:1.7,textAlign:"center"}}>
+            Tiger's insight was that winning didn't require brilliance every hole. It required the consistent elimination of ordinary mistakes. Track yours. The strokes you stop losing are just as valuable as the ones you start making.
+          </div>
+        </div>
+
+      </div>
+      <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}*{box-sizing:border-box;}`}</style>
     </div>
   );
 }
@@ -3442,9 +3932,8 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
   const fp=scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.par)||0),0),bp=scores.slice(9).reduce((s,h)=>s+(parseInt(h.par)||0),0);
   const fs=scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0),bs=scores.slice(9).reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0);
   const fPutts=scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.putts)||0),0),bPutts=scores.slice(9).reduce((s,h)=>s+(parseInt(h.putts)||0),0);
-  const fFir=scores.slice(0,9).filter(h=>h.fairway===true).length,bFir=scores.slice(9).filter(h=>h.fairway===true).length;
-  const fFirElig=scores.slice(0,9).filter(h=>h.strokeScore&&(parseInt(h.par)===4||parseInt(h.par)===5)).length,bFirElig=scores.slice(9).filter(h=>h.strokeScore&&(parseInt(h.par)===4||parseInt(h.par)===5)).length;
-  const fGir=scores.slice(0,9).filter(h=>h.gir===true).length,bGir=scores.slice(9).filter(h=>h.gir===true).length;
+  const fGir=scores.slice(0,9).filter(h=>calcGir(h)).length,bGir=scores.slice(9).filter(h=>calcGir(h)).length;
+  const fPsr=scores.slice(0,9).filter(h=>h.routine).length,bPsr=scores.slice(9).filter(h=>h.routine).length;
   const hasHCP = scores.some(h=>h.strokeIndex);
   const hcpAllowance = handicap ? parseFloat(handicap) : null;
   function getNetScore(strokeScore, par, si) {
@@ -3463,7 +3952,7 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
         <table style={{borderCollapse:"collapse",fontSize:16,minWidth:"100%"}}>
           <thead>
             <tr>
-              {["#","H","B","Net","Par","Scr","+/-","Pts","FIR","GIR"].map(h=>(
+              {["#","H","B","Net","Par","Scr","+/-","Pts","GIR","PSR"].map(h=>(
                 <th key={h} style={{padding:"6px 5px",textAlign:"center",color:P.muted,borderBottom:`1.5px solid ${P.border}`,fontSize:12,fontWeight:700,whiteSpace:"nowrap",position:"sticky",top:0,background:P.bg,zIndex:1}}>{h}</th>
               ))}
             </tr>
@@ -3479,7 +3968,7 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
               const runDiff=(h.strokeScore&&h.par)?runStroke-runPar:null;
               return [
                 <tr key={i} ref={!scores[i].strokeScore&&!scores.slice(0,i).some(h=>!h.strokeScore)?activeRowRef:null} onClick={()=>onSelectHole(i)} style={{cursor:"pointer",background:i%2===0?P.card:"transparent"}}>
-                  <td style={{...S.cell,fontWeight:700,color:P.accent}}>{i+1}</td>
+                  <td style={{...S.cell,fontWeight:700,color:P.white}}>{i+1}</td>
                   <td style={{...S.cell,color:P.green,fontWeight:600}}>{s.heroes||"—"}</td>
                   <td style={{...S.cell,color:P.red,fontWeight:600}}>{s.bandits||"—"}</td>
                   <td style={{...S.cell,fontWeight:700,color:s.net>0?P.green:s.net<0?P.red:s.heroes+s.bandits>0?P.gold:P.muted}}>{s.heroes+s.bandits>0?(s.net>0?"+":"")+s.net:"—"}</td>
@@ -3497,11 +3986,11 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
                   </td>
                   <td style={{...S.cell,fontWeight:700,color:runDiff===null?P.muted:runDiff<0?P.green:runDiff>0?P.red:P.gold}}>{runDiff===null?"—":runDiff===0?"E":(runDiff>0?"+":"")+runDiff}</td>
                   <td style={{...S.cell,color:h.putts>2?P.red:h.putts===1?P.green:P.white,fontWeight:h.putts?700:400,padding:"12px 6px"}}>{h.putts||"—"}</td>
-                  <td style={{...S.cell,color:h.fairway===true?P.green:P.muted,fontWeight:700,padding:"12px 6px"}}>{(parseInt(h.par)===4||parseInt(h.par)===5)?(h.fairway===true?"✓":"—"):"—"}</td>
-                  <td style={{...S.cell,color:h.gir===true?P.accent:P.muted,fontWeight:700,padding:"12px 6px"}}>{h.gir===true?"✓":"—"}</td>
+                                    <td style={{...S.cell,color:calcGir(h)?P.accent:P.muted,fontWeight:700,padding:"12px 6px"}}>{calcGir(h)?"✓":"—"}</td>
+                  <td style={{...S.cell,color:h.routine?P.green:P.muted,fontWeight:700,padding:"12px 6px"}}>{h.routine?"✓":"—"}</td>
                 </tr>,
-                i===8&&<tr key="out" style={{background:P.cardAlt,borderTop:`1.5px solid ${P.border}`}}>
-                  <td style={{...S.cell,fontWeight:800,fontSize:11,color:P.muted}}>OUT</td>
+                i===8&&<tr key="out" style={{background:P.accent+"18",borderTop:`2px solid ${P.border}`,borderBottom:`2px solid ${P.border}`}}>
+                  <td style={{...S.cell,fontWeight:800,fontSize:11,color:P.white}}>OUT</td>
                   <td style={{...S.cell,color:P.green,fontWeight:700}}>{front.heroes}</td>
                   <td style={{...S.cell,color:P.red,fontWeight:700}}>{front.bandits}</td>
                   <td style={{...S.cell,fontWeight:800,color:front.net>0?P.green:front.net<0?P.red:P.gold}}>{front.net>0?"+":""}{front.net}</td>
@@ -3509,13 +3998,13 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
                   <td style={{...S.cell,fontWeight:700}}>{fs||"—"}</td>
                   <td style={{...S.cell,fontWeight:700,color:fs&&fp?(fs-fp)<0?P.green:(fs-fp)>0?P.red:P.gold:P.muted}}>{fs&&fp?(fs-fp)===0?"E":((fs-fp)>0?"+":"")+(fs-fp):"—"}</td>
                   <td style={{...S.cell,fontWeight:700,color:P.white,padding:"12px 6px"}}>{fPutts||"—"}</td>
-                  <td style={{...S.cell,fontWeight:700,color:P.green,padding:"12px 6px"}}>{fFir}/{fFirElig}</td>
                   <td style={{...S.cell,fontWeight:700,color:P.accent,padding:"12px 6px"}}>{fGir}/9</td>
+                  <td style={{...S.cell,fontWeight:700,color:P.green,padding:"12px 6px"}}>{fPsr}/9</td>
                 </tr>,
               ];
             })}
             <tr style={{background:P.cardAlt,borderTop:`1.5px solid ${P.border}`}}>
-              <td style={{...S.cell,fontWeight:800,fontSize:11,color:P.muted}}>IN</td>
+              <td style={{...S.cell,fontWeight:800,fontSize:11,color:P.white}}>IN</td>
               <td style={{...S.cell,color:P.green,fontWeight:700}}>{back.heroes}</td>
               <td style={{...S.cell,color:P.red,fontWeight:700}}>{back.bandits}</td>
               <td style={{...S.cell,fontWeight:800,color:back.net>0?P.green:back.net<0?P.red:P.gold}}>{back.net>0?"+":""}{back.net}</td>
@@ -3523,11 +4012,11 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
               <td style={{...S.cell,fontWeight:700}}>{bs||"—"}</td>
               <td style={{...S.cell,fontWeight:700,color:bs&&bp?(bs-bp)<0?P.green:(bs-bp)>0?P.red:P.gold:P.muted}}>{bs&&bp?(bs-bp)===0?"E":((bs-bp)>0?"+":"")+(bs-bp):"—"}</td>
               <td style={{...S.cell,fontWeight:700,color:P.white,padding:"12px 6px"}}>{bPutts||"—"}</td>
-              <td style={{...S.cell,fontWeight:700,color:P.green,padding:"12px 6px"}}>{bFir}/{bFirElig}</td>
               <td style={{...S.cell,fontWeight:700,color:P.accent,padding:"12px 6px"}}>{bGir}/9</td>
+              <td style={{...S.cell,fontWeight:700,color:P.green,padding:"12px 6px"}}>{bPsr}/9</td>
             </tr>
             <tr style={{background:P.accent+"10",borderTop:`2px solid ${P.accent}44`}}>
-              <td style={{...S.cell,fontWeight:800,fontSize:11,color:P.accent}}>TOT</td>
+              <td style={{...S.cell,fontWeight:800,fontSize:11,color:P.white}}>TOT</td>
               <td style={{...S.cell,color:P.green,fontWeight:800}}>{total.heroes}</td>
               <td style={{...S.cell,color:P.red,fontWeight:800}}>{total.bandits}</td>
               <td style={{...S.cell,fontWeight:900,fontSize:15,color:total.net>0?P.green:total.net<0?P.red:P.gold}}>{total.net>0?"+":""}{total.net}</td>
@@ -3535,8 +4024,8 @@ function ScorecardView({scores,front,back,total,courseName,roundDate,onBack,onHo
               <td style={{...S.cell,fontWeight:800}}>{fs+bs||"—"}</td>
               <td style={{...S.cell,fontWeight:800,color:(fs+bs)&&(fp+bp)?(fs+bs-(fp+bp))<0?P.green:(fs+bs-(fp+bp))>0?P.red:P.gold:P.muted}}>{(fs+bs)&&(fp+bp)?(fs+bs-(fp+bp))===0?"E":((fs+bs-(fp+bp))>0?"+":"")+(fs+bs-(fp+bp)):"—"}</td>
               <td style={{...S.cell,fontWeight:800,color:P.white,padding:"12px 6px"}}>{fPutts+bPutts||"—"}</td>
-              <td style={{...S.cell,fontWeight:800,color:P.green,padding:"12px 6px"}}>{fFir+bFir}/{fFirElig+bFirElig}</td>
               <td style={{...S.cell,fontWeight:800,color:P.accent,padding:"12px 6px"}}>{fGir+bGir}/18</td>
+              <td style={{...S.cell,fontWeight:800,color:P.green,padding:"12px 6px"}}>{Math.round(((fPsr+bPsr)/18)*100)}%</td>
             </tr>
           </tbody>
         </table>
@@ -3699,12 +4188,8 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                 const hBp=r.scores.slice(9).reduce((s,h)=>s+(parseInt(h.par)||0),0);
                 const hFs=r.scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0);
                 const hBs=r.scores.slice(9).reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0);
-                const hFfir=r.scores.slice(0,9).filter(h=>h.fairway===true&&(parseInt(h.par)===4||parseInt(h.par)===5)).length;
-                const hBfir=r.scores.slice(9).filter(h=>h.fairway===true&&(parseInt(h.par)===4||parseInt(h.par)===5)).length;
-                const hFfirElig=r.scores.slice(0,9).filter(h=>h.strokeScore&&(parseInt(h.par)===4||parseInt(h.par)===5)).length;
-                const hBfirElig=r.scores.slice(9).filter(h=>h.strokeScore&&(parseInt(h.par)===4||parseInt(h.par)===5)).length;
-                const hFgir=r.scores.slice(0,9).filter(h=>h.gir===true).length;
-                const hBgir=r.scores.slice(9).filter(h=>h.gir===true).length;
+                const hFgir=r.scores.slice(0,9).filter(h=>calcGir(h)).length;
+                const hBgir=r.scores.slice(9).filter(h=>calcGir(h)).length;
                 const hFront=getNineStats(r.scores,0,9);
                 const hBack=getNineStats(r.scores,9,18);
                 const hTotal=getRoundTotals(r.scores).total;
@@ -3715,7 +4200,7 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                     <table style={{borderCollapse:"collapse",fontSize:16,minWidth:"100%"}}>
                       <thead>
                         <tr style={{background:P.cardAlt}}>
-                          {["#","H","B","Net","Par","Score","+/-","Pts","FIR","GIR"].map(h=>(
+                          {["#","H","B","Net","Par","Score","+/-","Pts","GIR"].map(h=>(
                             <th key={h} style={{padding:"6px 4px",textAlign:"center",color:P.muted,borderBottom:`1px solid ${P.border}`,fontSize:11,fontWeight:700}}>{h}</th>
                           ))}
                         </tr>
@@ -3729,7 +4214,7 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                           const runDiff=(hole.strokeScore&&hole.par)?runStroke-runPar:null;
                           return (
                             <tr key={i} style={{background:i%2===0?P.cardAlt+"60":"transparent",borderBottom:i===8?`2px solid ${P.border}`:undefined}}>
-                              <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,color:P.accent,fontSize:14}}>{i+1}</td>
+                              <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,color:P.white,fontSize:14}}>{i+1}</td>
                               <td style={{padding:"6px 4px",textAlign:"center",color:P.green,fontWeight:600,fontSize:14}}>{s.heroes||"—"}</td>
                               <td style={{padding:"6px 4px",textAlign:"center",color:P.red,fontWeight:600,fontSize:14}}>{s.bandits||"—"}</td>
                               <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,fontSize:14,color:s.net>0?P.green:s.net<0?P.red:s.heroes+s.bandits>0?P.gold:P.muted}}>{s.heroes+s.bandits>0?(s.net>0?"+":"")+s.net:"—"}</td>
@@ -3737,13 +4222,12 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                               <td style={{padding:"6px 4px",textAlign:"center",fontWeight:hole.strokeScore?700:400,color:diff===null?P.white:diff<0?P.green:diff>0?P.red:P.white,fontSize:14}}>{hole.strokeScore||"—"}</td>
                               <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,fontSize:14,color:runDiff===null?P.muted:runDiff<0?P.green:runDiff>0?P.red:P.gold}}>{runDiff===null?"—":runDiff===0?"E":(runDiff>0?"+":"")+runDiff}</td>
                               <td style={{padding:"6px 5px",textAlign:"center",color:hole.putts>2?P.red:hole.putts===1?P.green:P.white,fontWeight:hole.putts?600:400,fontSize:14}}>{hole.putts||"—"}</td>
-                              <td style={{padding:"6px 5px",textAlign:"center",color:hole.fairway===true?P.green:P.muted,fontWeight:700,fontSize:14}}>{parseInt(hole.par)===4||parseInt(hole.par)===5?(hole.fairway===true?"✓":"—"):"—"}</td>
-                              <td style={{padding:"6px 5px",textAlign:"center",color:hole.gir===true?P.accent:P.muted,fontWeight:700,fontSize:14}}>{hole.gir===true?"✓":"—"}</td>
+                                                            <td style={{padding:"6px 5px",textAlign:"center",color:calcGir(hole)?P.accent:P.muted,fontWeight:700,fontSize:14}}>{calcGir(hole)?"✓":"—"}</td>
                             </tr>
                           );
                         })}
                         <tr style={{background:P.cardAlt,borderTop:`1.5px solid ${P.border}`}}>
-                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:11,color:P.muted}}>OUT</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:11,color:P.white}}>OUT</td>
                           <td style={{padding:"6px 4px",textAlign:"center",color:P.green,fontWeight:700,fontSize:14}}>{hFront.heroes}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",color:P.red,fontWeight:700,fontSize:14}}>{hFront.bandits}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:14,color:hFront.net>0?P.green:hFront.net<0?P.red:P.gold}}>{hFront.net>0?"+":""}{hFront.net}</td>
@@ -3751,11 +4235,10 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                           <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,fontSize:14}}>{hFs||"—"}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,fontSize:14,color:hFs&&hFp?(hFs-hFp)<0?P.green:(hFs-hFp)>0?P.red:P.gold:P.muted}}>{hFs&&hFp?(hFs-hFp)===0?"E":((hFs-hFp)>0?"+":"")+(hFs-hFp):"—"}</td>
                           <td style={{padding:"6px 5px",textAlign:"center",fontSize:14}}/>
-                          <td style={{padding:"6px 5px",textAlign:"center",fontWeight:700,color:P.green,fontSize:14}}>{hFfir}/{hFfirElig}</td>
-                          <td style={{padding:"6px 5px",textAlign:"center",fontWeight:700,color:P.accent,fontSize:14}}>{hFgir}/9</td>
+                                                    <td style={{padding:"6px 5px",textAlign:"center",fontWeight:700,color:P.accent,fontSize:14}}>{hFgir}/9</td>
                         </tr>
                         <tr style={{background:P.cardAlt,borderTop:`1px solid ${P.border}`}}>
-                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:11,color:P.muted}}>IN</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:11,color:P.white}}>IN</td>
                           <td style={{padding:"6px 4px",textAlign:"center",color:P.green,fontWeight:700,fontSize:14}}>{hBack.heroes}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",color:P.red,fontWeight:700,fontSize:14}}>{hBack.bandits}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:14,color:hBack.net>0?P.green:hBack.net<0?P.red:P.gold}}>{hBack.net>0?"+":""}{hBack.net}</td>
@@ -3763,11 +4246,10 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                           <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,fontSize:14}}>{hBs||"—"}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",fontWeight:700,fontSize:14,color:hBs&&hBp?(hBs-hBp)<0?P.green:(hBs-hBp)>0?P.red:P.gold:P.muted}}>{hBs&&hBp?(hBs-hBp)===0?"E":((hBs-hBp)>0?"+":"")+(hBs-hBp):"—"}</td>
                           <td style={{padding:"6px 5px",textAlign:"center",fontSize:14}}/>
-                          <td style={{padding:"6px 5px",textAlign:"center",fontWeight:700,color:P.green,fontSize:14}}>{hBfir}/{hBfirElig}</td>
-                          <td style={{padding:"6px 5px",textAlign:"center",fontWeight:700,color:P.accent,fontSize:14}}>{hBgir}/9</td>
+                                                    <td style={{padding:"6px 5px",textAlign:"center",fontWeight:700,color:P.accent,fontSize:14}}>{hBgir}/9</td>
                         </tr>
                         <tr style={{background:P.accent+"10",borderTop:`2px solid ${P.accent}44`}}>
-                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:11,color:P.accent}}>TOT</td>
+                          <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:11,color:P.white}}>TOT</td>
                           <td style={{padding:"6px 4px",textAlign:"center",color:P.green,fontWeight:800,fontSize:14}}>{hTotal.heroes}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",color:P.red,fontWeight:800,fontSize:14}}>{hTotal.bandits}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",fontWeight:900,fontSize:15,color:hTotal.net>0?P.green:hTotal.net<0?P.red:P.gold}}>{hTotal.net>0?"+":""}{hTotal.net}</td>
@@ -3775,8 +4257,7 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                           <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:14}}>{hFs+hBs||"—"}</td>
                           <td style={{padding:"6px 4px",textAlign:"center",fontWeight:800,fontSize:14,color:(hFs+hBs)&&(hFp+hBp)?(hFs+hBs-(hFp+hBp))<0?P.green:(hFs+hBs-(hFp+hBp))>0?P.red:P.gold:P.muted}}>{(hFs+hBs)&&(hFp+hBp)?(hFs+hBs-(hFp+hBp))===0?"E":((hFs+hBs-(hFp+hBp))>0?"+":"")+(hFs+hBs-(hFp+hBp)):"—"}</td>
                           <td style={{padding:"6px 5px",textAlign:"center",fontSize:14}}/>
-                          <td style={{padding:"6px 5px",textAlign:"center",fontWeight:800,color:P.green,fontSize:14}}>{hFfir+hBfir}/{hFfirElig+hBfirElig}</td>
-                          <td style={{padding:"6px 5px",textAlign:"center",fontWeight:800,color:P.accent,fontSize:14}}>{hFgir+hBgir}/18</td>
+                                                    <td style={{padding:"6px 5px",textAlign:"center",fontWeight:800,color:P.accent,fontSize:14}}>{hFgir+hBgir}/18</td>
                         </tr>
                       </tbody>
                     </table>
@@ -3881,7 +4362,6 @@ function FavCourseSearch({settings, updateSetting, P}) {
   const [open, setOpen] = React.useState(false);
   const [tees, setTees] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
-  const [dropRect, setDropRect] = React.useState(null);
   const inputRef = React.useRef(null);
   const debRef = React.useRef(null);
 
@@ -3895,14 +4375,7 @@ function FavCourseSearch({settings, updateSetting, P}) {
         const d=await res.json();
         const courses=d.courses||[];
         setResults(courses.slice(0,8));
-        if(courses.length>0){
-          setOpen(true);
-          // Measure input position for fixed dropdown
-          if(inputRef.current){
-            const r=inputRef.current.getBoundingClientRect();
-            setDropRect({top:r.bottom+4,left:r.left,width:r.width});
-          }
-        }
+        if(courses.length>0) setOpen(true);
       }catch{}
       finally{setLoading(false);}
     },350);
@@ -3910,20 +4383,19 @@ function FavCourseSearch({settings, updateSetting, P}) {
 
   React.useEffect(()=>{
     if(!open) return;
-    const close = (e)=>{
-      // Don't close if clicking inside the dropdown
-      const dropdown = document.getElementById('fav-course-dropdown');
-      if(dropdown && dropdown.contains(e.target)) return;
+    const close=(e)=>{
+      const dropdown=document.getElementById('fav-course-dropdown');
+      if(dropdown&&dropdown.contains(e.target)) return;
       setOpen(false);
     };
-    window.addEventListener('pointerdown', close, {capture:true});
-    return ()=>window.removeEventListener('pointerdown', close, {capture:true});
+    window.addEventListener('pointerdown',close,{capture:true});
+    return ()=>window.removeEventListener('pointerdown',close,{capture:true});
   },[open]);
 
   async function selectCourse(course) {
-    const name = course.club_name;
-    setQuery(name);
-    updateSetting("favCourse", name);
+    const fullName=course.club_name+(course.course_name&&course.course_name!==course.club_name?` — ${course.course_name}`:"");
+    setQuery(fullName);
+    updateSetting("favCourse", fullName);
     setOpen(false);
     setResults([]);
     try{
@@ -3935,13 +4407,11 @@ function FavCourseSearch({settings, updateSetting, P}) {
         const female=(full.tees?.female||[]).map(t=>({...t,gender:"Female"}));
         const flat=[...male,...female];
         setTees(flat);
-        // Save tee names to settings for persistence
         updateSetting("favTeeOptions", flat.map(t=>t.tee_name+(t.gender==="Female"?" (W)":"")));
       }
     }catch{}
   }
 
-  // Use saved tee options if available
   const teeOptions = tees.length>0
     ? tees.map(t=>t.tee_name+(t.gender==="Female"?" (W)":""))
     : (settings.favTeeOptions||[]);
@@ -3957,17 +4427,18 @@ function FavCourseSearch({settings, updateSetting, P}) {
           value={query}
           onChange={e=>setQuery(e.target.value)}
           onBlur={()=>setTimeout(()=>setOpen(false),150)}
-          placeholder="Search course..." onKeyDown={e=>e.key==="Escape"&&setOpen(false)}
-          style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:13,outline:"none"}}
+          placeholder="Search course..."
+          onKeyDown={e=>e.key==="Escape"&&setOpen(false)}
+          style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:13,outline:"none",boxSizing:"border-box"}}
         />
         {loading&&<div style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",width:12,height:12,borderRadius:"50%",border:`2px solid ${P.border}`,borderTopColor:P.accent,animation:"spin 0.7s linear infinite"}}/>}
-        {/* Fixed-position dropdown to escape overflow:hidden parents */}
-        {open&&results.length>0&&dropRect&&(
-          <div id="fav-course-dropdown" style={{position:"fixed",top:dropRect.top,left:dropRect.left,width:dropRect.width,background:P.card,borderRadius:10,border:`1.5px solid ${P.border}`,zIndex:9999,maxHeight:220,overflowY:"auto",boxShadow:"0 8px 32px rgba(0,0,0,0.35)"}}>
+        {/* Dropdown always below input */}
+        {open&&results.length>0&&(
+          <div id="fav-course-dropdown" style={{position:"absolute",top:"100%",left:0,right:0,marginTop:4,background:P.card,borderRadius:10,border:`1.5px solid ${P.border}`,zIndex:9999,maxHeight:220,overflowY:"auto",boxShadow:"0 8px 32px rgba(0,0,0,0.35)"}}>
             {results.map(r=>(
-              <div key={r.id} onPointerDown={e=>{e.preventDefault();selectCourse(r);}} style={{padding:"10px 14px",cursor:"pointer",borderBottom:`1px solid ${P.border}`,fontSize:13,color:P.white,fontWeight:600,userSelect:"none"}}>
-                {r.club_name}{r.course_name&&r.course_name!==r.club_name?` — ${r.course_name}`:""}
-                <div style={{fontSize:10,color:P.muted,fontWeight:400,marginTop:1}}>{[r.location?.city,r.location?.state].filter(Boolean).join(", ")}</div>
+              <div key={r.id} onPointerDown={e=>{e.preventDefault();selectCourse(r);}} style={{padding:"10px 14px",cursor:"pointer",borderBottom:`1px solid ${P.border}`,userSelect:"none"}}>
+                <div style={{fontSize:13,color:P.white,fontWeight:600,lineHeight:1.3}}>{r.club_name}{r.course_name&&r.course_name!==r.club_name?` — ${r.course_name}`:""}</div>
+                <div style={{fontSize:10,color:P.muted,fontWeight:400,marginTop:2}}>{[r.location?.city,r.location?.state].filter(Boolean).join(", ")}</div>
               </div>
             ))}
           </div>
@@ -3995,7 +4466,147 @@ function FavCourseSearch({settings, updateSetting, P}) {
   );
 }
 
-function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,savedRounds,inGameCaddie,setInGameCaddie,onResetTour,isPro,onManageSubscription,onCancelPro,onPrivacyPolicy,communityProfile,onHelp,onCreateProfile,onGuide}) {
+function CourseSelectModal({onConfirm, onSkip, settings, P, S}) {
+  const pp = pressProps;
+  const [query, setQuery] = React.useState("");
+  const [results, setResults] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
+  const [tees, setTees] = React.useState(settings.favTeeOptions||[]);
+  const [selectedTee, setSelectedTee] = React.useState(settings.favTee||null);
+  const [selectedName, setSelectedName] = React.useState("");
+  const [courseData, setCourseData] = React.useState(null);
+  const [confirmed, setConfirmed] = React.useState(false);
+  const debRef = React.useRef(null);
+  const inputRef = React.useRef(null);
+
+  React.useEffect(()=>{ setTimeout(()=>inputRef.current?.focus(),100); },[]);
+
+  React.useEffect(()=>{
+    clearTimeout(debRef.current);
+    // Don't search if we already have a confirmed selection
+    if(confirmed||!query||query.length<2){setResults([]);return;}
+    debRef.current=setTimeout(async()=>{
+      setLoading(true);
+      try{
+        const res=await fetch(`${GOLF_API_BASE}/search?search_query=${encodeURIComponent(query)}`,{headers:{Authorization:`Key ${GOLF_API_KEY}`}});
+        const d=await res.json();
+        setResults((d.courses||[]).slice(0,6));
+      }catch{}finally{setLoading(false);}
+    },350);
+  },[query, confirmed]);
+
+  async function selectCourse(course) {
+    const name=course.club_name+(course.course_name&&course.course_name!==course.club_name?` — ${course.course_name}`:"");
+    setSelectedName(name);
+    setQuery(name);
+    setResults([]);
+    setConfirmed(true);
+    try{
+      const res=await fetch(`${GOLF_API_BASE}/courses/${course.id}`,{headers:{Authorization:`Key ${GOLF_API_KEY}`}});
+      const d=await res.json();
+      const full=d.course;
+      if(full){
+        const male=(full.tees?.male||[]).map(t=>({...t,gender:"Male"}));
+        const female=(full.tees?.female||[]).map(t=>({...t,gender:"Female"}));
+        const flat=[...male,...female];
+        setCourseData(full);
+        const teeNames=flat.map(t=>t.tee_name+(t.gender==="Female"?" (W)":""));
+        setTees(teeNames);
+        if(!selectedTee&&teeNames.length>0) setSelectedTee(teeNames[0]);
+      }
+    }catch{}
+  }
+
+  const displayName = selectedName || query;
+
+  return (
+    <div onClick={onSkip} style={{position:"fixed",inset:0,zIndex:9998,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 20px"}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:400,background:P.bg,borderRadius:24,border:`1.5px solid ${P.border}`,boxShadow:"0 32px 80px rgba(0,0,0,0.5)",maxHeight:"82vh",display:"flex",flexDirection:"column"}}>
+
+        {/* Header */}
+        <div style={{padding:"20px 20px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+          <div>
+            <div style={{fontSize:18,fontWeight:900,color:P.white,letterSpacing:-0.3}}>Select Course</div>
+            <div style={{fontSize:12,color:P.muted,marginTop:2,fontWeight:500}}>Search or use your favorite</div>
+          </div>
+          <button onClick={onSkip} style={{padding:"7px 16px",borderRadius:10,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,fontWeight:700,cursor:"pointer"}} {...pp()}>Skip</button>
+        </div>
+
+        <div style={{flex:1,overflowY:"auto",padding:"0 20px 16px",display:"flex",flexDirection:"column",gap:12}}>
+
+          {/* Favorite — one tap to confirm */}
+          {settings.favCourse&&(
+            <button onClick={()=>onConfirm({courseName:settings.favCourse,selectedTee:settings.favTee||null,courseData:null})} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 14px",borderRadius:14,border:`1.5px solid ${P.gold}55`,background:P.gold+"12",cursor:"pointer",width:"100%",textAlign:"left",flexShrink:0}} {...pp()}>
+              <div style={{width:36,height:36,borderRadius:10,background:P.gold+"22",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <Icons.Flag color={P.gold} size={16}/>
+              </div>
+              <div style={{minWidth:0,flex:1}}>
+                <div style={{fontSize:10,fontWeight:700,color:P.gold,letterSpacing:1,marginBottom:2}}>FAVORITE</div>
+                <div style={{fontSize:14,fontWeight:800,color:P.white,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{settings.favCourse}</div>
+                {settings.favTee&&<div style={{fontSize:12,color:P.muted,marginTop:1}}>{settings.favTee} tees</div>}
+              </div>
+              <div style={{fontSize:12,color:P.gold,fontWeight:700,flexShrink:0}}>Use →</div>
+            </button>
+          )}
+
+          {/* Divider */}
+          {settings.favCourse&&<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{flex:1,height:1,background:P.border}}/><span style={{fontSize:11,color:P.muted,fontWeight:600}}>or search</span><div style={{flex:1,height:1,background:P.border}}/></div>}
+
+          {/* Search input */}
+          <div style={{position:"relative",flexShrink:0}}>
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={e=>{setQuery(e.target.value);setSelectedName("");setConfirmed(false);}}
+              placeholder="Search for a course..."
+              style={{width:"100%",padding:"13px 40px 13px 14px",borderRadius:12,border:`1.5px solid ${confirmed?P.green:P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",boxSizing:"border-box"}}
+            />
+            {loading
+              ? <div style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)",width:14,height:14,borderRadius:"50%",border:`2px solid ${P.border}`,borderTopColor:P.accent,animation:"spin 0.7s linear infinite"}}/>
+              : query&&<button onClick={()=>{setQuery("");setSelectedName("");setResults([]);setCourseData(null);setTees([]);setConfirmed(false);}} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",color:P.muted,fontSize:18,cursor:"pointer",lineHeight:1,padding:2}}>×</button>
+            }
+          </div>
+
+          {/* Search results */}
+          {results.length>0&&(
+            <div style={{borderRadius:12,border:`1.5px solid ${P.border}`,overflow:"hidden",background:P.card,flexShrink:0}}>
+              {results.map((r,i)=>(
+                <button key={r.id} onClick={()=>selectCourse(r)} style={{width:"100%",padding:"13px 14px",background:"transparent",border:"none",borderBottom:i<results.length-1?`1px solid ${P.border}`:"none",cursor:"pointer",textAlign:"left",display:"block"}} {...pp()}>
+                  <div style={{fontSize:14,fontWeight:700,color:P.white,lineHeight:1.3}}>{r.club_name}{r.course_name&&r.course_name!==r.club_name?` — ${r.course_name}`:""}</div>
+                  <div style={{fontSize:12,color:P.muted,marginTop:3}}>{[r.location?.city,r.location?.state].filter(Boolean).join(", ")}</div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Tee selection */}
+          {tees.length>0&&(
+            <div style={{flexShrink:0}}>
+              <div style={{fontSize:11,fontWeight:700,color:P.muted,letterSpacing:1,marginBottom:10}}>SELECT TEE</div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {tees.map(t=>{
+                  const sel=selectedTee===t;
+                  return <button key={t} onClick={()=>setSelectedTee(t)} style={{padding:"9px 18px",borderRadius:22,border:`1.5px solid ${sel?P.accent:P.border}`,background:sel?P.accent+"18":"transparent",color:sel?P.accent:P.muted,fontSize:13,fontWeight:700,cursor:"pointer",transition:"all 0.15s"}} {...pp()}>{t}</button>;
+                })}
+              </div>
+            </div>
+          )}
+
+        </div>
+
+        {/* Confirm */}
+        <div style={{padding:"16px 20px",flexShrink:0,borderTop:`1px solid ${P.border}`}}>
+          <button onClick={()=>onConfirm({courseName:displayName,selectedTee,courseData})} style={{width:"100%",padding:"15px",borderRadius:14,border:"none",background:displayName?"linear-gradient(135deg,#16a34a,#22c55e)":P.card,color:displayName?"#fff":P.muted,fontSize:15,fontWeight:800,cursor:"pointer",border:displayName?"none":`1.5px solid ${P.border}`}} {...pp()}>
+            {displayName?"Confirm →":"Skip →"}
+          </button>
+          <div style={{height:"calc(4px + env(safe-area-inset-bottom,0px))"}}/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,savedRounds,inGameCaddie,setInGameCaddie,onResetTour,isPro,onManageSubscription,onCancelPro,onPrivacyPolicy,onHelp,onCreateProfile,onGuide,onShare}) {
   const P = useTheme();
   const pp = pressProps;
   const [confirmClear, setConfirmClear] = React.useState(false);
@@ -4058,35 +4669,51 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
       <div style={{flex:1,overflowY:"auto",padding:"4px 16px 32px",position:"relative",zIndex:1}}>
 
         {/* Profile card */}
-        <div style={{background:P.card,borderRadius:16,padding:"16px",marginBottom:14,border:`1.5px solid ${P.border}`,display:"flex",alignItems:"center",gap:14}}>
-          <div style={{width:52,height:52,borderRadius:16,background:P.cardAlt,border:`1.5px solid ${P.border}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-            <Icons.User color={P.muted} size={22}/>
+        <div style={{background:P.card,borderRadius:16,padding:"16px",marginBottom:14,border:`1.5px solid ${P.border}`}}>
+          <div style={{fontSize:15,fontWeight:800,color:P.white,marginBottom:3}}>Your Game</div>
+          <div style={{fontSize:12,color:P.muted,fontWeight:500}}>
+            {roundCount} round{roundCount!==1?"s":""} saved
+            {avgNet!==null&&<span style={{color:parseFloat(avgNet)>=0?P.green:P.red,fontWeight:700}}> · avg {parseFloat(avgNet)>0?"+":""}{avgNet}</span>}
           </div>
-          <div style={{flex:1}}>
-            <div style={{fontSize:15,fontWeight:800,color:P.white,marginBottom:3}}>Your Game</div>
-            <div style={{fontSize:12,color:P.muted,fontWeight:500}}>
-              {roundCount} round{roundCount!==1?"s":""} saved
-              {avgNet!==null&&<span style={{color:parseFloat(avgNet)>=0?P.green:P.red,fontWeight:700}}> · avg {parseFloat(avgNet)>0?"+":""}{avgNet}</span>}
-            </div>
-            {settings.handicap&&<div style={{fontSize:11,color:P.muted,fontWeight:600,marginTop:2}}>Handicap {settings.handicap}</div>}
-          </div>
+          {settings.handicap&&<div style={{fontSize:11,color:P.muted,fontWeight:600,marginTop:2}}>Handicap {settings.handicap}</div>}
         </div>
 
         <Section title="Account">
-          {communityProfile?.email ? (
-            <>
-              <Row label="Email" sub="Your profile email">
-                <span style={{fontSize:12,color:P.muted,fontWeight:500,maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{communityProfile.email}</span>
+          {(()=>{
+            const clerkUser = window.__useUser ? window.__useUser() : null;
+            if (clerkUser?.isSignedIn) {
+              const u = clerkUser.user;
+              const name = [u?.firstName, u?.lastName].filter(Boolean).join(" ");
+              const avatarId = (()=>{try{return localStorage.getItem("mgp_avatar")||"monogram";}catch{return "monogram";}})();
+              const initial = (u?.firstName||"?")[0].toUpperCase();
+              const hasCustomAvatar = avatarId && avatarId !== "monogram";
+              const showClerkPhoto = avatarId === "clerk_photo" || (!hasCustomAvatar && u?.imageUrl);
+              const [showAvatarPicker, setShowAvatarPicker] = React.useState(false);
+              return (
+                <>
+                  {showAvatarPicker&&<AvatarPicker P={P} onClose={()=>setShowAvatarPicker(false)} onSelect={(id)=>{try{localStorage.setItem("mgp_avatar",id);}catch{}setShowAvatarPicker(false);window.dispatchEvent(new Event("mgp_avatar_changed"));}} current={avatarId} initial={initial}/>}
+                  <div style={{padding:"12px 0 12px",display:"flex",alignItems:"center",gap:12,borderBottom:`1px solid ${P.border}`,marginBottom:4}}>
+                    <div style={{width:52,height:52,borderRadius:"50%",overflow:"hidden",border:`2px solid ${P.border}`,flexShrink:0,cursor:"pointer"}} onClick={()=>setShowAvatarPicker(true)}>
+                      {showClerkPhoto ? <img src={u.imageUrl} style={{width:52,height:52,objectFit:"cover"}} alt={name}/> : <AvatarSVG id={avatarId} initial={initial} size={52}/>}
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      {name&&<div style={{fontSize:14,fontWeight:700,color:P.white}}>{name}</div>}
+                      <div style={{fontSize:12,color:P.muted,marginTop:1}}>{u?.primaryEmailAddress?.emailAddress||"—"}</div>
+                      <button onClick={()=>setShowAvatarPicker(true)} style={{background:"transparent",border:"none",color:P.accent,fontSize:11,fontWeight:600,cursor:"pointer",padding:0,marginTop:3}}>Change avatar →</button>
+                    </div>
+                  </div>
+                  <Row label="Cloud Sync" sub="Rounds backed up automatically" last>
+                    <span style={{fontSize:12,fontWeight:700,color:P.green}}>On</span>
+                  </Row>
+                </>
+              );
+            }
+            return (
+              <Row label="Create Account" sub="Back up rounds and get Paul's insights" last>
+                <button onClick={()=>openWithClerk("signUp")} {...pp()} style={{padding:"6px 12px",borderRadius:8,border:`1.5px solid ${PM_GOLD}44`,background:PM_GOLD+"10",color:PM_GOLD,fontSize:12,fontWeight:700,cursor:"pointer"}}>Sign Up</button>
               </Row>
-              <Row label="Cloud Sync" sub="Rounds backed up automatically" last>
-                <span style={{fontSize:12,fontWeight:700,color:communityProfile.cloudSync!==false?P.green:P.muted}}>{communityProfile.cloudSync!==false?"On":"Off"}</span>
-              </Row>
-            </>
-          ) : (
-            <Row label="Create Profile" sub="Back up rounds and get Paul's insights" last>
-              <button onClick={()=>onCreateProfile&&onCreateProfile()} {...pp()} style={{padding:"6px 12px",borderRadius:8,border:`1.5px solid ${PM_GOLD}44`,background:PM_GOLD+"10",color:PM_GOLD,fontSize:12,fontWeight:700,cursor:"pointer"}}>Set Up</button>
-            </Row>
-          )}
+            );
+          })()}
         </Section>
         <Section title="Appearance">
           <Row label="Light Mode" sub="Performs best outdoors" last>
@@ -4138,7 +4765,15 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
           </Row>
         </Section>
 
-        {/* Favourite Course section hidden for now */}
+        {/* Favorite Course */}
+        <Section title="Favorite Course">
+          <div style={{padding:"4px 0 8px"}}>
+            <FavCourseSearch settings={settings} updateSetting={updateSetting} P={P}/>
+          </div>
+          <Row label="Auto-populate course" sub="Pre-fill course when starting a round" last>
+            <Toggle on={settings.autoFavCourse!==false} onChange={()=>updateSetting("autoFavCourse",!settings.autoFavCourse)}/>
+          </Row>
+        </Section>
 
         <Section title="Analytics">
           <Row label="Hole Heat Map" sub="Per-hole mental performance map" last>
@@ -4157,6 +4792,9 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
           </Row>
         </Section>
         <Section title="About">
+          <Row label="Share the App" sub="Invite a friend to play better">
+            <button onClick={()=>onShare&&onShare()} {...pp()} style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,cursor:"pointer"}}>Share</button>
+          </Row>
           <Row label="Help & FAQ" sub="Common questions answered">
             <button onClick={()=>onHelp&&onHelp()} {...pp()} style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,cursor:"pointer"}}>View</button>
           </Row>
@@ -4180,7 +4818,6 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
           </Row>
           <Row label="Delete Account" sub={confirmDelete?"Tap again to confirm":"Remove all data permanently"} last>
             <button onClick={()=>{if(confirmDelete){try{const allKeys=Object.keys(localStorage).filter(k=>k.startsWith("mgp_")||k==="mental_game_rounds");allKeys.forEach(k=>localStorage.removeItem(k));}catch{}showToast("All data deleted","info");setConfirmDelete(false);}else{setConfirmDelete(true);setTimeout(()=>setConfirmDelete(false),4000);}}} {...pp()} style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${P.red}`,background:confirmDelete?P.red+"18":"transparent",color:P.red,fontSize:12,cursor:"pointer",fontWeight:confirmDelete?800:400}}>{confirmDelete?"Confirm":"Delete"}</button>
-            <button onClick={()=>setShowDeleteConfirm(true)} {...pp()} style={{padding:"7px 14px",borderRadius:9,border:`1.5px solid ${P.red}44`,background:P.red+"10",color:P.red,fontSize:12,fontWeight:700,cursor:"pointer"}}>Delete</button>
           </Row>
         </Section>
 
@@ -4231,11 +4868,6 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
               )}
             </div>
           </div>
-          {false&&(
-            <Row label="Manage Subscription" sub="Update payment or cancel in App Store" last>
-              <button onClick={onCancelPro} {...pp()} style={{padding:"7px 14px",borderRadius:9,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,fontWeight:600,cursor:"pointer"}}>Cancel</button>
-            </Row>
-          )}
         </Section>
 
         <div style={{textAlign:"center",paddingTop:8}}>
@@ -4375,7 +5007,6 @@ function generateShareCard(round, darkMode) {
     const scoreItems = [];
     if (round.totalStroke > 0) scoreItems.push({ label: "SCORE", val: `${round.totalStroke}${round.totalPar ? " (" + (stp > 0 ? "+" : "") + stp + ")" : ""}` });
     if (round.putts > 0) scoreItems.push({ label: "PUTTS", val: String(round.putts) });
-    if (round.fir != null) scoreItems.push({ label: "FIR%", val: round.fir + "%" });
 
     const colW = 1080 / scoreItems.length;
     scoreItems.forEach((item, i) => {
@@ -4482,8 +5113,8 @@ function RoundEditView({round, onSave, onBack, S}) {
 
       {/* Course + date */}
       <div style={{padding:"0 12px 6px",display:"flex",gap:6}}>
-        <input value={courseName} onChange={e=>setCourseName(sanitiseCourse(e.target.value))} placeholder="Course name" style={{flex:1,padding:"6px 10px",borderRadius:8,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:13,outline:"none"}}/>
-        <input type="date" value={roundDate} onChange={e=>setRoundDate(e.target.value)} style={{...S.input,flex:"0 0 auto",width:130,fontSize:12,padding:"6px 8px"}}/>
+        <input value={courseName} onChange={e=>setCourseName(sanitiseCourse(e.target.value))} placeholder="Course name" style={{flex:1,padding:"6px 10px",borderRadius:8,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:16,outline:"none"}}/>
+        <input type="date" value={roundDate} onChange={e=>setRoundDate(e.target.value)} style={{...S.input,flex:"0 0 auto",width:140,fontSize:16,padding:"6px 8px"}}/>
       </div>
 
       {/* Hole selector */}
@@ -4498,8 +5129,8 @@ function RoundEditView({round, onSave, onBack, S}) {
 
       {/* Hole inputs */}
       <div style={{padding:"2px 12px 4px",display:"flex",gap:5,alignItems:"flex-end"}}>
-        <div style={{textAlign:"center"}}><div style={{fontSize:9,color:P.muted,fontWeight:600}}>PAR</div><input value={scores[currentHole].par} onChange={e=>updateField("par",e.target.value.replace(/\D/g,"").slice(0,1))} style={{...S.miniInput,width:38,fontSize:15}} inputMode="numeric"/></div>
-        <div style={{textAlign:"center"}}><div style={{fontSize:9,color:P.muted,fontWeight:600}}>SCORE</div><input value={scores[currentHole].strokeScore} onChange={e=>updateField("strokeScore",e.target.value.replace(/\D/g,"").slice(0,2))} style={{...S.miniInput,width:38,fontSize:15}} inputMode="numeric"/></div>
+        <div style={{textAlign:"center"}}><div style={{fontSize:9,color:P.muted,fontWeight:600}}>PAR</div><input value={scores[currentHole].par} onChange={e=>updateField("par",e.target.value.replace(/\D/g,"").slice(0,1))} style={{...S.miniInput,width:38,fontSize:16}} inputMode="numeric"/></div>
+        <div style={{textAlign:"center"}}><div style={{fontSize:9,color:P.muted,fontWeight:600}}>SCORE</div><input value={scores[currentHole].strokeScore} onChange={e=>updateField("strokeScore",e.target.value.replace(/\D/g,"").slice(0,2))} style={{...S.miniInput,width:38,fontSize:16}} inputMode="numeric"/></div>
         <div style={{textAlign:"center"}}><div style={{fontSize:9,color:P.muted,fontWeight:600}}>PUTTS</div>
           <div style={{display:"flex",alignItems:"center",gap:2}}>
             <button onClick={()=>updateField("putts",Math.max(0,(parseInt(scores[currentHole].putts)||0)-1)||"")} style={{width:20,height:32,borderRadius:5,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:16,cursor:"pointer"}} {...pp()}>−</button>
@@ -4508,9 +5139,7 @@ function RoundEditView({round, onSave, onBack, S}) {
           </div>
         </div>
         <div style={{display:"flex",gap:3,marginBottom:0,alignSelf:"flex-end",paddingBottom:2}}>
-          <button onClick={()=>updateField("fairway",scores[currentHole].fairway===true?null:true)} {...pp()} style={{padding:"4px 7px",borderRadius:6,border:`1.5px solid ${scores[currentHole].fairway===true?P.green:P.border}`,background:scores[currentHole].fairway===true?P.green+"18":"transparent",color:scores[currentHole].fairway===true?P.green:P.muted,fontSize:10,fontWeight:700,cursor:"pointer"}}>FIR</button>
-          <button onClick={()=>updateField("gir",scores[currentHole].gir===true?null:true)} {...pp()} style={{padding:"4px 7px",borderRadius:6,border:`1.5px solid ${scores[currentHole].gir===true?P.accent:P.border}`,background:scores[currentHole].gir===true?P.accent+"18":"transparent",color:scores[currentHole].gir===true?P.accent:P.muted,fontSize:10,fontWeight:700,cursor:"pointer"}}>GIR</button>
-        </div>
+                            </div>
         <div style={{marginLeft:"auto",textAlign:"right"}}>
           <div style={{fontSize:9,color:P.muted,fontWeight:600}}>HOLE {currentHole+1}</div>
           <div style={{fontSize:18,fontWeight:800,color:P.accent}}>
@@ -4538,7 +5167,7 @@ function RoundEditView({round, onSave, onBack, S}) {
 
       {/* Hole note */}
       <div style={{padding:"0 12px 4px"}}>
-        <textarea value={scores[currentHole].holeNote||""} onChange={e=>updateField("holeNote",sanitiseNote(e.target.value))} placeholder={`Hole ${currentHole+1} note...`} rows={2} style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:13,outline:"none",resize:"none",lineHeight:1.4}}/>
+        <textarea value={scores[currentHole].holeNote||""} onChange={e=>updateField("holeNote",sanitiseNote(e.target.value))} placeholder={`Hole ${currentHole+1} note...`} rows={2} style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:16,outline:"none",resize:"none",lineHeight:1.4}}/>
       </div>
       {/* Round total + notes */}
       <div style={{padding:"4px 12px 6px",background:total.net>0?P.green+"10":total.net<0?P.red+"10":P.card,borderTop:`1px solid ${P.border}`,display:"flex",alignItems:"center",gap:12}}>
@@ -4546,7 +5175,7 @@ function RoundEditView({round, onSave, onBack, S}) {
           <div style={{fontSize:9,color:P.muted,letterSpacing:1,fontWeight:600}}>ROUND NET</div>
           <div style={{fontSize:22,fontWeight:900,color:total.net>0?P.green:total.net<0?P.red:P.gold}}>{total.net>0?"+":""}{total.net}</div>
         </div>
-        <textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Post-round notes..." rows={2} style={{flex:1,padding:"6px 8px",borderRadius:8,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:12,outline:"none",resize:"none",lineHeight:1.4}}/>
+        <textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Post-round notes..." rows={2} style={{flex:1,padding:"6px 8px",borderRadius:8,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:16,outline:"none",resize:"none",lineHeight:1.4}}/>
         <button onClick={handleSave} {...pp()} style={{padding:"10px 16px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green+"15",color:P.green,fontSize:14,fontWeight:800,cursor:"pointer",flexShrink:0}}>Save ✓</button>
       </div>
     </div>
@@ -4563,7 +5192,7 @@ function EmptyChart({P, title, hint, type}) {
         {/* Skeleton preview */}
         {isGrid ? (
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:8,opacity:0.3}}>
-            {["FIR","GIR","PUTTS"].map(l=>(
+            {["GIR","PUTTS"].map(l=>(
               <div key={l} style={{background:P.card,borderRadius:8,padding:"8px 6px",textAlign:"center"}}>
                 <div style={{fontSize:9,color:P.muted,fontWeight:700,marginBottom:4}}>{l}</div>
                 <div style={{fontSize:18,fontWeight:900,color:P.border}}>—</div>
@@ -4589,8 +5218,16 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
     if(!rounds.length)return null;
     const hT=Object.fromEntries(HEROES.map(h=>[h,0])),bT=Object.fromEntries(BANDITS.map(b=>[b,0]));
     rounds.forEach(r=>{if(!r.scores)return;r.scores.forEach(hole=>{HEROES.forEach(h=>{hT[h]+=hole.heroes[h]||0;});BANDITS.forEach(b=>{bT[b]+=hole.bandits[b]||0;});});});
-    const trend=[...rounds].reverse().map(r=>({label:r.date?.slice(5)||"?",net:r.net,stroke:r.totalStroke||null,par:r.totalPar||null,scoreToPar:r.totalStroke&&r.totalPar?r.totalStroke-r.totalPar:null}));
+    const trendAll=[...rounds].reverse().map(r=>{
+      const holesPlayed = r.scores ? r.scores.filter(h=>h.strokeScore&&h.par).length : 0;
+      const psrHoles = r.scores ? r.scores.filter(h=>h.routine&&(h.strokeScore||h.par)).length : 0;
+      const psrPct = holesPlayed>=1 ? Math.round((psrHoles/holesPlayed)*100) : null;
+      return {label:r.date?.slice(5)||"?",net:r.net,stroke:r.totalStroke||null,par:r.totalPar||null,scoreToPar:r.totalStroke&&r.totalPar?r.totalStroke-r.totalPar:null,psrPct};
+    });
+    const trend = trendAll.slice(-12); // show last 12, older rounds accessible via history
     const topHero=HEROES.reduce((a,b)=>hT[a]>hT[b]?a:b),topBandit=BANDITS.reduce((a,b)=>bT[a]>bT[b]?a:b);
+    const top2Heroes=HEROES.slice().sort((a,b)=>hT[b]-hT[a]).slice(0,2);
+    const top2Bandits=BANDITS.slice().sort((a,b)=>bT[b]-bT[a]).slice(0,2);
     const avgNet=rounds.reduce((s,r)=>s+(r.net||0),0)/rounds.length;
     const ws=rounds.filter(r=>r.totalStroke>0);const avgStroke=ws.length?ws.reduce((s,r)=>s+r.totalStroke,0)/ws.length:null;const bestStroke=ws.length?Math.min(...ws.map(r=>r.totalStroke)):null;
 
@@ -4654,22 +5291,32 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
 
     // Bandit pairing patterns: which bandits appear together most
     const banditPairs={};
-    rounds.forEach(r=>{if(!r.scores)return;r.scores.forEach(hole=>{const active=BANDITS.filter(b=>hole.bandits[b]===1);for(let i=0;i<active.length;i++)for(let j=i+1;j<active.length;j++){const key=[active[i],active[j]].sort().join('+');banditPairs[key]=(banditPairs[key]||0)+1;}});});
+    rounds.forEach(r=>{if(!r.scores)return;r.scores.forEach(hole=>{const active=BANDITS.filter(b=>hole.bandits[b]>0);for(let i=0;i<active.length;i++)for(let j=i+1;j<active.length;j++){const key=[active[i],active[j]].sort().join('+');banditPairs[key]=(banditPairs[key]||0)+1;}});});
     const topPairs=Object.entries(banditPairs).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>({pair:k.split('+'),count:v}));
+
+    // Hero pairing patterns: which heroes appear together most
+    const heroPairs={};
+    rounds.forEach(r=>{if(!r.scores)return;r.scores.forEach(hole=>{const active=HEROES.filter(h=>hole.heroes[h]>0);for(let i=0;i<active.length;i++)for(let j=i+1;j<active.length;j++){const key=[active[i],active[j]].sort().join('+');heroPairs[key]=(heroPairs[key]||0)+1;}});});
+    const topHeroPairs=Object.entries(heroPairs).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>({pair:k.split('+'),count:v}));
+
 
     // Putting stats
     let totalPutts=0,puttHoles=0,threePutts=0,onePutts=0,girPutts=[],nonGirPutts=[];
     let totalFir=0,firHoles=0,totalGir=0,girHoles=0;
+    let missedGirHoles=0,upAndDowns=0;
     rounds.forEach(r=>{if(!r.scores)return;r.scores.forEach(hole=>{
-      if(hole.putts){totalPutts+=parseInt(hole.putts)||0;puttHoles++;if(+hole.putts>=3)threePutts++;if(+hole.putts===1)onePutts++;if(hole.gir===true)girPutts.push(+hole.putts);else nonGirPutts.push(+hole.putts);}
-      if(hole.fairway!==null&&hole.fairway!==undefined&&(parseInt(hole.par)===4||parseInt(hole.par)===5)){firHoles++;if(hole.fairway===true)totalFir++;}
-      if(hole.gir!==null&&hole.gir!==undefined){girHoles++;if(hole.gir===true)totalGir++;}
+      const hasputts=hole.putts!==""&&hole.putts!==null&&hole.putts!==undefined;
+      const puttsVal=hasputts?parseInt(hole.putts)||0:null;
+      if(hasputts){totalPutts+=puttsVal;puttHoles++;if(puttsVal>=3)threePutts++;if(puttsVal===1)onePutts++;if(calcGir(hole))girPutts.push(puttsVal);else nonGirPutts.push(puttsVal);}
+      if(hole.strokeScore&&hole.par&&hasputts){girHoles++;if(calcGir(hole))totalGir++;}
+      // Scrambling: missed GIR, putts entered (0 = chip-in = successful up&down)
+      if(hole.strokeScore&&hole.par&&hasputts&&!calcGir(hole)){missedGirHoles++;if(puttsVal<=1)upAndDowns++;}
     });});
     const puttingStats=puttHoles>=9?{avg:(totalPutts/puttHoles).toFixed(2),threePuttPct:Math.round((threePutts/puttHoles)*100),onePuttPct:Math.round((onePutts/puttHoles)*100),girAvg:girPutts.length?(girPutts.reduce((s,v)=>s+v,0)/girPutts.length).toFixed(2):null,total:totalPutts,holes:puttHoles}:null;
-    const firPct=firHoles>=4?Math.round((totalFir/firHoles)*100):null;
     const girPct=girHoles>=9?Math.round((totalGir/girHoles)*100):null;
+    const scramblingPct=missedGirHoles>=4?Math.round((upAndDowns/missedGirHoles)*100):null;
 
-    return {hT,bT,trend,topHero,topBandit,avgNet,avgStroke,bestStroke,improving,holeMap,bestHoles,worstHoles,bestStreak,recoveryRate,heroRate,banditRate,scoreDelta,front9,back9,topPairs,puttingStats,firPct,girPct};
+    return {hT,bT,trend,topHero,topBandit,top2Heroes,top2Bandits,avgNet,avgStroke,bestStroke,improving,holeMap,bestHoles,worstHoles,bestStreak,recoveryRate,heroRate,banditRate,scoreDelta,front9,back9,topPairs,topHeroPairs,puttingStats,girPct,scramblingPct};
   },[rounds]);
 
   const darkMode = P.bg === "#09090b";
@@ -4750,27 +5397,28 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
             <StatTile label="Best Net" value={(Math.max(...rounds.map(r=>r.net))>0?"+":"")+Math.max(...rounds.map(r=>r.net))} color={P.green}/>
           </div>
 
-          {/* ── TRENDING + STREAK ── */}
+          {/* ── TRENDING + STREAK + CHECKLIST ── */}
           {(stats.improving||stats.bestStreak>=2)&&(
           <div style={{display:"flex",gap:6,marginBottom:8}}>
             {stats.improving&&(
-              <div style={{flex:1,background:P.card,borderRadius:10,padding:"6px 10px",border:`1.5px solid ${P.border}`,display:"flex",alignItems:"center",gap:6}}>
+              <div style={{flex:1,background:P.card,borderRadius:10,padding:"6px 10px",border:`1.5px solid ${P.border}`,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
                 {stats.improving==="up"?<Icons.TrendUp color={P.green} size={14}/>:stats.improving==="down"?<Icons.TrendUp color={P.red} size={14}/>:<Icons.Chart color={P.gold} size={14}/>}
-                <div>
+                <div style={{textAlign:"center"}}>
                   <div style={{fontSize:11,fontWeight:800,color:stats.improving==="up"?P.green:stats.improving==="down"?P.red:P.gold,lineHeight:1.2}}>{stats.improving==="up"?"Trending Up ↑":stats.improving==="down"?"Needs Work ↓":"Steady"}</div>
                   <div style={{fontSize:9,color:P.muted,fontWeight:500}}>vs earlier rounds</div>
                 </div>
               </div>
             )}
             {stats.bestStreak>=2&&(
-              <div style={{flex:1,background:P.card,borderRadius:10,padding:"6px 10px",border:`1.5px solid ${P.border}`,display:"flex",alignItems:"center",gap:6}}>
+              <div style={{flex:1,background:P.card,borderRadius:10,padding:"6px 10px",border:`1.5px solid ${P.border}`,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
                 <Icons.Fire color={P.green} size={14}/>
-                <div>
+                <div style={{textAlign:"center"}}>
                   <div style={{fontSize:18,fontWeight:900,color:P.green,lineHeight:1}}>{stats.bestStreak}</div>
                   <div style={{fontSize:9,color:P.muted,fontWeight:500}}>best streak</div>
                 </div>
               </div>
             )}
+            
           </div>
           )}
 
@@ -4782,22 +5430,32 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
             </div>
           )}
 
-          {/* ── TOP HERO / BANDIT ── */}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
-            <div style={{background:P.card,borderRadius:14,padding:"12px 14px",border:`1.5px solid ${P.border}`}}>
-              <div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1.5,marginBottom:4}}>TOP HERO</div>
-              <div style={{fontSize:20,fontWeight:900,color:P.green}}>{stats.topHero}</div>
-              <div style={{fontSize:11,color:P.muted,fontWeight:600,marginTop:2}}>{stats.hT[stats.topHero]}× activated</div>
-            </div>
-            <div style={{background:P.card,borderRadius:14,padding:"12px 14px",border:`1.5px solid ${P.border}`}}>
-              <div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1.5,marginBottom:4}}>TOP BANDIT</div>
-              <div style={{fontSize:20,fontWeight:900,color:P.red}}>{stats.topBandit}</div>
-              <div style={{fontSize:11,color:P.muted,fontWeight:600,marginTop:2}}>{stats.bT[stats.topBandit]}× appeared</div>
+          {/* ── TOP HEROES / BANDITS ── */}
+          <div style={{background:P.card,borderRadius:14,padding:"12px 14px",border:`1.5px solid ${P.border}`,marginBottom:12}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <div>
+                <div style={{fontSize:9,color:P.green,fontWeight:700,letterSpacing:1,marginBottom:8}}>TOP HEROES</div>
+                {stats.top2Heroes.map((h,i)=>(
+                  <div key={h} style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:i===0?8:0}}>
+                    <div style={{fontSize:i===0?14:12,fontWeight:i===0?900:700,color:i===0?P.green:P.muted}}>{h}</div>
+                    <div style={{fontSize:i===0?12:10,color:i===0?P.green:P.muted,fontWeight:700,marginLeft:8}}>{stats.hT[h]}×</div>
+                  </div>
+                ))}
+              </div>
+              <div>
+                <div style={{fontSize:9,color:P.red,fontWeight:700,letterSpacing:1,marginBottom:8}}>TOP BANDITS</div>
+                {stats.top2Bandits.map((b,i)=>(
+                  <div key={b} style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:i===0?8:0}}>
+                    <div style={{fontSize:i===0?14:12,fontWeight:i===0?900:700,color:i===0?P.red:P.muted}}>{b}</div>
+                    <div style={{fontSize:i===0?12:10,color:i===0?P.red:P.muted,fontWeight:700,marginLeft:8}}>{stats.bT[b]}×</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* ── TREND CHART ── */}
-          {stats.trend.length>1&&<div style={{marginBottom:12}}><ComboTrendChart P={P} trend={stats.trend} rounds={rounds} onSelectRound={onSelectRound}/></div>}
+          {stats.trend.length>1&&<div style={{marginBottom:12}}><ComboTrendChart P={P} trend={stats.trend} rounds={rounds} onSelectRound={onSelectRound} totalRounds={rounds.length}/></div>}
 
           {/* ── RECOVERY RATE ── */}
           {stats.recoveryRate!==null&&(
@@ -4849,10 +5507,19 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
             <Section title="Front 9 vs Back 9">
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                 {[{label:"Front 9",d:stats.front9},{label:"Back 9",d:stats.back9}].map(({label,d})=>(
-                  <div key={label} style={{borderRadius:12,padding:"12px 14px",background:P.cardAlt,border:`1.5px solid ${P.border}`}}>
-                    <div style={{fontSize:10,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:4}}>{label.toUpperCase()}</div>
-                    <div style={{fontSize:26,fontWeight:900,color:d.net>0?P.green:d.net<0?P.red:P.gold,lineHeight:1}}>{d.net>0?"+":""}{d.net}</div>
-                    <div style={{fontSize:11,color:P.muted,marginTop:4,fontWeight:600}}><span style={{color:P.green}}>{d.heroes}H</span> · <span style={{color:P.red}}>{d.bandits}B</span></div>
+                  <div key={label} style={{borderRadius:12,padding:"14px",background:P.cardAlt,border:`1.5px solid ${P.border}`}}>
+                    <div style={{fontSize:10,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:6}}>{label.toUpperCase()}</div>
+                    <div style={{fontSize:32,fontWeight:900,color:d.net>0?P.green:d.net<0?P.red:P.gold,lineHeight:1,marginBottom:8}}>{d.net>0?"+":""}{d.net}</div>
+                    <div style={{display:"flex",gap:10}}>
+                      <div style={{textAlign:"center"}}>
+                        <div style={{fontSize:20,fontWeight:900,color:P.green,lineHeight:1}}>{d.heroes}</div>
+                        <div style={{fontSize:9,color:P.muted,fontWeight:600,marginTop:2}}>Heroes</div>
+                      </div>
+                      <div style={{textAlign:"center"}}>
+                        <div style={{fontSize:20,fontWeight:900,color:P.red,lineHeight:1}}>{d.bandits}</div>
+                        <div style={{fontSize:9,color:P.muted,fontWeight:600,marginTop:2}}>Bandits</div>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -4860,12 +5527,12 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
           )}
 
           {/* ── SHOT QUALITY ── */}
-          {(stats.puttingStats||stats.firPct!==null||stats.girPct!==null)&&(
+          {(stats.puttingStats||stats.girPct!==null||stats.scramblingPct!==null)&&(
             <Section title="Shot Quality">
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:stats.puttingStats?10:0}}>
-                {stats.firPct!==null&&<div style={{background:P.cardAlt,borderRadius:10,padding:"10px 8px",textAlign:"center",border:`1px solid ${stats.firPct>=60?P.green+"44":P.border}`}}><div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:3}}>FIR%</div><div style={{fontSize:22,fontWeight:900,color:stats.firPct>=60?P.green:stats.firPct>=45?P.gold:P.red}}>{stats.firPct}%</div><div style={{fontSize:8,color:P.muted,marginTop:2}}>par 4 & 5 only</div></div>}
                 {stats.girPct!==null&&<div style={{background:P.cardAlt,borderRadius:10,padding:"10px 8px",textAlign:"center",border:`1px solid ${stats.girPct>=50?P.accent+"44":P.border}`}}><div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:3}}>GIR%</div><div style={{fontSize:22,fontWeight:900,color:stats.girPct>=50?P.accent:stats.girPct>=35?P.gold:P.red}}>{stats.girPct}%</div></div>}
                 {stats.puttingStats&&<div style={{background:P.cardAlt,borderRadius:10,padding:"10px 8px",textAlign:"center",border:`1px solid ${+stats.puttingStats.avg<=1.7?P.green+"44":P.border}`}}><div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:3}}>AVG PUTTS</div><div style={{fontSize:22,fontWeight:900,color:+stats.puttingStats.avg<=1.7?P.green:+stats.puttingStats.avg>=2.1?P.red:P.gold}}>{stats.puttingStats.avg}</div></div>}
+                {stats.scramblingPct!==null&&<div style={{background:P.cardAlt,borderRadius:10,padding:"10px 8px",textAlign:"center",border:`1px solid ${stats.scramblingPct>=42?P.green+"44":stats.scramblingPct>=25?P.gold+"44":P.border}`}}><div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:3}}>SCRAMBLE</div><div style={{fontSize:22,fontWeight:900,color:stats.scramblingPct>=42?P.green:stats.scramblingPct>=25?P.gold:P.red}}>{stats.scramblingPct}%</div></div>}
               </div>
               {stats.puttingStats&&(
                 <div style={{display:"flex",gap:8}}>
@@ -4919,6 +5586,23 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
           <BChart P={P} title="BANDIT BREAKDOWN" items={BANDITS} totals={stats.bT} color={P.red}/>
 
           {/* ── BANDIT COMBOS ── */}
+          {stats.topHeroPairs.length>0&&(
+            <Section title="Hero Combos">
+              {stats.topHeroPairs.map(({pair,count})=>(
+                <div key={pair.join('+')} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6,padding:"9px 12px",borderRadius:10,background:P.cardAlt,border:`1px solid ${P.green}18`}}>
+                  <span style={{fontSize:13,color:P.green,fontWeight:800}}>{pair[0]}</span>
+                  <span style={{fontSize:11,color:P.muted,fontWeight:600}}>+</span>
+                  <span style={{fontSize:13,color:P.green,fontWeight:800}}>{pair[1]}</span>
+                  <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:6}}>
+                    <span style={{fontSize:12,fontWeight:900,color:P.white}}>{count}×</span>
+                    <span style={{fontSize:10,color:P.muted}}>together</span>
+                  </div>
+                </div>
+              ))}
+              <div style={{fontSize:10,color:P.muted,marginTop:4,fontStyle:"italic",opacity:0.7}}>These heroes tend to show up on the same hole</div>
+            </Section>
+          )}
+
           {stats.topPairs.length>0&&(
             <Section title="Bandit Combos">
               {stats.topPairs.map(({pair,count})=>(
@@ -4937,6 +5621,8 @@ function DashboardView({rounds,onBack,S,onSelectRound}) {
           )}
 
           {/* ── SLEEP INSIGHT ── */}
+          
+
 
           {/* Footer breathing room */}
           <div style={{height:8}}/>
@@ -5631,12 +6317,11 @@ function RoundStatsView({round,onHome,onShare,S}) {
   const bs=round.scores?round.scores.slice(9).reduce((s,h)=>s+(parseInt(h.strokeScore)||0),0):0;
   const fPutts=round.scores?round.scores.slice(0,9).reduce((s,h)=>s+(parseInt(h.putts)||0),0):0;
   const bPutts=round.scores?round.scores.slice(9).reduce((s,h)=>s+(parseInt(h.putts)||0),0):0;
-  const fFir=round.scores?round.scores.slice(0,9).filter(h=>h.fairway===true).length:0;
-  const bFir=round.scores?round.scores.slice(9).filter(h=>h.fairway===true).length:0;
-  const fFirElig=round.scores?round.scores.slice(0,9).filter(h=>h.strokeScore&&(parseInt(h.par)===4||parseInt(h.par)===5)).length:0;
-  const bFirElig=round.scores?round.scores.slice(9).filter(h=>h.strokeScore&&(parseInt(h.par)===4||parseInt(h.par)===5)).length:0;
-  const fGir=round.scores?round.scores.slice(0,9).filter(h=>h.gir===true).length:0;
-  const bGir=round.scores?round.scores.slice(9).filter(h=>h.gir===true).length:0;
+  const fGir=round.scores?round.scores.slice(0,9).filter(h=>calcGir(h)).length:0;
+  const bGir=round.scores?round.scores.slice(9).filter(h=>calcGir(h)).length:0;
+  const fPsr=round.scores?round.scores.slice(0,9).filter(h=>h.routine).length:0;
+  const bPsr=round.scores?round.scores.slice(9).filter(h=>h.routine).length:0;
+  const totalPsrPct=round.scores?Math.round(((fPsr+bPsr)/Math.max(1,round.scores.filter(h=>h.strokeScore||h.par).length))*100):0;
   const frontStats=round.scores?getNineStats(round.scores,0,9):{heroes:0,bandits:0,net:0};
   const backStats=round.scores?getNineStats(round.scores,9,18):{heroes:0,bandits:0,net:0};
 
@@ -5692,46 +6377,57 @@ function RoundStatsView({round,onHome,onShare,S}) {
         <div style={{overflowX:"auto",marginBottom:14,background:P.card,borderRadius:12,border:`1.5px solid ${P.border}`}}>
           <table style={{borderCollapse:"collapse",fontSize:16,minWidth:"100%"}}>
             <thead>
-              <tr>{["#","H","B","Net","Par","Scr","+/-","Pts","FIR","GIR"].map(h=>(
+              <tr>{["#","H","B","Net","Par","Scr","+/-","Pts","GIR","PSR"].map(h=>(
                 <th key={h} style={{...cell,padding:"6px 4px",color:P.muted,borderBottom:`1.5px solid ${P.border}`,fontSize:11,fontWeight:700}}>{h}</th>
               ))}</tr>
             </thead>
             <tbody>
               {round.scores&&Array.from({length:18},(_,i)=>{
                 const s=getHoleStats(round.scores,i);
-                const h=round.scores[i]||{par:"",strokeScore:"",putts:"",fairway:null,gir:null,heroes:{},bandits:{}};
+                const h=round.scores[i]||{par:"",strokeScore:"",putts:"",heroes:{},bandits:{}};
+                const nt=scoreNotation(h.strokeScore,h.par);
                 const runStR=round.scores.slice(0,i+1).filter(x=>x&&x.strokeScore&&x.par).reduce((a,x)=>a+(parseInt(x.strokeScore)||0),0);
                 const runPaR=round.scores.slice(0,i+1).filter(x=>x&&x.strokeScore&&x.par).reduce((a,x)=>a+(parseInt(x.par)||0),0);
                 const runDiR=(h.strokeScore&&h.par)?runStR-runPaR:null;
-                    return [
-                  <tr key={i} style={{background:i%2===0?P.cardAlt:"transparent"}}>
-                    <td style={{...cell,fontWeight:700,color:P.accent}}>{i+1}</td>
-                    <td style={{...cell,color:P.green,fontWeight:700}}>{s.heroes||"—"}</td>
-                    <td style={{...cell,color:P.red,fontWeight:700}}>{s.bandits||"—"}</td>
+                return [
+                  <tr key={i} style={{background:i%2===0?P.card:"transparent"}}>
+                    <td style={{...cell,fontWeight:700,color:P.white}}>{i+1}</td>
+                    <td style={{...cell,color:P.green,fontWeight:600}}>{s.heroes||"—"}</td>
+                    <td style={{...cell,color:P.red,fontWeight:600}}>{s.bandits||"—"}</td>
                     <td style={{...cell,fontWeight:700,color:s.net>0?P.green:s.net<0?P.red:s.heroes+s.bandits>0?P.gold:P.muted}}>{s.heroes+s.bandits>0?(s.net>0?"+":"")+s.net:"—"}</td>
                     <td style={cell}>{h.par||"—"}</td>
-                    <td style={{...cell,color:h.strokeScore&&h.par?(+h.strokeScore-+h.par>0?P.red:+h.strokeScore-+h.par<0?P.green:P.white):P.white,fontWeight:h.strokeScore?700:400}}>{h.strokeScore||"—"}</td>
+                    <td style={{...cell,fontWeight:h.strokeScore?800:400}}>
+                      {h.strokeScore?(()=>{
+                        const diff=nt?.diff??0;
+                        const base={display:"inline-flex",alignItems:"center",justifyContent:"center",width:24,height:24,fontSize:13,fontWeight:800,position:"relative",color:diff<0?P.green:diff>0?P.red:P.white};
+                        if(diff<=-2)return(<span style={{...base}}><span style={{position:"absolute",inset:-1,borderRadius:"50%",border:`1.5px solid ${P.gold}`}}/><span style={{position:"absolute",inset:3,borderRadius:"50%",border:`1.5px solid ${P.gold}`}}/><span style={{color:P.gold}}>{h.strokeScore}</span></span>);
+                        if(diff===-1)return(<span style={{...base,borderRadius:"50%",border:`1.5px solid ${P.green}`}}>{h.strokeScore}</span>);
+                        if(diff===0)return(<span style={base}>{h.strokeScore}</span>);
+                        if(diff===1)return(<span style={{...base,borderRadius:3,border:`1.5px solid ${P.red}`}}>{h.strokeScore}</span>);
+                        return(<span style={{...base}}><span style={{position:"absolute",inset:-1,borderRadius:3,border:`1.5px solid ${P.red}`}}/><span style={{position:"absolute",inset:3,borderRadius:2,border:`1.5px solid ${P.red}`}}/><span style={{color:P.red}}>{h.strokeScore}</span></span>);
+                      })():"—"}
+                    </td>
                     <td style={{...cell,fontWeight:700,color:runDiR===null?P.muted:runDiR<0?P.green:runDiR>0?P.red:P.gold}}>{runDiR===null?"—":runDiR===0?"E":(runDiR>0?"+":"")+runDiR}</td>
-                    <td style={{...cell,color:h.putts>2?P.red:h.putts===1?P.green:P.white,fontWeight:h.putts?700:400,padding:"12px 6px"}}>{h.putts||"—"}</td>
-                    <td style={{...cell,color:h.fairway===true?P.green:P.muted,fontWeight:700,padding:"12px 6px"}}>{(parseInt(h.par)===4||parseInt(h.par)===5)?(h.fairway===true?"✓":"—"):"—"}</td>
-                    <td style={{...cell,color:h.gir===true?P.accent:P.muted,fontWeight:700,padding:"12px 6px"}}>{h.gir===true?"✓":"—"}</td>
+                    <td style={{...cell,color:parseInt(h.putts)>2?P.red:parseInt(h.putts)===1?P.green:P.white,fontWeight:h.putts?700:400}}>{h.putts||"—"}</td>
+                    <td style={{...cell,color:calcGir(h)?P.accent:P.muted,fontWeight:700}}>{calcGir(h)?"✓":"—"}</td>
+                    <td style={{...cell,color:h.routine?P.green:P.muted,fontWeight:700}}>{h.routine?"✓":"—"}</td>
                   </tr>,
-                  i===8&&<tr key="out" style={{background:P.accent+"10",borderTop:`1.5px solid ${P.border}`}}>
-                    <td style={{...cell,fontWeight:800,fontSize:11,color:P.muted}}>OUT</td>
+                  i===8&&<tr key="out" style={{background:P.accent+"18",borderTop:`2px solid ${P.border}`,borderBottom:`2px solid ${P.border}`}}>
+                    <td style={{...cell,fontWeight:800,fontSize:11,color:P.white}}>OUT</td>
                     <td style={{...cell,color:P.green,fontWeight:700}}>{frontStats.heroes}</td>
                     <td style={{...cell,color:P.red,fontWeight:700}}>{frontStats.bandits}</td>
                     <td style={{...cell,fontWeight:800,color:frontStats.net>0?P.green:frontStats.net<0?P.red:P.gold}}>{frontStats.net>0?"+":""}{frontStats.net}</td>
                     <td style={{...cell,fontWeight:700}}>{fp||"—"}</td>
                     <td style={{...cell,fontWeight:700}}>{fs||"—"}</td>
                     <td style={{...cell,fontWeight:700,color:fs&&fp?(fs-fp)<0?P.green:(fs-fp)>0?P.red:P.gold:P.muted}}>{fs&&fp?(fs-fp)===0?"E":((fs-fp)>0?"+":"")+(fs-fp):"—"}</td>
-                    <td style={{...cell,fontWeight:700,padding:"12px 6px"}}>{fPutts||"—"}</td>
-                    <td style={{...cell,fontWeight:700,color:P.green,padding:"12px 6px"}}>{fFir}/{fFirElig}</td>
-                    <td style={{...cell,fontWeight:700,color:P.accent,padding:"12px 6px"}}>{fGir}/9</td>
+                    <td style={{...cell,fontWeight:700}}>{fPutts||"—"}</td>
+                    <td style={{...cell,fontWeight:700,color:P.accent}}>{fGir}/9</td>
+                    <td style={{...cell,fontWeight:700,color:P.green}}>{fPsr}/9</td>
                   </tr>,
                 ];
               })}
               <tr style={{background:P.cardAlt,borderTop:`1.5px solid ${P.border}`}}>
-                <td style={{...cell,fontWeight:800,fontSize:11,color:P.muted}}>IN</td>
+                <td style={{...cell,fontWeight:800,fontSize:11,color:P.white}}>IN</td>
                 <td style={{...cell,color:P.green,fontWeight:700}}>{backStats.heroes}</td>
                 <td style={{...cell,color:P.red,fontWeight:700}}>{backStats.bandits}</td>
                 <td style={{...cell,fontWeight:800,color:backStats.net>0?P.green:backStats.net<0?P.red:P.gold}}>{backStats.net>0?"+":""}{backStats.net}</td>
@@ -5739,11 +6435,11 @@ function RoundStatsView({round,onHome,onShare,S}) {
                 <td style={{...cell,fontWeight:700}}>{bs||"—"}</td>
                 <td style={{...cell,fontWeight:700,color:bs&&bp?(bs-bp)<0?P.green:(bs-bp)>0?P.red:P.gold:P.muted}}>{bs&&bp?(bs-bp)===0?"E":((bs-bp)>0?"+":"")+(bs-bp):"—"}</td>
                 <td style={{...cell,fontWeight:700,padding:"12px 6px"}}>{bPutts||"—"}</td>
-                <td style={{...cell,fontWeight:700,color:P.green,padding:"12px 6px"}}>{bFir}/{bFirElig}</td>
                 <td style={{...cell,fontWeight:700,color:P.accent,padding:"12px 6px"}}>{bGir}/9</td>
+                <td style={{...cell,fontWeight:700,color:P.green,padding:"12px 6px"}}>{bPsr}/9</td>
               </tr>
               <tr style={{background:P.accent+"18",borderTop:`2px solid ${P.accent}44`}}>
-                <td style={{...cell,fontWeight:800,fontSize:11,color:P.accent}}>TOT</td>
+                <td style={{...cell,fontWeight:800,fontSize:11,color:P.white}}>TOT</td>
                 <td style={{...cell,color:P.green,fontWeight:800}}>{round.heroes}</td>
                 <td style={{...cell,color:P.red,fontWeight:800}}>{round.bandits}</td>
                 <td style={{...cell,fontWeight:900,fontSize:15,color:round.net>0?P.green:round.net<0?P.red:P.gold}}>{round.net>0?"+":""}{round.net}</td>
@@ -5751,15 +6447,15 @@ function RoundStatsView({round,onHome,onShare,S}) {
                 <td style={{...cell,fontWeight:800}}>{fs+bs||"—"}</td>
                 <td style={{...cell,fontWeight:800,color:(fs+bs)&&(fp+bp)?(fs+bs-(fp+bp))<0?P.green:(fs+bs-(fp+bp))>0?P.red:P.gold:P.muted}}>{(fs+bs)&&(fp+bp)?(fs+bs-(fp+bp))===0?"E":((fs+bs-(fp+bp))>0?"+":"")+(fs+bs-(fp+bp)):"—"}</td>
                 <td style={{...cell,fontWeight:800,color:P.white,padding:"12px 6px"}}>{fPutts+bPutts||"—"}</td>
-                <td style={{...cell,fontWeight:800,color:P.green,padding:"12px 6px"}}>{fFir+bFir}/{fFirElig+bFirElig}</td>
                 <td style={{...cell,fontWeight:800,color:P.accent,padding:"12px 6px"}}>{fGir+bGir}/18</td>
+                <td style={{...cell,fontWeight:800,color:P.green,padding:"12px 6px"}}>{totalPsrPct}%</td>
               </tr>
             </tbody>
           </table>
         </div>
         {/* Legend */}
         <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:14,paddingLeft:4}}>
-          {[{l:"FIR",d:"Fairway in Regulation"},{l:"GIR",d:"Green in Regulation"}].map(({l,d})=>(
+          {[{l:"GIR",d:"Green in Regulation"}].map(({l,d})=>(
             <div key={l} style={{fontSize:10,color:P.muted}}><span style={{fontWeight:700,color:P.white}}>{l}</span> {d}</div>
           ))}
         </div>
@@ -5855,112 +6551,168 @@ function BChart({P,title,items,totals,color}) { const max=Math.max(1,...Object.v
 // ═══════════════════════════════════════
 // COMBO TREND CHART (bars = net, line = score)
 // ═══════════════════════════════════════
-function ComboTrendChart({P, trend, rounds, onSelectRound}) {
-  const CHART_H = 80;
-  const BAR_AREA = 44;
-  const LINE_AREA = 24;
-  const TOTAL_H = CHART_H + LINE_AREA;
-
-  const maxNet = Math.max(1, ...trend.map(t => Math.abs(t.net)));
-  const strokes = trend.filter(t => t.stroke > 0).map(t => t.stroke);
-  const minS = strokes.length ? Math.min(...strokes) : 70;
-  const maxS = strokes.length ? Math.max(...strokes) : 100;
-  const strokeRange = Math.max(maxS - minS, 10);
-
-  // Build SVG polyline points for score line
+function ComboTrendChart({P, trend, rounds, onSelectRound, totalRounds}) {
   const n = trend.length;
-  const svgW = 320; // logical width
+  const svgW = 320;
   const colW = svgW / n;
-  const linePoints = trend.map((t, i) => {
-    if (!t.stroke) return null;
+
+  // ── Net bars ──
+  const maxNet = Math.max(1, ...trend.map(t => Math.abs(t.net)));
+  const BAR_HALF = Math.max(32, maxNet * 4);
+  const BAR_H = BAR_HALF * 2 + 24; // 12px label top + 12px label bottom
+
+  // ── Score line ──
+  const hasScore = trend.some(t => t.scoreToPar != null);
+  const SCORE_H = 80;
+  const scoreVals = trend.filter(t => t.scoreToPar != null).map(t => t.scoreToPar);
+  const minS = scoreVals.length ? Math.min(...scoreVals) - 2 : -5;
+  const maxS = scoreVals.length ? Math.max(...scoreVals) + 2 : 20;
+  const scoreRange = Math.max(maxS - minS, 5);
+  const scorePoints = trend.map((t, i) => {
+    if (t.scoreToPar == null) return null;
     const x = colW * i + colW / 2;
-    // Score line sits in lower LINE_AREA band (top of that band = low score = good)
-    const y = TOTAL_H - 6 - ((t.stroke - minS) / strokeRange) * (LINE_AREA - 12);
+    const y = 6 + ((t.scoreToPar - minS) / scoreRange) * (SCORE_H - 14);
     return { x, y, t, i };
   }).filter(Boolean);
-  const polyline = linePoints.map(p => `${p.x},${p.y}`).join(' ');
+  const scorePoly = scorePoints.map(p => `${p.x},${p.y}`).join(' ');
+  const zeroY = 6 + ((0 - minS) / scoreRange) * (SCORE_H - 14);
+
+  // ── PSR ──
+  const hasPsr = trend.some(t => t.psrPct != null);
+  const PSR_H = 70;
+  const psrPoints = trend.map((t, i) => {
+    if (t.psrPct == null) return null;
+    const x = colW * i + colW / 2;
+    const y = 6 + ((100 - t.psrPct) / 100) * (PSR_H - 14);
+    return { x, y, t, i };
+  }).filter(Boolean);
+  const psrPoly = psrPoints.map(p => `${p.x},${p.y}`).join(' ');
+
+  function Section({title, color, children, h}) {
+    return (
+      <div style={{marginBottom:10}}>
+        <div style={{fontSize:9,fontWeight:700,color,letterSpacing:1,marginBottom:4,opacity:0.8}}>{title}</div>
+        <div style={{position:"relative",height:h,background:P.cardAlt,borderRadius:8,overflow:"hidden"}}>
+          {children}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div style={{background:P.card,borderRadius:12,padding:"8px 10px",border:`1.5px solid ${P.border}`,marginBottom:8}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-        <div style={{fontSize:10,color:P.muted,fontWeight:700,letterSpacing:1}}>MENTAL NET + SCORE TREND</div>
-        <div style={{display:"flex",gap:10,alignItems:"center"}}>
-          <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:10,height:10,borderRadius:2,background:P.green}}/><span style={{fontSize:9,color:P.muted}}>+Net</span></div>
-          <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:10,height:10,borderRadius:2,background:P.red}}/><span style={{fontSize:9,color:P.muted}}>-Net</span></div>
-          <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:16,height:2,background:P.gold,borderRadius:1}}/><span style={{fontSize:9,color:P.muted}}>Score</span></div>
+    <div style={{background:P.card,borderRadius:14,padding:"12px 12px 8px",border:`1.5px solid ${P.border}`,marginBottom:8}}>
+      {/* ── Legend ── */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+        <div style={{fontSize:10,color:P.muted,fontWeight:700,letterSpacing:1}}>ROUND TRENDS</div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:8,height:8,borderRadius:2,background:P.green}}/><span style={{fontSize:9,color:P.muted}}>+Net</span></div>
+          <div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:8,height:8,borderRadius:2,background:P.red}}/><span style={{fontSize:9,color:P.muted}}>-Net</span></div>
+          {hasScore&&<div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:12,height:2,background:P.gold,borderRadius:1}}/><span style={{fontSize:9,color:P.muted}}>Score±</span></div>}
+          {hasPsr&&<div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:12,height:2,background:"#7c3aed",borderRadius:1,borderTop:"1px dashed #7c3aed"}}/><span style={{fontSize:9,color:P.muted}}>PSR%</span></div>}
         </div>
       </div>
 
-      <div style={{position:"relative",height:TOTAL_H}}>
-
-
+      {/* ── Mental Net Bars ── */}
+      <Section title="MENTAL NET" color={P.green} h={BAR_H}>
+        {/* Zero line */}
+        <div style={{position:"absolute",top:"50%",left:0,right:0,height:1,background:P.border,zIndex:1}}/>
         {/* Bars */}
-        <div style={{position:"absolute",top:0,left:0,right:0,bottom:LINE_AREA,display:"flex",gap:2,alignItems:"stretch"}}>
+        <div style={{position:"absolute",inset:0,display:"flex",gap:2,padding:"0 2px"}}>
           {trend.map((t, i) => {
-            const barH = Math.max(4, (Math.abs(t.net) / maxNet) * (BAR_AREA/2 - 6));
+            const barH = Math.max(3, (Math.abs(t.net) / maxNet) * (BAR_HALF - 4));
             const pos = t.net >= 0;
-            const roundsChron = [...rounds].reverse();
-            const round = roundsChron[i] || null;
+            const round = [...rounds].reverse()[i] || null;
             return (
-              <div key={i} style={{flex:1,display:"flex",flexDirection:"column",cursor:round?"pointer":"default",position:"relative"}} onClick={()=>round&&onSelectRound(round)} {...pp()}>
-                {/* label */}
-                <div style={{height:14,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,color:pos?P.green:P.red}}>
-                  {t.net!==0?(t.net>0?"+":"")+t.net:""}
+              <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",cursor:round?"pointer":"default",position:"relative"}} onClick={()=>round&&onSelectRound(round)} {...pp()}>
+                {/* Label */}
+                <div style={{height:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:700,color:pos?P.green:P.red,lineHeight:1}}>
+                  {t.net!==0?(t.net>0?"+":"")+t.net:"0"}
                 </div>
-                {/* positive half */}
-                <div style={{flex:1,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-                  {pos&&<div style={{width:"80%",height:barH,borderRadius:"3px 3px 0 0",background:P.green,opacity:0.9}}/>}
+                {/* Upper half */}
+                <div style={{flex:1,display:"flex",alignItems:"flex-end",justifyContent:"center",width:"100%"}}>
+                  {pos&&<div style={{width:"65%",height:barH,borderRadius:"3px 3px 0 0",background:P.green,opacity:0.85}}/>}
                 </div>
-                {/* midline */}
-                <div style={{height:1,background:P.border,flexShrink:0}}/>
-                {/* negative half */}
-                <div style={{flex:1,display:"flex",alignItems:"flex-start",justifyContent:"center"}}>
-                  {!pos&&<div style={{width:"80%",height:barH,borderRadius:"0 0 3px 3px",background:P.red,opacity:0.9}}/>}
+                {/* Baseline */}
+                <div style={{height:1,background:P.border,width:"100%",flexShrink:0}}/>
+                {/* Lower half */}
+                <div style={{flex:1,display:"flex",alignItems:"flex-start",justifyContent:"center",width:"100%"}}>
+                  {!pos&&<div style={{width:"65%",height:barH,borderRadius:"0 0 3px 3px",background:P.red,opacity:0.85}}/>}
                 </div>
+                <div style={{height:12}}/>
               </div>
             );
           })}
         </div>
+      </Section>
 
-        {/* Score line SVG overlay */}
-        {linePoints.length >= 2 && (
-          <svg style={{position:"absolute",top:0,left:0,width:"100%",height:TOTAL_H,overflow:"visible",pointerEvents:"none"}} viewBox={`0 0 ${svgW} ${TOTAL_H}`} preserveAspectRatio="none">
-            <polyline points={polyline} fill="none" stroke={P.gold} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" opacity="0.9"/>
-            {linePoints.map(p => (
-              <circle key={p.i} cx={p.x} cy={p.y} r="3" fill={P.gold} stroke={P.card} strokeWidth="1.5"/>
+      {/* ── Score to Par ── */}
+      {hasScore&&(
+        <>
+          <Section title="SCORE TO PAR" color={P.gold} h={SCORE_H}>
+            <svg style={{position:"absolute",inset:0,width:"100%",height:SCORE_H,overflow:"visible"}} viewBox={`0 0 ${svgW} ${SCORE_H}`} preserveAspectRatio="none">
+              {minS<=0&&maxS>=0&&<line x1="0" y1={zeroY} x2={svgW} y2={zeroY} stroke={P.border} strokeWidth="1" strokeDasharray="3 3" opacity="0.8"/>}
+              {scorePoints.length>=2&&<polyline points={scorePoly} fill="none" stroke={P.gold} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" opacity="0.9"/>}
+              {scorePoints.map(p=>(
+                <circle key={p.i} cx={p.x} cy={p.y} r="3.5" fill={p.t.scoreToPar<=0?P.green:P.red} stroke={P.card} strokeWidth="1.5"/>
+              ))}
+            </svg>
+            {minS<=0&&maxS>=0&&<div style={{position:"absolute",left:2,top:zeroY-7,fontSize:7,color:P.muted,fontWeight:700,opacity:0.6}}>E</div>}
+          </Section>
+          {/* Score to par values directly under the chart */}
+          <div style={{display:"flex",gap:2,marginTop:-6,marginBottom:8}}>
+            {trend.map((t,i)=>(
+              <div key={i} style={{flex:1,textAlign:"center"}}>
+                {t.scoreToPar!=null
+                  ? <div style={{fontSize:9,fontWeight:700,color:t.scoreToPar<=0?P.green:P.red}}>{t.scoreToPar>0?"+":""}{t.scoreToPar}</div>
+                  : <div style={{fontSize:9,color:"transparent"}}>—</div>
+                }
+              </div>
             ))}
-          </svg>
-        )}
+          </div>
+        </>
+      )}
 
-        {/* Score dots clickable — overlay absolute positioned */}
-        {linePoints.map(p => {
-          const roundsChron = [...rounds].reverse();
-          const round = roundsChron[p.i] || null;
-          return (
-            <div key={p.i}
-              onClick={()=>round&&onSelectRound(round)} {...pp()}
-              style={{position:"absolute",left:`calc(${(p.i/n)*100}% + ${colW/2/svgW*100*1}%)`,top:p.y-10,width:20,height:20,cursor:"pointer",transform:"translate(-50%,-50%)",zIndex:10}}
-              title={`${p.t.stroke} strokes — tap for breakdown`}
-            />
-          );
-        })}
-      </div>
+      {/* ── PSR% ── */}
+      {hasPsr&&(
+        <>
+          <Section title="PRE-SHOT ROUTINE %" color="#7c3aed" h={PSR_H}>
+            <svg style={{position:"absolute",inset:0,width:"100%",height:PSR_H,overflow:"visible"}} viewBox={`0 0 ${svgW} ${PSR_H}`} preserveAspectRatio="none">
+              {psrPoints.length>=2&&<polyline points={psrPoly} fill="none" stroke="#7c3aed" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" opacity="0.9" strokeDasharray="5 3"/>}
+              {psrPoints.map(p=>(
+                <circle key={p.i} cx={p.x} cy={p.y} r="3" fill="#7c3aed" stroke={P.card} strokeWidth="1.5" opacity="0.9"/>
+              ))}
+            </svg>
+          </Section>
+          {/* PSR values directly under chart */}
+          <div style={{display:"flex",gap:2,marginTop:-6,marginBottom:8}}>
+            {trend.map((t,i)=>(
+              <div key={i} style={{flex:1,textAlign:"center"}}>
+                {t.psrPct!=null
+                  ? <div style={{fontSize:9,fontWeight:700,color:"#7c3aed"}}>{t.psrPct}%</div>
+                  : <div style={{fontSize:9,color:"transparent"}}>—</div>
+                }
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
-      {/* Date labels + score labels */}
-      <div style={{display:"flex",gap:2,marginTop:1}}>
+      {/* ── Date labels ── */}
+      <div style={{display:"flex",gap:2}}>
         {trend.map((t,i)=>(
           <div key={i} style={{flex:1,textAlign:"center"}}>
-            <div style={{fontSize:9,color:P.muted,fontWeight:500,lineHeight:1.2}}>{t.label}</div>
-            {t.stroke&&<div style={{fontSize:9,color:P.gold,fontWeight:700}}>{t.stroke}</div>}
+            <div style={{fontSize:9,color:P.muted,fontWeight:500}}>{t.label}</div>
           </div>
         ))}
       </div>
-      <div style={{fontSize:10,color:P.muted,marginTop:6,textAlign:"center",fontWeight:500}}>Tap any bar or score to see round breakdown</div>
+      <div style={{fontSize:10,color:P.muted,marginTop:5,textAlign:"center",fontWeight:500,opacity:0.7}}>
+        {totalRounds>12?`Showing last 12 of ${totalRounds} rounds · see History for all`:"Tap any bar to see round breakdown"}
+      </div>
     </div>
   );
 }
 
-// ═══════════════════════════════════════
+
 // ROUND DETAIL VIEW (from dashboard tap)
 // ═══════════════════════════════════════
 function RoundDetailView({round, onBack, onShare, S}) {
@@ -6875,7 +7627,7 @@ function TransformView({onBack,S,P}) {
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
 
             {/* Book */}
-            <button onClick={()=>openUrl("https://a.co/d/0j8TEXmJ")} {...pp()} style={{width:"100%",padding:"12px 14px",borderRadius:12,background:"linear-gradient(135deg,#1a2b4a,#2563eb)",display:"flex",alignItems:"center",gap:12,textAlign:"left",border:"none",cursor:"pointer",boxSizing:"border-box"}}>
+            <button onClick={()=>openUrl("https://mentalgolfbook.com/")} {...pp()} style={{width:"100%",padding:"12px 14px",borderRadius:12,background:"linear-gradient(135deg,#1a2b4a,#2563eb)",display:"flex",alignItems:"center",gap:12,textAlign:"left",border:"none",cursor:"pointer",boxSizing:"border-box"}}>
               <img src="https://m.media-amazon.com/images/I/71Q2HxFnTRL._SY160.jpg" alt="The Most Important Game" style={{width:40,height:58,objectFit:"cover",borderRadius:6,flexShrink:0,boxShadow:"0 2px 8px rgba(0,0,0,0.4)"}} onError={e=>{e.target.style.display="none";}}/>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.6)",letterSpacing:1,marginBottom:2,textTransform:"uppercase"}}>The Book</div>
@@ -6883,15 +7635,6 @@ function TransformView({onBack,S,P}) {
                 <div style={{fontSize:11,color:"rgba(255,255,255,0.7)"}}>Play Better. Struggle Less. Enjoy More.</div>
               </div>
               <span style={{fontSize:14,color:"rgba(255,255,255,0.7)",flexShrink:0}}>→</span>
-            </button>
-
-            {/* Course */}
-            <button onClick={()=>openUrl("https://mentalgolfbook.com/get-the-book-237591")} {...pp()} style={{width:"100%",padding:"12px 14px",borderRadius:12,background:"linear-gradient(135deg,#1a3a5c,#2563eb)",display:"flex",alignItems:"center",justifyContent:"space-between",border:"none",cursor:"pointer",boxSizing:"border-box"}}>
-              <div style={{minWidth:0,textAlign:"left"}}>
-                <div style={{fontSize:13,fontWeight:800,color:"#fff"}}>Rethinking Golf</div>
-                <div style={{fontSize:11,color:"rgba(255,255,255,0.7)",marginTop:2}}>Online Course</div>
-              </div>
-              <span style={{fontSize:14,color:"rgba(255,255,255,0.7)",flexShrink:0,marginLeft:8}}>→</span>
             </button>
 
             {/* 1-on-1 Coaching */}
@@ -6904,7 +7647,7 @@ function TransformView({onBack,S,P}) {
             </button>
 
             {/* Mastermind */}
-            <button onClick={()=>openUrl("https://www.skool.com/paul-monahan-golf-academy-8319/about?ref=78dccfa86ba543cd895a3255f2dab29f")} {...pp()} style={{width:"100%",padding:"13px 16px",borderRadius:12,background:"linear-gradient(135deg,#1a2b4a,#2563eb)",border:"none",color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",boxSizing:"border-box"}}>
+            <button onClick={()=>openUrl("https://mentalgolfbook.com/mastermind-join?utm_source=email&utm_medium=email+marketing&contact_id=1dCK93hN9O4r9zdCWrzJ")} {...pp()} style={{width:"100%",padding:"13px 16px",borderRadius:12,background:"linear-gradient(135deg,#1a2b4a,#2563eb)",border:"none",color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",boxSizing:"border-box"}}>
               <div style={{textAlign:"left"}}>
                 <div style={{fontSize:14,fontWeight:800,color:"#fff"}}>Join the Mastermind</div>
                 <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",marginTop:2}}>Golf Academy Community</div>
@@ -7201,10 +7944,6 @@ function HelpView({onBack, S}) {
           a: "This happens if a course was found but the specific tee you selected doesn't have hole data in our database. Select a different tee, or enter par manually on the scorecard. You can also set a default course and tee in Settings so it pre-fills every time."
         },
         {
-          q: "What does FIR and GIR mean?",
-          a: "FIR is Fairway in Regulation — you hit the fairway off the tee on a par 4 or par 5. GIR is Green in Regulation — you reached the green in the expected number of strokes (par minus 2). These are standard golf statistics that help you identify whether your misses are coming off the tee or into the green."
-        },
-        {
           q: "How is my handicap used?",
           a: "If you enter your handicap in Settings, the scorecard shows your net score alongside your gross score. It does not currently calculate hole-by-hole stroke allowances — that is planned for a future update."
         },
@@ -7304,112 +8043,169 @@ function HelpView({onBack, S}) {
 // ═══════════════════════════════════════
 // PAYWALL
 // ═══════════════════════════════════════
-function PaywallView({onUnlock, onBack, P, S}) {
+// ═══════════════════════════════════════
+// SHARE VIEW
+// ═══════════════════════════════════════
+function ShareView({onBack, P}) {
+  const [shared, setShared] = React.useState(false);
+  const APP_URL = "https://mental-game-scorecard.netlify.app";
+  const shareText = `I've been tracking my mental game hole by hole with Mental Game Scorecard — Heroes vs Bandits, every round. Check it out: ${APP_URL}`;
+
+  async function handleShare() {
+    try {
+      if(navigator.share) {
+        await navigator.share({ title:"Mental Game Scorecard", text:shareText, url:APP_URL });
+        setShared(true);
+      } else {
+        await navigator.clipboard.writeText(shareText);
+        setShared(true);
+      }
+    } catch(e) { if(e?.name!=="AbortError") { try{await navigator.clipboard.writeText(shareText);setShared(true);}catch{} } }
+  }
+
+  return (
+    <div style={{height:"100%",display:"flex",flexDirection:"column",background:`linear-gradient(170deg,${PM_NAVY} 0%,#0d1f0f 60%,#0a1a0d 100%)`,maxWidth:480,margin:"0 auto",position:"relative",overflow:"hidden"}}>
+      <button onClick={onBack} {...pp()} style={{position:"absolute",top:16,left:16,zIndex:10,width:36,height:36,borderRadius:"50%",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M11 4L6 9l5 5" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+      </button>
+      <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"0 32px",textAlign:"center"}}>
+        <div style={{opacity:0.1,marginBottom:24}}>
+          <img src={HEROES_LOGO_WHITE} alt="" style={{width:120,height:120,objectFit:"contain"}}/>
+        </div>
+        <div style={{fontSize:11,fontWeight:800,letterSpacing:3,color:PM_GOLD,marginBottom:12}}>TAP TO SHARE</div>
+        <div style={{fontSize:26,fontWeight:900,color:"#fff",lineHeight:1.2,marginBottom:12}}>Bring a Friend<br/>to the Game</div>
+        <div style={{fontSize:14,color:"rgba(255,255,255,0.5)",lineHeight:1.6,marginBottom:36,maxWidth:280}}>
+          Share Mental Game Scorecard with your playing partners and help them play better too.
+        </div>
+        <button onClick={handleShare} {...pp()} style={{
+          width:"100%",maxWidth:320,padding:"18px",borderRadius:16,
+          background:shared?"rgba(74,222,128,0.15)":"linear-gradient(135deg,#16a34a,#22c55e)",
+          border:shared?"1.5px solid rgba(74,222,128,0.4)":"none",
+          color:"#fff",fontSize:16,fontWeight:800,cursor:"pointer",
+          boxShadow:shared?"none":"0 4px 28px rgba(22,163,74,0.35)",
+          transition:"all 0.3s",marginBottom:16,
+        }}>
+          {shared?"✓ Shared!":"Share Your Invite"}
+        </button>
+        <div style={{fontSize:12,color:"rgba(255,255,255,0.3)",lineHeight:1.6,maxWidth:260}}>
+          Opens your share sheet or copies the link to clipboard
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PaywallView({onUnlock, onBack, onPrivacy, P, S}) {
   const [selected, setSelected] = React.useState("annual");
   const [loading, setLoading] = React.useState(false);
   const dm = P.bg === "#09090b";
 
   const plans = {
-    monthly: { label:"Monthly", price:"$4.99", sub:"/month", total:"$4.99/mo", save:null },
-    annual:  { label:"Annual",  price:"$49.99", sub:"/year", total:"$4.17/mo", save:"SAVE 17%" },
+    monthly: { label:"Monthly", price:"$4.99", sub:"/month", detail:"Billed monthly · Cancel anytime", save:null },
+    annual:  { label:"Annual",  price:"$49.99", sub:"/year", detail:"Just $4.17/mo · Best value", save:"SAVE 17%" },
   };
 
   const features = [
-    { icon:"Shield",  text:"Track Heroes & Bandits every hole" },
-    { icon:"Chart",   text:"Full dashboard & mental trends" },
-    { icon:"Medal",   text:"25 milestone badges across 4 tiers" },
-    { icon:"Brain",   text:"In-game mental caddie tips" },
-    { icon:"Clipboard", text:"Pre-round routine & intention setting" },
-    { icon:"Flag",    text:"Unlimited round history & stats" },
+    "Track Heroes & Bandits hole by hole",
+    "In-Game Caddie mental guidance",
+    "Full dashboard & mental trends",
+    "Round history & stats",
+    "Pre-round mental checklist",
   ];
 
   async function handleSubscribe() {
     setLoading(true);
-    // TODO: replace with Stripe Checkout or Apple IAP call
-    // For now simulates a 1.5s payment flow then unlocks
     await new Promise(r=>setTimeout(r,1500));
     onUnlock(selected);
     setLoading(false);
   }
 
   return (
-    <div style={{height:"100svh",display:"flex",flexDirection:"column",background:P.bg,maxWidth:480,margin:"0 auto",overflow:"hidden",fontFamily:"'Avenir Next','SF Pro Display',-apple-system,sans-serif"}}>
-      {/* Header */}
-      <div style={{background:dm?`linear-gradient(175deg,${PM_NAVY} 0%,#141416 60%,#1c1c1f 100%)`:`linear-gradient(175deg,${PM_NAVY} 0%,#2a3020 100%)`,borderBottom:`2px solid ${PM_GOLD}44`,padding:"16px 20px 20px",flexShrink:0,position:"relative",overflow:"hidden"}}>
-        <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",border:"1px solid rgba(255,255,255,0.04)"}}/>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
-          <div style={{width:40}}/>
-          <div style={{fontSize:11,fontWeight:700,letterSpacing:2,color:"rgba(255,255,255,0.4)"}}>MENTAL GAME PRO</div>
-          <button onClick={onBack} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:"5px 12px",fontSize:11,fontWeight:600,color:"rgba(255,255,255,0.4)",cursor:"pointer"}}>Later</button>
+    <div style={{height:"100%",display:"flex",flexDirection:"column",background:`linear-gradient(170deg,${PM_NAVY} 0%,#0d1f0f 60%,#0a1a0d 100%)`,maxWidth:480,margin:"0 auto",overflow:"hidden",position:"relative"}}>
+
+      {/* Close button */}
+      <button onClick={onBack} {...pp()} style={{position:"absolute",top:16,right:16,zIndex:10,width:36,height:36,borderRadius:"50%",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="rgba(255,255,255,0.5)" strokeWidth="2" strokeLinecap="round"/></svg>
+      </button>
+
+      {/* Hero section */}
+      <div style={{padding:"52px 28px 24px",flexShrink:0,position:"relative",overflow:"hidden",textAlign:"center"}}>
+        {/* Shield watermark */}
+        <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",opacity:0.05,pointerEvents:"none"}}>
+          <img src={HEROES_LOGO_WHITE} alt="" style={{width:220,height:220,objectFit:"contain"}}/>
         </div>
-        <div style={{fontSize:26,fontWeight:900,color:"#fff",letterSpacing:-0.5,lineHeight:1.15,marginBottom:6}}>Unlock Your{"\n"}Mental Game</div>
-        <div style={{fontSize:13,color:"rgba(255,255,255,0.5)",lineHeight:1.5}}>The only golf app built around how you think, not just how you score.</div>
+        {/* Gold accent line */}
+        <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${PM_GOLD}66,transparent)`}}/>
+        <div style={{fontSize:22,fontWeight:800,letterSpacing:3,color:PM_GOLD,marginBottom:8,opacity:0.95}}>MENTAL GAME SCORECARD</div>
+        <div style={{fontSize:18,fontWeight:900,color:"#fff",letterSpacing:-0.5,lineHeight:1.2,marginBottom:6}}>
+          Play Better. Struggle Less.<br/><span style={{color:"#4ade80"}}>Enjoy More.</span>
+        </div>
+        <div style={{fontSize:12,color:"rgba(255,255,255,0.4)",lineHeight:1.5}}>The scorecard for your mental game.</div>
       </div>
 
-      {/* Scrollable content */}
-      <div style={{flex:1,overflowY:"auto",padding:"16px 20px"}}>
-        {/* Features */}
-        <div style={{marginBottom:16}}>
-          {features.map((f,i)=>{
-            const Ic = Icons[f.icon];
-            return (
-              <div key={i} style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
-                <div style={{width:32,height:32,borderRadius:9,background:"#16a34a18",border:"1.5px solid #16a34a33",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  <Ic color="#16a34a" size={15}/>
-                </div>
-                <span style={{fontSize:14,color:P.white,fontWeight:500}}>{f.text}</span>
-              </div>
-            );
-          })}
-        </div>
+      {/* Features — fill remaining space evenly */}
+      <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",padding:"0 24px"}}>
+        {features.map((f,i)=>(
+          <div key={i} style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
+            <div style={{width:20,height:20,borderRadius:"50%",background:"rgba(74,222,128,0.12)",border:"1.5px solid rgba(74,222,128,0.35)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <svg width="9" height="7" viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <span style={{fontSize:14,color:"rgba(255,255,255,0.85)",fontWeight:500,lineHeight:1.4}}>{f}</span>
+          </div>
+        ))}
+      </div>
 
-        {/* Plan selector */}
-        <div style={{display:"flex",gap:10,marginBottom:16}}>
+      {/* Plan selector + CTA — always visible */}
+      <div style={{padding:"12px 20px 0",flexShrink:0}}>
+        {/* Plan pills */}
+        <div style={{display:"flex",gap:10,marginBottom:12}}>
           {Object.entries(plans).map(([key, plan])=>(
-            <button key={key} onClick={()=>setSelected(key)} {...pressProps()} style={{
-              flex:1,padding:"14px 10px",borderRadius:14,cursor:"pointer",textAlign:"center",
-              border:`2px solid ${selected===key?"#16a34a":P.border}`,
-              background:selected===key?"#16a34a12":P.card,
+            <button key={key} onClick={()=>setSelected(key)} {...pp()} style={{
+              flex:1,padding:"12px 10px",borderRadius:14,cursor:"pointer",textAlign:"center",
+              border:`2px solid ${selected===key?"#4ade80":"rgba(255,255,255,0.1)"}`,
+              background:selected===key?"rgba(74,222,128,0.08)":"rgba(255,255,255,0.03)",
               transition:"all 0.15s",position:"relative",
             }}>
               {plan.save&&<div style={{position:"absolute",top:-10,left:"50%",transform:"translateX(-50%)",background:"#16a34a",color:"#fff",fontSize:9,fontWeight:800,padding:"2px 8px",borderRadius:20,letterSpacing:1,whiteSpace:"nowrap"}}>{plan.save}</div>}
-              <div style={{fontSize:11,fontWeight:700,color:selected===key?"#16a34a":P.muted,marginBottom:4}}>{plan.label}</div>
-              <div style={{fontSize:22,fontWeight:900,color:P.white,lineHeight:1}}>{plan.price}</div>
-              <div style={{fontSize:10,color:P.muted,marginTop:2}}>{plan.sub}</div>
-              {plan.total!==plan.price+plan.sub&&<div style={{fontSize:10,color:"#16a34a",fontWeight:600,marginTop:4}}>{plan.total}</div>}
+              <div style={{fontSize:11,fontWeight:700,color:selected===key?"#4ade80":"rgba(255,255,255,0.35)",marginBottom:2,letterSpacing:0.5}}>{plan.label.toUpperCase()}</div>
+              <div style={{fontSize:22,fontWeight:900,color:"#fff",lineHeight:1}}>{plan.price}</div>
+              <div style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginTop:2}}>{plan.sub}</div>
+              <div style={{fontSize:10,color:selected===key?"#4ade80":"rgba(255,255,255,0.3)",fontWeight:600,marginTop:2}}>{plan.detail}</div>
             </button>
           ))}
         </div>
-
-        {/* Legal */}
-        <div style={{fontSize:10,color:P.muted,textAlign:"center",lineHeight:1.6,marginBottom:8}}>
-          Subscription auto-renews. Cancel anytime in your App Store settings.{"\n"}
-          By subscribing you agree to our{" "}
-          <span style={{color:"#16a34a",fontWeight:600,cursor:"pointer"}} onClick={()=>onPrivacy&&onPrivacy()}>Terms</span>
-          {" & "}
-          <span style={{color:"#16a34a",fontWeight:600,cursor:"pointer"}} onClick={()=>onPrivacy&&onPrivacy()}>Privacy Policy</span>.
-        </div>
-      </div>
-
-      {/* CTA */}
-      <div style={{padding:"12px 20px 28px",flexShrink:0,borderTop:`1px solid ${P.border}`,background:P.bg}}>
-        <button onClick={handleSubscribe} disabled={loading} {...pressProps()} style={{
-          width:"100%",padding:"16px",borderRadius:14,border:"none",
-          background:loading?"#16a34a88":"#16a34a",
+        <button onClick={handleSubscribe} disabled={loading} {...pp()} style={{
+          width:"100%",padding:"17px",borderRadius:16,border:"none",
+          background:loading?"rgba(22,163,74,0.5)":"linear-gradient(135deg,#16a34a,#22c55e)",
           color:"#fff",fontSize:16,fontWeight:800,cursor:loading?"default":"pointer",
-          boxShadow:"0 4px 24px rgba(22,163,74,0.35)",transition:"all 0.2s",
-          display:"flex",alignItems:"center",justifyContent:"center",gap:10,
+          boxShadow:"0 4px 28px rgba(22,163,74,0.35)",transition:"all 0.2s",
+          display:"flex",alignItems:"center",justifyContent:"center",
+          flexDirection:"column",lineHeight:1.2,marginBottom:10,
         }}>
           {loading?(
-            <><div style={{width:16,height:16,borderRadius:"50%",border:"2px solid rgba(255,255,255,0.3)",borderTopColor:"#fff",animation:"spin 0.7s linear infinite"}}/> Processing...</>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <div style={{width:16,height:16,borderRadius:"50%",border:"2px solid rgba(255,255,255,0.3)",borderTopColor:"#fff",animation:"spin 0.7s linear infinite"}}/>
+              Processing...
+            </div>
           ):(
-            `Start ${plans[selected].label} — ${plans[selected].price}`
+            <>
+              <span>Start my free 7 days</span>
+              <span style={{fontSize:11,fontWeight:600,opacity:0.75}}>Don't love it? Pay nothing.</span>
+            </>
           )}
         </button>
-        <div style={{textAlign:"center",marginTop:10,fontSize:11,color:P.muted}}>
-          {selected==="annual"?"$49.99 billed annually":"$4.99 billed monthly"} · Cancel anytime
+
+        {/* Legal */}
+        <div style={{fontSize:10,color:"rgba(255,255,255,0.3)",textAlign:"center",lineHeight:1.6,marginBottom:8}}>
+          7-day free trial, then {selected==="annual"?"$49.99/year":"$4.99/month"}. Cancel anytime.{" "}
+          <span style={{color:"rgba(255,255,255,0.45)",fontWeight:600,cursor:"pointer"}} onClick={()=>onPrivacy&&onPrivacy()}>Terms & Privacy</span>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",paddingBottom:28}}>
+          <button onClick={()=>{}} {...pp()} style={{background:"none",border:"none",fontSize:11,color:"rgba(255,255,255,0.25)",cursor:"pointer",fontWeight:600}}>Restore Purchase</button>
+          <button onClick={()=>onPrivacy&&onPrivacy()} {...pp()} style={{background:"none",border:"none",fontSize:11,color:"rgba(255,255,255,0.25)",cursor:"pointer",fontWeight:600}}>Terms & Conditions</button>
         </div>
       </div>
+
       <style>{`@keyframes spin{to{transform:rotate(360deg);}}`}</style>
     </div>
   );
@@ -7418,7 +8214,7 @@ function PaywallView({onUnlock, onBack, P, S}) {
 // ═══════════════════════════════════════
 // ONBOARDING
 // ═══════════════════════════════════════
-function OnboardingFlow({onFinish,onPrivacy,P,S,communityProfile}){
+function OnboardingFlow({onFinish,onPrivacy,P,S}){
   const [cur,setCur]=useState(0); const [dir,setDir]=useState(1);
   const dm = P.bg === "#09090b";
   const qb={padding:"14px 16px",borderRadius:12,background:dm?"#141416":P.cardAlt,border:`1px solid ${PM_GOLD}44`,marginBottom:10};
@@ -7461,7 +8257,7 @@ function OnboardingFlow({onFinish,onPrivacy,P,S,communityProfile}){
       <div style={bodyText}>After each hole, take 10 seconds. Which Heroes showed up? Which Bandits crept in? Tap them. Then log your stats.</div>
       <div style={qb}><div style={qt}>"Bring awareness of your mental and emotional state to the course, and you can improve how you play."</div><div style={{fontSize:11,fontWeight:700,color:P.muted,marginTop:6}}>— Paul Monahan</div></div>
       <div style={sectionLabel}>LOG EVERY HOLE</div>
-      {[{IcN:"Heart",c:"#f87171",label:"Heroes & Bandits",desc:"Tap which mental forces were active. Both sides matter."},{IcN:"Flag",c:"#34d87a",label:"Score + Putts",desc:"Par, stroke score, and putts per hole."},{IcN:"Target",c:"#60a5fa",label:"FIR + GIR",desc:"Fairway in Regulation and Green in Regulation."},{IcN:"Note",c:"#fbbf24",label:"Hole Notes",desc:"Quick note on what you felt or what happened."}].map((f,i)=>{const FIc=Icons[f.IcN];return(
+      {[{IcN:"Heart",c:"#f87171",label:"Heroes & Bandits",desc:"Tap which mental forces were active. Both sides matter."},{IcN:"Flag",c:"#34d87a",label:"Score + Putts",desc:"Par, stroke score, and putts per hole."},{IcN:"Note",c:"#fbbf24",label:"Hole Notes",desc:"Quick note on what you felt or what happened."}].map((f,i)=>{const FIc=Icons[f.IcN];return(
         <div key={i} style={itemCard}><div style={iconBox}><FIc color={f.c} size={14}/></div><div><div style={{fontSize:13,fontWeight:700,color:P.white}}>{f.label}</div><div style={{fontSize:12,color:P.muted,marginTop:2,lineHeight:1.35}}>{f.desc}</div></div></div>
       );})}
       <div style={{marginTop:10,padding:"10px 14px",borderRadius:12,background:P.cardAlt,border:`1.5px solid ${P.border}`}}>
@@ -7476,7 +8272,7 @@ function OnboardingFlow({onFinish,onPrivacy,P,S,communityProfile}){
       <div style={bodyText}>After saving your round, you'll see your complete scorecard with all stats, then a dashboard that reveals your mental patterns across every round you've played.</div>
       <div style={qb}><div style={qt}>"See the outcomes of your shots as feedback, not failure."</div><div style={{fontSize:11,fontWeight:700,color:P.muted,marginTop:6}}>— Paul Monahan</div></div>
       <div style={sectionLabel}>DASHBOARD ANALYTICS</div>
-      {[{IcN:"Chart",c:"#34d87a",label:"Mental Net Trend",desc:"Your net score over time. See if you're improving."},{IcN:"Brain",c:"#60a5fa",label:"Mental Recovery Rate",desc:"After a bandit hole, how often do you bounce back?"},{IcN:"Shield",c:"#34d87a",label:"Hero Activation Rate",desc:"Which heroes show up — and which need more work?"},{IcN:"Flag",c:"#60a5fa",label:"Front 9 vs Back 9",desc:"Where do you tend to collapse or catch fire mentally?"},{IcN:"Target",c:"#a78bfa",label:"Shot Quality",desc:"FIR%, GIR%, avg putts, 1-putt and 3-putt rates."},{IcN:"Skull",c:"#f87171",label:"Bandit Combos",desc:"Which bandits tend to appear together on the same hole?"}].map((f,i)=>{const DIc=Icons[f.IcN];return(
+      {[{IcN:"Chart",c:"#34d87a",label:"Mental Net Trend",desc:"Your net score over time. See if you're improving."},{IcN:"Brain",c:"#60a5fa",label:"Mental Recovery Rate",desc:"After a bandit hole, how often do you bounce back?"},{IcN:"Shield",c:"#34d87a",label:"Hero Activation Rate",desc:"Which heroes show up — and which need more work?"},{IcN:"Flag",c:"#60a5fa",label:"Front 9 vs Back 9",desc:"Where do you tend to collapse or catch fire mentally?"},{IcN:"Target",c:"#a78bfa",label:"Shot Quality",desc:"GIR%, avg putts, 1-putt and 3-putt rates."},{IcN:"Skull",c:"#f87171",label:"Bandit Combos",desc:"Which bandits tend to appear together on the same hole?"}].map((f,i)=>{const DIc=Icons[f.IcN];return(
         <div key={i} style={itemCard}><div style={iconBox}><DIc color={f.c} size={13}/></div><div><div style={{fontSize:13,fontWeight:700,color:P.white}}>{f.label}</div><div style={{fontSize:12,color:P.muted,marginTop:1,lineHeight:1.35}}>{f.desc}</div></div></div>
       );})}
       <div style={{marginTop:10,padding:"10px 14px",borderRadius:12,background:P.cardAlt,border:`1.5px solid ${P.border}`}}>
@@ -7520,7 +8316,7 @@ function OnboardingFlow({onFinish,onPrivacy,P,S,communityProfile}){
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
 
           {/* Book */}
-          <button onClick={()=>openUrl("https://a.co/d/0j8TEXmJ")} {...pp()} style={{width:"100%",padding:"12px 14px",borderRadius:12,border:`1.5px solid ${P.border}`,background:P.cardAlt,cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
+          <button onClick={()=>openUrl("https://mentalgolfbook.com/")} {...pp()} style={{width:"100%",padding:"12px 14px",borderRadius:12,border:`1.5px solid ${P.border}`,background:P.cardAlt,cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
             <img src="https://m.media-amazon.com/images/I/71Q2HxFnTRL._SY160.jpg" alt="The Most Important Game" style={{width:44,height:64,objectFit:"cover",borderRadius:6,flexShrink:0,boxShadow:"0 2px 8px rgba(0,0,0,0.3)"}} onError={e=>{e.target.style.display="none";}}/>
             <div style={{flex:1}}>
               <div style={{fontSize:11,fontWeight:700,color:P.muted,letterSpacing:1,marginBottom:2,textTransform:"uppercase"}}>The Book</div>
@@ -7530,14 +8326,8 @@ function OnboardingFlow({onFinish,onPrivacy,P,S,communityProfile}){
             <span style={{fontSize:16,color:P.muted,opacity:0.5}}>→</span>
           </button>
 
-          {/* Course */}
-          <button onClick={()=>{ openUrl("https://paulmonahan.com"); }} style={{width:"100%",padding:"13px 16px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#1a3a5c,#2563eb)",color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-            <span style={{fontSize:13}}>Rethinking Golf — Online Course</span>
-            <span style={{fontSize:16,opacity:0.8}}>→</span>
-          </button>
-
           {/* Mastermind */}
-          <button onClick={()=>openUrl("https://www.skool.com/paul-monahan-golf-academy-8319/about?ref=78dccfa86ba543cd895a3255f2dab29f")} {...pp()} style={{width:"100%",padding:"13px 16px",borderRadius:12,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:14,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:0.2}}>
+          <button onClick={()=>openUrl("https://mentalgolfbook.com/mastermind-join?utm_source=email&utm_medium=email+marketing&contact_id=1dCK93hN9O4r9zdCWrzJ")} {...pp()} style={{width:"100%",padding:"13px 16px",borderRadius:12,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:14,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:0.2}}>
             <span>Join the Mastermind</span>
             <span style={{fontSize:16,opacity:0.5}}>→</span>
           </button>
@@ -7554,7 +8344,8 @@ function OnboardingFlow({onFinish,onPrivacy,P,S,communityProfile}){
 
   // Profile slide state
   const [profileEmail, setProfileEmail] = React.useState("");
-  const [profileName, setProfileName] = React.useState("");
+  const [profileFirstName, setProfileFirstName] = React.useState("");
+  const [profileLastName, setProfileLastName] = React.useState("");
   const [profileSubmitting, setProfileSubmitting] = React.useState(false);
   const [profileDone, setProfileDone] = React.useState(false);
 
@@ -7564,7 +8355,7 @@ function OnboardingFlow({onFinish,onPrivacy,P,S,communityProfile}){
     const uid = (() => { try { let id=localStorage.getItem("mgp_uid"); if(!id){id="user_"+Math.random().toString(36).slice(2,10);localStorage.setItem("mgp_uid",id);} return id; } catch { return "anon"; } })();
     const profile = {
       email: profileEmail.trim().toLowerCase()||null,
-      name: profileName.trim()||null,
+      name: [profileFirstName.trim(), profileLastName.trim()].filter(Boolean).join(" ") || null,
       joinedAt: new Date().toISOString(),
       uid,
       source: "onboarding",
@@ -7578,52 +8369,35 @@ function OnboardingFlow({onFinish,onPrivacy,P,S,communityProfile}){
   }
 
   function ProfileSlide() {
+    const { isSignedIn, user } = window.__useUser ? window.__useUser() : {};
     return (
       <div>
-        {profileDone ? (
+        {isSignedIn ? (
           <div style={{textAlign:"center",padding:"30px 0"}}>
-            
-            <div style={{fontSize:18,fontWeight:900,color:P.white,marginBottom:8}}>You're all set!</div>
-            <div style={{fontSize:13,color:P.muted,lineHeight:1.6}}>Your progress will sync across devices. Paul will send you insights tailored to your mental game.</div>
+            <div style={{width:52,height:52,borderRadius:15,background:P.green+"18",border:`1.5px solid ${P.green}44`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}><Icons.Check color={P.green} size={24}/></div>
+            <div style={{fontSize:18,fontWeight:900,color:P.white,marginBottom:8}}>You're signed in!</div>
+            <div style={{fontSize:13,color:P.muted,lineHeight:1.6}}>Welcome, {user?.firstName||"golfer"}. Your rounds will sync across devices and Paul will send you personalized insights.</div>
           </div>
         ) : (
           <>
             <div style={{fontSize:14,color:P.muted,lineHeight:1.7,marginBottom:16}}>
-              Create a free profile to <span style={{color:P.white,fontWeight:700}}>save your rounds to the cloud</span>, sync across devices, and receive personalized mental game insights from Paul.
+              Create a free account to <span style={{color:P.white,fontWeight:700}}>save your rounds to the cloud</span>, sync across devices, and receive personalized mental game insights from Paul.
             </div>
-            {/* Value cards */}
             <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:16}}>
               {[
-                {icon:"", title:"Cloud backup", desc:"Your rounds are safe, even if you change phones."},
-                {icon:"", title:"Personalized insights", desc:"Paul sends coaching content matched to your Heroes & Bandits."},
-                {icon:"", title:"Track your journey", desc:"See how your mental game improves over time."},
+                {title:"Cloud backup", desc:"Your rounds are safe, even if you change phones."},
+                {title:"Personalized insights", desc:"Paul sends coaching content matched to your Heroes & Bandits."},
+                {title:"Track your journey", desc:"See how your mental game improves over time."},
               ].map((f,i)=>(
                 <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"8px 10px",borderRadius:10,background:P.card,border:`1px solid ${P.border}`}}>
-                  <span style={{fontSize:18,flexShrink:0}}>{f.icon}</span>
+                  <Icons.Check color={PM_GOLD} size={13} style={{marginTop:2,flexShrink:0}}/>
                   <div><div style={{fontSize:12,fontWeight:700,color:P.white}}>{f.title}</div><div style={{fontSize:11,color:P.muted,marginTop:1}}>{f.desc}</div></div>
                 </div>
               ))}
             </div>
-            {/* Form */}
-            <input
-              value={profileName}
-              onChange={e=>setProfileName(e.target.value)}
-              placeholder="First name"
-              style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",marginBottom:8}}
-            />
-            <input
-              value={profileEmail}
-              onChange={e=>setProfileEmail(e.target.value)}
-              placeholder="Email address"
-              inputMode="email"
-              autoCapitalize="none"
-              autoComplete="email"
-              style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",marginBottom:10}}
-            />
             <div style={{fontSize:10,color:P.muted,lineHeight:1.5,textAlign:"center"}}>
-              By continuing you agree to Paul Monahan Golf's{" "}
+              Free forever. By continuing you agree to Paul Monahan Golf's{" "}
               <span style={{color:PM_GOLD,cursor:"pointer"}} onClick={()=>onPrivacy&&onPrivacy()}>Privacy Policy</span>.
-              Your mental game data personalizes your experience.
             </div>
           </>
         )}
@@ -7638,59 +8412,12 @@ function OnboardingFlow({onFinish,onPrivacy,P,S,communityProfile}){
     {IconKey:"FlagHole",iconColor:"#60a5fa",title:"Playing Your Round",subtitle:"The Mental Scorecard",render:()=><Slide3/>},
     {IconKey:"Brain",iconColor:"#a78bfa",title:"Your In-Game Caddie",subtitle:"Wisdom on Demand",render:()=><CaddieExample/>},
     {IconKey:"Chart",iconColor:"#34d87a",title:"Review & Grow",subtitle:"After Your Round",render:()=><Slide5/>},
-    {IconKey:"Shield",iconColor:PM_GOLD,title:"Create Your Profile",subtitle:"Save Your Progress",render:()=>(
-      <div>
-        {profileDone ? (
-          <div style={{textAlign:"center",padding:"30px 0"}}>
-            <div style={{fontSize:18,fontWeight:900,color:P.white,marginBottom:8}}>You're all set!</div>
-            <div style={{fontSize:13,color:P.muted,lineHeight:1.6}}>Your progress will sync across devices. Paul will send you insights tailored to your mental game.</div>
-          </div>
-        ) : (
-          <>
-            <div style={{fontSize:14,color:P.muted,lineHeight:1.7,marginBottom:16}}>
-              Create a free profile to <span style={{color:P.white,fontWeight:700}}>save your rounds to the cloud</span>, sync across devices, and receive personalized mental game insights from Paul.
-            </div>
-            <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:16}}>
-              {[
-                {icon:"", title:"Cloud backup", desc:"Your rounds are safe, even if you change phones."},
-                {icon:"", title:"Personalized insights", desc:"Paul sends coaching content matched to your Heroes & Bandits."},
-                {icon:"", title:"Track your journey", desc:"See how your mental game improves over time."},
-              ].map((f,i)=>(
-                <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"8px 10px",borderRadius:10,background:P.card,border:`1px solid ${P.border}`}}>
-                  <span style={{fontSize:18,flexShrink:0}}>{f.icon}</span>
-                  <div><div style={{fontSize:12,fontWeight:700,color:P.white}}>{f.title}</div><div style={{fontSize:11,color:P.muted,marginTop:1}}>{f.desc}</div></div>
-                </div>
-              ))}
-            </div>
-            <input
-              value={profileName}
-              onChange={e=>setProfileName(sanitiseName(e.target.value))}
-              placeholder="First name"
-              style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",marginBottom:8}}
-            />
-            <input
-              value={profileEmail}
-              onChange={e=>setProfileEmail(sanitiseEmail(e.target.value))}
-              placeholder="Email address"
-              inputMode="email"
-              autoCapitalize="none"
-              autoComplete="email"
-              style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",marginBottom:10}}
-            />
-            <div style={{fontSize:10,color:P.muted,lineHeight:1.5,textAlign:"center"}}>
-              By continuing you agree to Paul Monahan Golf's{" "}
-              <span style={{color:PM_GOLD,cursor:"pointer"}} onClick={()=>onPrivacy&&onPrivacy()}>Privacy Policy</span>.
-              Your mental game data personalizes your experience.
-            </div>
-          </>
-        )}
-      </div>
-    ),skip:!!communityProfile?.email},
+    {IconKey:"Shield",iconColor:PM_GOLD,title:"Create Your Profile",subtitle:"Save Your Progress",render:()=><ProfileSlide/>},
   ];
   const activeSlides=slides.filter(s=>!s.skip);
-  const slide=activeSlides[cur]; const isLast=cur===activeSlides.length-1; const isProfile=isLast&&!communityProfile?.email; const Ic=Icons[slide.IconKey];
+  const slide=activeSlides[cur]; const isLast=cur===activeSlides.length-1; const { isSignedIn:clerkSignedIn } = window.__useUser ? window.__useUser() : {}; const isProfile=isLast; const Ic=Icons[slide.IconKey];
 
-  return <div style={{height:"100svh",display:"flex",flexDirection:"column",background:P.bg,fontFamily:"'Avenir Next','SF Pro Display',-apple-system,sans-serif",maxWidth:480,margin:"0 auto",overflow:"hidden"}}>
+  return <div style={{height:"100%",display:"flex",flexDirection:"column",background:P.bg,fontFamily:"'Avenir Next','SF Pro Display',-apple-system,sans-serif",maxWidth:480,margin:"0 auto",overflow:"hidden"}}>
     {/* Header */}
     <div style={{background:dm?`linear-gradient(175deg,${PM_NAVY} 0%,#141416 60%,#1c1c1f 100%)`:`linear-gradient(175deg,${PM_NAVY} 0%,#2a3020 100%)`,borderBottom:`2px solid ${PM_GOLD}44`,padding:"10px 20px 14px",flexShrink:0,position:"relative",overflow:"hidden"}}>
       <div style={{position:"absolute",top:-30,right:-40,width:140,height:140,borderRadius:"50%",border:"1px solid rgba(255,255,255,0.04)"}}/>
@@ -7708,30 +8435,18 @@ function OnboardingFlow({onFinish,onPrivacy,P,S,communityProfile}){
     {/* Slide content */}
     <div key={cur+"c"} style={{flex:1,overflow:"auto",padding:"12px 18px 8px",background:P.bg,animation:`slideIn 0.3s cubic-bezier(0.16,1,0.3,1)`}}>{slide?.render?.()}</div>
     {/* Footer nav */}
-    <div style={{padding:isLast&&!profileDone?"12px 20px 20px":"8px 20px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",borderTop:`1px solid ${P.border}`,background:P.bg,flexShrink:0}}>
-      <button onClick={()=>{if(cur>0){setDir(-1);setCur(c=>c-1);}}} {...pp()} style={{width:42,height:42,borderRadius:12,border:`1.5px solid ${P.border}`,background:P.card,display:"flex",alignItems:"center",justifyContent:"center",cursor:cur===0?"default":"pointer",opacity:(cur===0||profileDone)?0.3:1,flexShrink:0}}><Icons.Back color={P.muted} size={16}/></button>
+    <div style={{padding:isLast?"12px 20px 20px":"8px 20px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",borderTop:`1px solid ${P.border}`,background:P.bg,flexShrink:0}}>
+      <button onClick={()=>{if(cur>0){setDir(-1);setCur(c=>c-1);}}} {...pp()} style={{width:42,height:42,borderRadius:12,border:`1.5px solid ${P.border}`,background:P.card,display:"flex",alignItems:"center",justifyContent:"center",cursor:cur===0?"default":"pointer",opacity:cur===0?0.3:1,flexShrink:0}}><Icons.Back color={P.muted} size={16}/></button>
       <div style={{flex:1,marginLeft:10}}>
       {isLast ? (
-        profileDone ? (
+        clerkSignedIn ? (
           <button onClick={onFinish} {...pp()} style={{width:"100%",padding:"13px",borderRadius:12,background:P.green,border:"none",color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",boxShadow:`0 4px 16px ${P.green}44`}}>Let's Play</button>
-        ) : (()=>{
-          const { isSignedIn } = window.__useUser ? window.__useUser() : {};
-          if (isSignedIn) return (
-            <button onClick={onFinish} {...pp()} style={{width:"100%",padding:"13px",borderRadius:12,background:P.green,border:"none",color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",boxShadow:`0 4px 16px ${P.green}44`}}>Let's Play</button>
-          );
-          return (
-            <div style={{display:"flex",flexDirection:"column",gap:8}}>
-              <button
-                onClick={()=>{ window.__clerkOpenSignUp ? window.__clerkOpenSignUp() : setShowLogin(true); }}
-                style={{width:"100%",padding:"13px",borderRadius:12,background:P.green,border:"none",color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer"}}
-              >Create Free Account →</button>
-              <button
-                onClick={async ()=>{ await submitProfileFromOnboarding(true); onFinish(); }}
-                style={{width:"100%",padding:"12px",borderRadius:12,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:13,fontWeight:600,cursor:"pointer"}}
-              >Continue without account</button>
-            </div>
-          );
-        })()
+        ) : (
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            <button onClick={()=>{ openWithClerk("signUp"); }} style={{width:"100%",padding:"13px",borderRadius:12,background:P.green,border:"none",color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer"}}>Create Free Account →</button>
+            <button onClick={onFinish} style={{width:"100%",padding:"12px",borderRadius:12,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:13,fontWeight:600,cursor:"pointer"}}>Continue without account</button>
+          </div>
+        )
       ) : (
         <button onClick={()=>{setDir(1);setCur(c=>c+1);}} {...pp()} style={{width:"100%",padding:"12px",borderRadius:12,border:"none",background:dm?"#fff":"#0f172a",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}><Icons.Chev color={dm?"#09090b":"#fff"} size={16}/></button>
       )}
