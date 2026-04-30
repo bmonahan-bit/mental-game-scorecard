@@ -97,6 +97,9 @@ function getClerkAppearance(dark) {
       identityPreviewText:           { color: text },
       identityPreviewEditButton:     { color: "#16a34a" },
       otpCodeFieldInput:             { backgroundColor: inputBg, border: `1.5px solid ${border}`, color: text },
+      // Push modal content below the notch on iOS PWA
+      modalContent:                  { marginTop: "env(safe-area-inset-top, 0px)", paddingTop: "max(16px, env(safe-area-inset-top, 16px))", alignItems: "flex-start" },
+      modalBackdrop:                 { paddingTop: "env(safe-area-inset-top, 0px)" },
     },
   };
 }
