@@ -634,11 +634,17 @@ function CourseSearchBar({ P, S, courseName, setCourseName, onCourseLoaded, sele
     full._tees = flattenTees(full);
     setLocalCourseData(full);
     setCourseData(full);
-    // Default to first tee
+    // Use favTee if it matches, otherwise leave unselected for user to pick
     if (full._tees.length > 0) {
-      const firstTee = full._tees[0];
-      setSelectedTee(firstTee.tee_name + (firstTee.gender ? ` (${firstTee.gender})` : ""));
-      onCourseLoaded(full, firstTee.tee_name, firstTee.gender);
+      const favTeeVal = selectedTee || null;
+      const match = favTeeVal
+        ? full._tees.find(t => (t.tee_name + (t.gender ? ` (${t.gender})` : "")) === favTeeVal)
+        : null;
+      if (match) {
+        setSelectedTee(match.tee_name + (match.gender ? ` (${match.gender})` : ""));
+        onCourseLoaded(full, match.tee_name, match.gender);
+      }
+      // No auto-select if no favTee match — user picks from dropdown
     }
   }
 
@@ -1864,9 +1870,9 @@ export default function App() {
         const female = (full.tees?.female||[]).map(t=>({...t,gender:"Female"}));
         full._tees = [...male, ...female];
         setCourseData(full);
-        // Match favTee or fall back to first
+        // Match favTee exactly — no fallback to first tee
         const favTeeVal = settings?.favTee;
-        const tee = full._tees.find(t=>(t.tee_name+(t.gender==="Female"?" (W)":""))===favTeeVal) || full._tees[0];
+        const tee = favTeeVal ? full._tees.find(t=>(t.tee_name+(t.gender==="Female"?" (W)":""))===favTeeVal) : null;
         if (tee) {
           setSelectedTee(tee.tee_name + (tee.gender ? ` (${tee.gender})` : ""));
           if (tee.holes) {
