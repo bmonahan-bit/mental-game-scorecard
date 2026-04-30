@@ -5291,15 +5291,6 @@ function RoundEditView({round, onSave, onBack, S}) {
           </button>
         </div>
 
-        {/* FIR */}
-        {(parseInt(scores[currentHole].par)||0)>=4&&(
-          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0}}>
-            <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700}}>FIR</div>
-            <button onClick={()=>updateField("fairway",scores[currentHole].fairway===true?null:true)} style={{width:40,height:40,borderRadius:8,border:`1.5px solid ${scores[currentHole].fairway===true?P.green:P.border}`,background:scores[currentHole].fairway===true?P.green+"18":"transparent",color:scores[currentHole].fairway===true?P.green:P.muted,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent",flexShrink:0}} {...pp()}>
-              {scores[currentHole].fairway===true?"✓":"—"}
-            </button>
-          </div>
-        )}
 
       </div>
 
