@@ -2303,7 +2303,7 @@ export default function App() {
 
   const nav=(v)=>()=>setView(v);
   function ToastLayer() {
-    return <div style={{position:"fixed",bottom:100,left:"50%",transform:"translateX(-50%)",zIndex:9999,display:"flex",flexDirection:"column",gap:6,alignItems:"center",pointerEvents:"none"}}>
+    return <div style={{position:"fixed",bottom:"calc(100px + env(safe-area-inset-bottom,0px))",left:"50%",transform:"translateX(-50%)",zIndex:9999,display:"flex",flexDirection:"column",gap:6,alignItems:"center",pointerEvents:"none"}}>
       {toasts.map(t=>(
         <div key={t.id} style={{
           padding:"10px 18px",borderRadius:12,fontSize:13,fontWeight:700,
@@ -2338,7 +2338,7 @@ export default function App() {
     if(!showOpenRoundModal) return null;
     const P2 = P;
     return (
-      <div style={{position:"fixed",inset:0,zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",padding:"0 20px"}}>
+      <div style={{position:"fixed",inset:0,zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",padding:"env(safe-area-inset-top,0px) 20px env(safe-area-inset-bottom,0px)"}}>
         <div style={{background:P2.card,borderRadius:20,padding:"24px 20px",width:"100%",maxWidth:360,border:`1.5px solid ${P2.border}`,boxShadow:"0 24px 60px rgba(0,0,0,0.4)"}}>
           <div style={{textAlign:"center",marginBottom:20}}>
             <div style={{width:52,height:52,borderRadius:15,background:P2.gold+"18",border:`1.5px solid ${P2.gold}44`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px"}}>
@@ -2373,7 +2373,7 @@ export default function App() {
   function CancelProModal() {
     if(!showCancelPro) return null;
     return (
-      <div style={{position:"fixed",inset:0,zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",padding:"0 20px"}}>
+      <div style={{position:"fixed",inset:0,zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",padding:"env(safe-area-inset-top,0px) 20px env(safe-area-inset-bottom,0px)"}}>
         <div style={{background:P.card,borderRadius:20,padding:"24px 20px",width:"100%",maxWidth:360,border:`1.5px solid ${P.border}`}}>
           <div style={{textAlign:"center",marginBottom:20}}>
             <div style={{fontSize:18,fontWeight:900,color:P.white,marginBottom:8}}>Cancel Subscription?</div>
@@ -2397,7 +2397,7 @@ export default function App() {
       if(coursePromptCallback) coursePromptCallback()();
     }
     return (
-      <div style={{position:"fixed",inset:0,zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",padding:"0 20px"}}>
+      <div style={{position:"fixed",inset:0,zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",padding:"env(safe-area-inset-top,0px) 20px env(safe-area-inset-bottom,0px)"}}>
         <div style={{background:P.card,borderRadius:16,padding:"24px 20px",width:"100%",maxWidth:360,border:`1.5px solid ${P.border}`}}>
           <div style={{fontSize:16,fontWeight:800,color:P.white,marginBottom:6}}>Which course did you play?</div>
           <div style={{fontSize:12,color:P.muted,marginBottom:14}}>This helps you track your mental performance across different courses.</div>
@@ -2421,7 +2421,7 @@ export default function App() {
   function ProfileGateModal() {
     if(!showProfileGate) return null;
     return (
-      <div onClick={()=>setShowProfileGate(false)} style={{position:"fixed",inset:0,zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.75)",backdropFilter:"blur(10px)",padding:"0 20px"}}>
+      <div onClick={()=>setShowProfileGate(false)} style={{position:"fixed",inset:0,zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.75)",backdropFilter:"blur(10px)",padding:"env(safe-area-inset-top,0px) 20px env(safe-area-inset-bottom,0px)"}}>
         <div onClick={e=>e.stopPropagation()} style={{background:P.card,borderRadius:20,padding:"28px 22px",width:"100%",maxWidth:400,border:`1.5px solid ${PM_GOLD}44`,boxShadow:"0 24px 60px rgba(0,0,0,0.5)"}}>
           <div style={{textAlign:"center",marginBottom:20}}>
             <div style={{width:52,height:52,borderRadius:15,background:PM_GOLD+"18",border:`1.5px solid ${PM_GOLD}44`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}><Icons.Shield color={PM_GOLD} size={24}/></div>
@@ -2456,7 +2456,7 @@ export default function App() {
     function dismiss() { setShowCommunityPrompt(false); }
     const topBandit = (() => { const bt={}; savedRounds.forEach(r=>{if(!r.scores)return;r.scores.forEach(h=>{Object.keys(h.bandits||{}).forEach(k=>{if(h.bandits[k])bt[k]=(bt[k]||0)+1;});});}); return Object.keys(bt).sort((a,b)=>bt[b]-bt[a])[0]||null; })();
     return (
-      <div style={{position:"fixed",inset:0,zIndex:9997,display:"flex",alignItems:"flex-end",justifyContent:"center",background:"rgba(0,0,0,0.6)",backdropFilter:"blur(8px)",padding:"0 0 20px"}}>
+      <div style={{position:"fixed",inset:0,zIndex:9997,display:"flex",alignItems:"flex-end",justifyContent:"center",background:"rgba(0,0,0,0.6)",backdropFilter:"blur(8px)",padding:"0 0 calc(20px + env(safe-area-inset-bottom,0px))"}}>
         <div style={{background:P.card,borderRadius:"20px 20px 16px 16px",padding:"24px 20px 28px",width:"100%",maxWidth:480,border:`1.5px solid ${P.border}`,boxShadow:"0 -20px 60px rgba(0,0,0,0.4)",animation:"slideUpSheet 0.35s cubic-bezier(0.16,1,0.3,1)"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
             <div>
@@ -2489,7 +2489,7 @@ export default function App() {
       try{localStorage.setItem("mgp_rated", rated?"yes":"dismissed");}catch{}
     }
     return (
-      <div style={{position:"fixed",inset:0,zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",padding:"0 20px"}}>
+      <div style={{position:"fixed",inset:0,zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",padding:"env(safe-area-inset-top,0px) 20px env(safe-area-inset-bottom,0px)"}}>
         <div style={{background:P.card,borderRadius:20,padding:"28px 24px",width:"100%",maxWidth:360,border:`1.5px solid ${P.border}`,textAlign:"center"}}>
           
           <div style={{fontSize:20,fontWeight:900,color:P.white,marginBottom:8}}>Enjoying the app?</div>
@@ -2546,7 +2546,7 @@ export default function App() {
 
         {/* Mental Net Info Modal */}
         {showMentalNetInfo&&(
-          <div onClick={()=>setShowMentalNetInfo(false)} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 20px"}}>
+          <div onClick={()=>setShowMentalNetInfo(false)} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"env(safe-area-inset-top,0px) 20px env(safe-area-inset-bottom,0px)"}}>
             <div onClick={e=>e.stopPropagation()} style={{background:P.card,borderRadius:20,padding:"24px 20px",width:"100%",maxWidth:360,border:`1.5px solid ${P.border}`}}>
               <div style={{fontSize:17,fontWeight:900,color:P.white,marginBottom:4}}>Mental Net</div>
               <div style={{fontSize:13,color:P.muted,lineHeight:1.6,marginBottom:14}}>Mental Net = Heroes minus Bandits. It measures how much your mental game helped vs. hurt you this round.</div>
@@ -2571,7 +2571,7 @@ export default function App() {
 
         {/* PSR Info Modal */}
         {showPSRInfo&&(
-          <div onClick={()=>setShowPSRInfo(false)} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 20px"}}>
+          <div onClick={()=>setShowPSRInfo(false)} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"env(safe-area-inset-top,0px) 20px env(safe-area-inset-bottom,0px)"}}>
             <div onClick={e=>e.stopPropagation()} style={{background:P.card,borderRadius:20,padding:"24px 20px",width:"100%",maxWidth:360,border:`1.5px solid ${P.border}`}}>
               <div style={{fontSize:17,fontWeight:900,color:P.white,marginBottom:4}}>Pre-Shot Routine (PSR)</div>
               <div style={{fontSize:13,color:P.muted,lineHeight:1.6,marginBottom:14}}>Your pre-shot routine is the repeatable sequence of actions you take before every shot — alignment, visualization, a breath, a trigger word. It's one of the most powerful tools in your mental game.</div>
@@ -2655,7 +2655,7 @@ export default function App() {
         {streakBanner && (()=>{
           const n=streakBanner.count;
           const tier=n>=6?{bg:"linear-gradient(135deg,#7c3aed,#a78bfa)",label:`${n} in a row — Legendary!`,icon:<Icons.Star color="#fff" size={18}/>}:n>=5?{bg:"linear-gradient(135deg,#ca8a04,#fbbf24)",label:`${n} in a row — Superb!`,icon:<Icons.Bolt color="#fff" size={18}/>}:n>=4?{bg:"linear-gradient(135deg,#dc2626,#f87171)",label:`${n} in a row — Blazing!`,icon:<Icons.Fire color="#fff" size={18}/>}:{bg:"linear-gradient(135deg,#16a34a,#22c55e)",label:`${n} Hero Holes in a Row!`,icon:<Icons.Check color="#fff" size={18}/>};
-          return <div style={{ position:"fixed", top:60, left:"50%", transform:"translateX(-50%)", zIndex:998, background:tier.bg, borderRadius:24, padding:"10px 22px", display:"flex", alignItems:"center", gap:8, boxShadow:"0 8px 28px rgba(0,0,0,0.25)", animation:"streakPop 0.4s cubic-bezier(0.16,1,0.3,1)", whiteSpace:"nowrap" }}>
+          return <div style={{ position:"fixed", top:"calc(60px + env(safe-area-inset-top,0px))", left:"50%", transform:"translateX(-50%)", zIndex:998, background:tier.bg, borderRadius:24, padding:"10px 22px", display:"flex", alignItems:"center", gap:8, boxShadow:"0 8px 28px rgba(0,0,0,0.25)", animation:"streakPop 0.4s cubic-bezier(0.16,1,0.3,1)", whiteSpace:"nowrap" }}>
             {tier.icon}
             <span style={{ fontSize:15, fontWeight:800, color:"#fff", letterSpacing:0.3 }}>{tier.label}</span>
           </div>;
@@ -2692,7 +2692,7 @@ export default function App() {
 
         {/* Mindset Card (scheduled holes 1/4/7/10/13/16) */}
         {mindsetCard&&(
-          <div onClick={()=>{setMindsetCard(null);goToHole(mindsetCard.nextHole);}} style={{position:"fixed",inset:0,zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.65)",backdropFilter:"blur(8px)",animation:"fadeIn 0.25s ease-out"}}>
+          <div onClick={()=>{setMindsetCard(null);goToHole(mindsetCard.nextHole);}} style={{position:"fixed",inset:0,zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.65)",backdropFilter:"blur(8px)",animation:"fadeIn 0.25s ease-out",padding:"env(safe-area-inset-top,0px) 20px env(safe-area-inset-bottom,0px)"}}>
             <div onClick={e=>e.stopPropagation()} style={{background:P.card,borderRadius:20,padding:"24px 22px",width:"88%",maxWidth:360,border:`2px solid ${mindsetCard.cat.color}33`,boxShadow:`0 20px 48px rgba(0,0,0,0.3)`,animation:"cardFlip 0.4s ease-out",textAlign:"center"}}>
               <div style={{fontSize:10,color:mindsetCard.cat.color,fontWeight:800,letterSpacing:2,marginBottom:6,textTransform:"uppercase"}}>Mindset Check</div>
               <div style={{fontSize:16,fontWeight:900,color:P.white,marginBottom:4}}>{mindsetCard.catName}</div>
@@ -2714,7 +2714,7 @@ export default function App() {
           const msg = fNet>=3?"You're playing with the Heroes. Stay in it — the back 9 is yours.":fNet<=-3?"The Bandits have been loud. The back 9 is a clean slate — choose your mindset now.":"Solid front 9. Stay present hole by hole — W.I.N.";
           const color = fNet>0?P.green:fNet<0?P.red:P.gold;
           return (
-            <div onClick={()=>{setShowTurnCheckIn(false);goToHole(9);}} style={{position:"fixed",inset:0,zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.65)",backdropFilter:"blur(8px)",animation:"fadeIn 0.25s ease-out"}}>
+            <div onClick={()=>{setShowTurnCheckIn(false);goToHole(9);}} style={{position:"fixed",inset:0,zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.65)",backdropFilter:"blur(8px)",animation:"fadeIn 0.25s ease-out",padding:"env(safe-area-inset-top,0px) 20px env(safe-area-inset-bottom,0px)"}}>
               <div onClick={e=>e.stopPropagation()} style={{background:P.card,borderRadius:20,padding:"24px 22px",width:"88%",maxWidth:360,border:`2px solid ${color}33`,boxShadow:"0 20px 48px rgba(0,0,0,0.3)",animation:"cardFlip 0.4s ease-out",textAlign:"center"}}>
                 <div style={{fontSize:10,color:P.muted,fontWeight:800,letterSpacing:2,marginBottom:6}}>THE TURN</div>
                 <div style={{fontSize:17,fontWeight:900,color:P.white,marginBottom:14}}>Halfway There</div>
@@ -2743,7 +2743,7 @@ export default function App() {
 
         {/* Caddie Card Overlay */}
         {caddieCard && (
-          <div style={{position:"fixed",inset:0,zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.5)",backdropFilter:"blur(6px)",animation:"fadeIn 0.2s ease-out"}} onClick={dismissCaddieCard}>
+          <div style={{position:"fixed",inset:0,zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.5)",backdropFilter:"blur(6px)",animation:"fadeIn 0.2s ease-out",padding:"env(safe-area-inset-top,0px) 20px env(safe-area-inset-bottom,0px)"}} onClick={dismissCaddieCard}>
             <div onClick={e=>e.stopPropagation()} style={{background:P.card,borderRadius:16,padding:24,width:"88%",maxWidth:360,border:`2px solid ${caddieCard.color}22`,boxShadow:`0 20px 40px rgba(0,0,0,0.15)`,animation:"cardFlip 0.4s ease-out",textAlign:"center"}}>
               <div style={{marginBottom:8}}>{CaddieIcon && <CaddieIcon color={caddieCard.color} size={36}/>}</div>
               {caddieCard.type==="bandit"?(
@@ -3070,7 +3070,7 @@ export default function App() {
 
         {/* Intention modal */}
         {showIntentionModal&&(
-          <div onClick={()=>setShowIntentionModal(false)} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 24px"}}>
+          <div onClick={()=>setShowIntentionModal(false)} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"env(safe-area-inset-top,0px) 24px env(safe-area-inset-bottom,0px)"}}>
             <div onClick={e=>e.stopPropagation()} style={{background:P.card,borderRadius:20,padding:"24px 20px",width:"100%",maxWidth:360,border:`1.5px solid #ca8a0444`}}>
               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
                 <Icons.Note color="#ca8a04" size={16}/>
@@ -3134,7 +3134,7 @@ function AvatarPicker({P, onClose, onSelect, current, initial}) {
     {id:"guitar"},{id:"rocket"},{id:"clover"},{id:"skyline"},{id:"pine"},
   ];
   return (
-    <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:50001,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 20px"}}>
+    <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:50001,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"env(safe-area-inset-top,0px) 20px env(safe-area-inset-bottom,0px)"}}>
       <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:340,background:P.bg,borderRadius:20,border:`1.5px solid ${P.border}`,boxShadow:"0 24px 60px rgba(0,0,0,0.5)",overflow:"hidden"}}>
         <div style={{padding:"16px 16px 12px",borderBottom:`1px solid ${P.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div style={{fontSize:16,fontWeight:800,color:P.white}}>Choose Avatar</div>
@@ -3549,7 +3549,7 @@ function PreRoundChecklist({onBack,onStartRound,onSkip,S,lastIntention,settings,
       </div>
 
       {showSkipWarn&&(
-        <div style={{position:"fixed",inset:0,zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.55)",backdropFilter:"blur(6px)",animation:"fadeIn 0.2s ease-out"}}>
+        <div style={{position:"fixed",inset:0,zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.55)",backdropFilter:"blur(6px)",animation:"fadeIn 0.2s ease-out",padding:"env(safe-area-inset-top,0px) 20px env(safe-area-inset-bottom,0px)"}}>
           <div style={{background:P.card,borderRadius:16,padding:26,width:"88%",maxWidth:340,border:`1.5px solid ${P.border}`,boxShadow:"0 20px 40px rgba(0,0,0,0.15)",textAlign:"center"}}>
             <div style={{marginBottom:12}}><Icons.Flag color={P.accent} size={32}/></div>
             <div style={{fontSize:17,fontWeight:800,color:P.white,marginBottom:10}}>You sure you want to skip?</div>
@@ -3570,7 +3570,7 @@ function PreRoundChecklist({onBack,onStartRound,onSkip,S,lastIntention,settings,
 
       {/* Timer complete modal */}
       {timerComplete&&(
-        <div style={{position:"fixed",inset:0,zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",animation:"fadeIn 0.3s ease-out"}}>
+        <div style={{position:"fixed",inset:0,zIndex:999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",animation:"fadeIn 0.3s ease-out",padding:"env(safe-area-inset-top,0px) 20px env(safe-area-inset-bottom,0px)"}}>
           <div style={{background:P.card,borderRadius:20,padding:"28px 24px",width:"88%",maxWidth:340,border:`1.5px solid ${P.green}55`,boxShadow:`0 0 40px ${P.green}22, 0 24px 60px rgba(0,0,0,0.4)`,textAlign:"center"}}>
             <div style={{width:64,height:64,borderRadius:18,background:P.green+"22",border:`1.5px solid ${P.green}44`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px"}}>
               <Icons.Flag color={P.green} size={30}/>
@@ -4531,7 +4531,7 @@ function CourseSelectModal({onConfirm, onSkip, settings, P, S}) {
   const displayName = selectedName || query;
 
   return (
-    <div onClick={onSkip} style={{position:"fixed",inset:0,zIndex:9998,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 20px"}}>
+    <div onClick={onSkip} style={{position:"fixed",inset:0,zIndex:9998,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"env(safe-area-inset-top,0px) 20px env(safe-area-inset-bottom,0px)"}}>
       <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:400,background:P.bg,borderRadius:24,border:`1.5px solid ${P.border}`,boxShadow:"0 32px 80px rgba(0,0,0,0.5)",maxHeight:"82vh",display:"flex",flexDirection:"column"}}>
 
         {/* Header */}
