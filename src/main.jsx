@@ -3,9 +3,8 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import * as Sentry from '@sentry/react';
-import { ClerkProvider, useAuth, useClerk, useUser, SignIn, SignUp } from '@clerk/clerk-react';
+import { ClerkProvider, useAuth, useClerk, useUser } from '@clerk/clerk-react';
 import { ConvexProviderWithClerk } from 'convex/react-clerk';
 import { ConvexReactClient } from 'convex/react';
 import App from './mental-game-scorecard.jsx';
@@ -33,19 +32,26 @@ if (sentryDsn) {
   };
 }
 
-// Bridge — exposes Clerk + navigation to the legacy App
+// Bridge — exposes Clerk to the app via window globals.
+// forceRedirectUrl ensures OAuth (Apple/Google) returns to the app's
+// origin after completing in Safari, so the PWA session cookie is set.
 function ClerkBridge() {
-  const { openUserProfile, signOut } = useClerk();
+  const { openSignUp, openSignIn, openUserProfile, signOut } = useClerk();
   const { user, isSignedIn, isLoaded } = useUser();
-  const navigate = useNavigate();
+
+  const appUrl = window.location.origin;
 
   React.useEffect(() => {
-    // Sign-in/up now navigate to dedicated routes (not modals)
-    // This is required for Smart CAPTCHA to mount properly.
-    window.__clerkOpenSignUp = () => navigate('/sign-up');
-    window.__clerkOpenSignIn = () => navigate('/sign-in');
+    window.__clerkOpenSignIn = () => openSignIn({
+      forceRedirectUrl: appUrl,
+      fallbackRedirectUrl: appUrl,
+    });
+    window.__clerkOpenSignUp = () => openSignUp({
+      forceRedirectUrl: appUrl,
+      fallbackRedirectUrl: appUrl,
+    });
     window.__clerkOpenUserProfile = () => openUserProfile({});
-    window.__clerkSignOut = () => signOut(() => { window.location.href = '/'; });
+    window.__clerkSignOut = () => signOut(() => { window.location.reload(); });
     window.__useUser = () => ({ user, isSignedIn, isLoaded });
   });
 
@@ -57,7 +63,7 @@ function getClerkAppearance(dark) {
   const bg       = dark ? "#09090b" : "#ffffff";
   const card     = dark ? "#18181b" : "#ffffff";
   const border   = dark ? "#3f3f46" : "#d4d4d8";
-  const text     = dark ? "#f8fafc" : "#09090b";
+  const text      = dark ? "#f8fafc" : "#09090b";
   const muted    = dark ? "#71717a" : "#52525b";
   const inputBg  = dark ? "#09090b" : "#f4f4f5";
   const socialBg = dark ? "#27272a" : "#f4f4f5";
@@ -113,49 +119,6 @@ function ClerkProviderWithTheme({ children }) {
   );
 }
 
-// ─── Auth route wrappers ──────────────────────────────────────
-// Mounted SignIn/SignUp components on dedicated routes.
-// Smart CAPTCHA mounts cleanly here (no modal stacking-context issues).
-function SignInPage() {
-  return (
-    <div style={{
-      minHeight: '100%',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '24px 16px',
-    }}>
-      <SignIn
-        routing="path"
-        path="/sign-in"
-        signUpUrl="/sign-up"
-        forceRedirectUrl="/"
-        signInForceRedirectUrl="/"
-      />
-    </div>
-  );
-}
-
-function SignUpPage() {
-  return (
-    <div style={{
-      minHeight: '100%',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '24px 16px',
-    }}>
-      <SignUp
-        routing="path"
-        path="/sign-up"
-        signInUrl="/sign-in"
-        forceRedirectUrl="/"
-        signUpForceRedirectUrl="/"
-      />
-    </div>
-  );
-}
-
 function hideSplash() {
   try { if (window.__hideSplash) window.__hideSplash(); } catch {}
 }
@@ -164,20 +127,12 @@ const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <Sentry.ErrorBoundary fallback={<p>An error has occurred</p>}>
-      <BrowserRouter>
-        <ClerkProviderWithTheme>
-          <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-            <ClerkBridge />
-            <Routes>
-              {/* Clerk uses path-based routing, so we need /* to match
-                  /sign-in/factor-one, /sign-up/verify-email-address, etc. */}
-              <Route path="/sign-in/*" element={<SignInPage />} />
-              <Route path="/sign-up/*" element={<SignUpPage />} />
-              <Route path="/*" element={<App />} />
-            </Routes>
-          </ConvexProviderWithClerk>
-        </ClerkProviderWithTheme>
-      </BrowserRouter>
+      <ClerkProviderWithTheme>
+        <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+          <ClerkBridge />
+          <App />
+        </ConvexProviderWithClerk>
+      </ClerkProviderWithTheme>
     </Sentry.ErrorBoundary>
   </React.StrictMode>
 );
