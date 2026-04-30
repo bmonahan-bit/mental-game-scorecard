@@ -2540,7 +2540,8 @@ export default function App() {
   if (showPaywall) return <ThemeCtx.Provider value={P}><PaywallView onUnlock={(plan)=>unlockPro(plan)} onBack={()=>setShowPaywall(false)} onPrivacy={()=>setShowPrivacyPolicy(true)} P={P} S={S}/></ThemeCtx.Provider>;
   if (showOnboarding) return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><OpenRoundModal/><OnboardingFlow onFinish={finishOnboarding} onPrivacy={()=>setShowPrivacyPolicy(true)} P={P} S={S}/></ThemeCtx.Provider>;
   if (showShare) return <ThemeCtx.Provider value={P}><ShareView onBack={()=>setShowShare(false)} P={P}/></ThemeCtx.Provider>;
-  if (view==="home") return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><CommunityPromptModal/><ProfileGateModal/><CoursePromptModal/><OpenRoundModal/><HomeScreen onNav={(v)=>{if(v==="upgrade"){setShowPaywall(true);return;}if(v==="share"){setShowShare(true);return;}navTo(v);}} onContinueRound={()=>{const firstEmpty=scores.findIndex(h=>!h.strokeScore&&!Object.values(h.heroes).some(v=>v>0)&&!Object.values(h.bandits).some(v=>v>0));setCurrentHole(Math.max(0,firstEmpty));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} isPro={isPro} roundsRemaining={roundsRemaining} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }} onUpgrade={()=>setShowPaywall(true)} /></ThemeCtx.Provider>;
+  if (view==="home") return <ThemeCtx.Provider value={P}><ToastLayer/><OpenRoundModal/><LaunchScreen onStartRound={()=>{navTo("preround");}} onContinueRound={()=>{const firstEmpty=scores.findIndex(h=>!h.strokeScore&&!Object.values(h.heroes).some(v=>v>0)&&!Object.values(h.bandits).some(v=>v>0));setCurrentHole(Math.max(0,firstEmpty));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} onHub={()=>setView("hub")} savedRounds={savedRounds} themeToggle={themeToggle} S={S} hasProfile={hasProfile} clerkUser={clerkUser} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }}/></ThemeCtx.Provider>;
+  if (view==="hub") return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><CommunityPromptModal/><ProfileGateModal/><CoursePromptModal/><OpenRoundModal/><HomeScreen onNav={(v)=>{if(v==="upgrade"){setShowPaywall(true);return;}if(v==="share"){setShowShare(true);return;}navTo(v);}} onContinueRound={()=>{const firstEmpty=scores.findIndex(h=>!h.strokeScore&&!Object.values(h.heroes).some(v=>v>0)&&!Object.values(h.bandits).some(v=>v>0));setCurrentHole(Math.max(0,firstEmpty));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} isPro={isPro} roundsRemaining={roundsRemaining} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }} onUpgrade={()=>setShowPaywall(true)} /></ThemeCtx.Provider>;
   if (view==="checklist") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist key={preroundKey} onBack={nav("home")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",todayET());const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setView("play");}} onSkip={()=>{setView("play");}} S={S} lastIntention={carryForward} settings={settings} updateSetting={updateSetting} /></ThemeCtx.Provider>;
   if (view==="courseselect") return <ThemeCtx.Provider value={P}><ToastLayer/><div style={{height:"100%",background:P.bg,position:"relative"}}><HomeScreen onNav={()=>{}} onContinueRound={()=>{}} roundInProgress={false} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} isPro={isPro} roundsRemaining={roundsRemaining} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }}/><CourseSelectModal P={P} S={S} settings={settings} onSkip={()=>resetAndStartNew()} onConfirm={(data)=>resetAndStartNew(data)}/></div></ThemeCtx.Provider>;
   if (view==="preround") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist key={preroundKey} onBack={nav("home")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",todayET());const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setView("play");}} onSkip={()=>{setView("play");}} S={S} lastIntention={carryForward} settings={settings} updateSetting={updateSetting} /></ThemeCtx.Provider>;
@@ -3248,6 +3249,140 @@ function UserDropdown({firstName, overlay1, overlay2, textHigh, textMid, P, onSe
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════
+// LAUNCH SCREEN — simple entry point
+// ═══════════════════════════════════════
+function LaunchScreen({onStartRound,onContinueRound,roundInProgress,onHub,savedRounds,themeToggle,S,hasProfile,clerkUser,onSettings,onSignOut}) {
+  const P = useTheme();
+  const darkMode = P.bg === "#09090b";
+  const [loaded, setLoaded] = useState(false);
+  const pp = pressProps;
+
+  useEffect(() => { setTimeout(() => setLoaded(true), 60); }, []);
+
+  const lastRound = savedRounds && savedRounds.length > 0 ? savedRounds[0] : null;
+  const totalRounds = savedRounds ? savedRounds.length : 0;
+  const topHero = (() => {
+    if (!savedRounds || savedRounds.length < 2) return null;
+    const counts = {};
+    savedRounds.forEach(r => { if (!r.scores) return; r.scores.forEach(h => { Object.keys(h.heroes || {}).forEach(k => { if (h.heroes[k] > 0) counts[k] = (counts[k] || 0) + h.heroes[k]; }); }); });
+    const top = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+    return top ? { name: top, count: counts[top] } : null;
+  })();
+
+  const overlay1 = darkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)";
+  const overlay2 = darkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
+  const textHigh = darkMode ? "#ffffff" : "#0f172a";
+  const textMid = darkMode ? "rgba(255,255,255,0.45)" : "rgba(15,23,42,0.5)";
+  const textLow = darkMode ? "rgba(255,255,255,0.3)" : "rgba(15,23,42,0.35)";
+  const shieldSrc = darkMode ? SHIELD_LOGO : SHIELD_LOGO;
+
+  return (
+    <div style={{...S.shell, position:"relative", overflow:"hidden", background:P.bg}}>
+
+      {/* Background glows */}
+      <div style={{position:"absolute",inset:0,background:`radial-gradient(ellipse 90% 60% at 50% 30%, ${darkMode?"rgba(22,163,74,0.12)":"rgba(22,163,74,0.07)"} 0%, transparent 70%)`,zIndex:0,pointerEvents:"none"}}/>
+      <div style={{position:"absolute",inset:0,background:`radial-gradient(ellipse 70% 50% at 50% 110%, ${darkMode?"rgba(201,168,76,0.08)":"rgba(201,168,76,0.05)"} 0%, transparent 60%)`,zIndex:0,pointerEvents:"none"}}/>
+
+      {/* Top bar */}
+      <div style={{padding:"16px 20px 0",display:"flex",justifyContent:"space-between",alignItems:"center",position:"relative",zIndex:50001}}>
+        {clerkUser?.isSignedIn ? (
+          <UserDropdown firstName={clerkUser.user?.firstName} overlay1={overlay1} overlay2={overlay2} textHigh={textHigh} textMid={textMid} P={P} onSettings={onSettings} onSignOut={onSignOut}/>
+        ) : (
+          <button onClick={()=>window.__clerkOpenSignIn?window.__clerkOpenSignIn():null} style={{display:"flex",alignItems:"center",gap:6,background:overlay1,border:`1px solid ${overlay2}`,borderRadius:10,padding:"7px 12px",fontSize:12,fontWeight:600,color:textMid,cursor:"pointer"}} {...pp()}>
+            <Icons.User color={textMid} size={14}/> Sign In
+          </button>
+        )}
+        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+          {themeToggle}
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"0 28px",position:"relative",zIndex:2}}>
+
+        {/* Badge */}
+        <div style={{
+          width:180,height:180,marginBottom:20,
+          opacity:loaded?1:0,transform:loaded?"scale(1)":"scale(0.85)",
+          transition:"all 0.7s cubic-bezier(0.34,1.4,0.64,1) 0.1s",
+          filter:`drop-shadow(0 12px 40px rgba(22,163,74,${darkMode?0.5:0.3}))`,
+        }}>
+          <img src={SHIELD_LOGO} alt="5 Heroes" style={{width:"100%",height:"100%",objectFit:"contain",mixBlendMode:darkMode?"normal":"multiply"}}/>
+        </div>
+
+        {/* Title */}
+        <div style={{textAlign:"center",marginBottom:6,opacity:loaded?1:0,transform:loaded?"translateY(0)":"translateY(16px)",transition:"all 0.6s cubic-bezier(0.16,1,0.3,1) 0.3s"}}>
+          <div style={{fontSize:26,fontWeight:900,color:textHigh,letterSpacing:-0.5,lineHeight:1.1}}>5 Heroes</div>
+          <div style={{fontSize:15,fontWeight:700,color:textHigh,letterSpacing:0.5,opacity:0.7,marginTop:2}}>Mental Game Scorecard</div>
+        </div>
+
+        {/* By Paul */}
+        <div style={{marginBottom:32,opacity:loaded?1:0,transition:"opacity 0.6s ease 0.45s"}}>
+          <div style={{fontSize:12,fontWeight:600,color:PM_GOLD,letterSpacing:1}}>by Paul Monahan</div>
+        </div>
+
+        {/* Glanceable stats — only if rounds exist */}
+        {totalRounds >= 1 && (
+          <div style={{
+            display:"flex",gap:10,marginBottom:24,width:"100%",maxWidth:300,
+            opacity:loaded?1:0,transition:"opacity 0.6s ease 0.5s",
+          }}>
+            {lastRound && (
+              <div style={{flex:1,textAlign:"center",padding:"10px 8px",borderRadius:12,background:darkMode?"rgba(255,255,255,0.06)":"rgba(0,0,0,0.04)",border:`1px solid ${darkMode?"rgba(255,255,255,0.1)":"rgba(0,0,0,0.08)"}`}}>
+                <div style={{fontSize:20,fontWeight:900,color:lastRound.net>0?P.green:lastRound.net<0?P.red:P.gold,lineHeight:1}}>{lastRound.net>0?"+":""}{lastRound.net}</div>
+                <div style={{fontSize:9,color:textLow,fontWeight:700,letterSpacing:0.5,marginTop:3}}>LAST ROUND</div>
+              </div>
+            )}
+            <div style={{flex:1,textAlign:"center",padding:"10px 8px",borderRadius:12,background:darkMode?"rgba(255,255,255,0.06)":"rgba(0,0,0,0.04)",border:`1px solid ${darkMode?"rgba(255,255,255,0.1)":"rgba(0,0,0,0.08)"}`}}>
+              <div style={{fontSize:20,fontWeight:900,color:textHigh,lineHeight:1}}>{totalRounds}</div>
+              <div style={{fontSize:9,color:textLow,fontWeight:700,letterSpacing:0.5,marginTop:3}}>ROUNDS</div>
+            </div>
+            {topHero && (
+              <div style={{flex:1,textAlign:"center",padding:"10px 8px",borderRadius:12,background:darkMode?"rgba(255,255,255,0.06)":"rgba(0,0,0,0.04)",border:`1px solid ${darkMode?"rgba(255,255,255,0.1)":"rgba(0,0,0,0.08)"}`}}>
+                <div style={{fontSize:12,fontWeight:900,color:P.green,lineHeight:1.2}}>{topHero.name}</div>
+                <div style={{fontSize:9,color:textLow,fontWeight:700,letterSpacing:0.5,marginTop:3}}>TOP HERO</div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Start Round CTA */}
+        <button onClick={()=>roundInProgress?onContinueRound():onStartRound()} {...pp()} style={{
+          width:"100%",maxWidth:300,padding:"18px 24px",borderRadius:18,
+          background:roundInProgress?"linear-gradient(135deg,#1d4ed8,#2563eb)":"linear-gradient(135deg,#16a34a,#22c55e)",
+          border:"none",color:"#fff",fontSize:19,fontWeight:900,cursor:"pointer",letterSpacing:0.3,
+          boxShadow:roundInProgress?"0 8px 32px rgba(37,99,235,0.45)":"0 8px 32px rgba(22,163,74,0.45)",
+          display:"flex",alignItems:"center",justifyContent:"center",gap:10,
+          opacity:loaded?1:0,transform:loaded?"translateY(0)":"translateY(20px)",
+          transition:"all 0.6s cubic-bezier(0.16,1,0.3,1) 0.55s",
+          marginBottom:12,
+        }}>
+          <Icons.Flag color="#fff" size={20}/>
+          {roundInProgress?"Continue Round":"Start Round"}
+        </button>
+
+        {/* More → Dashboard */}
+        <button onClick={onHub} {...pp()} style={{
+          width:"100%",maxWidth:300,padding:"14px 20px",borderRadius:14,
+          background:"transparent",border:`1.5px solid ${darkMode?"rgba(255,255,255,0.12)":"rgba(0,0,0,0.1)"}`,
+          color:textMid,fontSize:14,fontWeight:600,cursor:"pointer",
+          display:"flex",alignItems:"center",justifyContent:"center",gap:8,
+          opacity:loaded?1:0,transition:"opacity 0.6s ease 0.65s",
+        }}>
+          <Icons.Grid color={textMid} size={15}/>
+          Dashboard & More
+        </button>
+      </div>
+
+      {/* Footer */}
+      <div style={{padding:"12px 20px 20px",textAlign:"center",position:"relative",zIndex:2,opacity:loaded?0.5:0,transition:"opacity 0.6s ease 0.8s"}}>
+        <div style={{fontSize:10,fontWeight:600,color:PM_GOLD,letterSpacing:2}}>PAUL MONAHAN GOLF</div>
+      </div>
     </div>
   );
 }
