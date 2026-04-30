@@ -5089,12 +5089,46 @@ function generateShareCard(round, darkMode) {
 // ═══════════════════════════════════════
 function RoundEditView({round, onSave, onBack, S}) {
   const P = useTheme();
-  const [scores, setScores] = useState(() => round ? JSON.parse(JSON.stringify(round.scores)) : initScores());
+  const [scores, setScores] = useState(() => {
+    const raw = round ? JSON.parse(JSON.stringify(round.scores)) : initScores();
+    // Pad to 18 holes and normalise each hole so all keys exist
+    const padded = Array.from({length: 18}, (_, i) => raw[i] || {});
+    return padded.map(h => ({
+      ...h,
+      heroes: Object.fromEntries(HEROES.map(k => [k, h.heroes?.[k] || 0])),
+      bandits: Object.fromEntries(BANDITS.map(k => [k, h.bandits?.[k] || 0])),
+      par: h.par ?? "",
+      strokeScore: h.strokeScore ?? "",
+      putts: h.putts ?? "",
+      holeNote: h.holeNote ?? "",
+      routine: h.routine ?? 0,
+      fairway: h.fairway ?? null,
+      yardage: h.yardage ?? "",
+      strokeIndex: h.strokeIndex ?? "",
+    }));
+  });
   const [courseName, setCourseName] = useState(round?.course || "");
   const [roundDate, setRoundDate] = useState(round?.date || "");
   const [notes, setNotes] = useState(round?.notes || "");
   const [currentHole, setCurrentHole] = useState(0);
   const [holeNoteOpen, setHoleNoteOpen] = useState(false);
+
+  // Normalise a hole so heroes/bandits always have all keys (handles old saved rounds)
+  function normaliseHole(hole) {
+    const h = hole || {};
+    return {
+      ...h,
+      heroes: Object.fromEntries(HEROES.map(k => [k, h.heroes?.[k] || 0])),
+      bandits: Object.fromEntries(BANDITS.map(k => [k, h.bandits?.[k] || 0])),
+      par: h.par ?? "",
+      strokeScore: h.strokeScore ?? "",
+      putts: h.putts ?? "",
+      holeNote: h.holeNote ?? "",
+      routine: h.routine ?? 0,
+      fairway: h.fairway ?? null,
+      gir: h.gir ?? null,
+    };
+  }
 
   if (!round) return null;
 
@@ -5120,7 +5154,8 @@ function RoundEditView({round, onSave, onBack, S}) {
     });
   }
 
-  const hH = scores[currentHole].heroes, hB = scores[currentHole].bandits;
+  const _cur = normaliseHole(scores[currentHole]);
+  const hH = _cur.heroes, hB = _cur.bandits;
   const { total } = getRoundTotals(scores);
 
   function handleSave() {
