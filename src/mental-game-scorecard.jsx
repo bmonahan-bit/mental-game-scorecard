@@ -5094,22 +5094,34 @@ function RoundEditView({round, onSave, onBack, S}) {
   const [roundDate, setRoundDate] = useState(round?.date || "");
   const [notes, setNotes] = useState(round?.notes || "");
   const [currentHole, setCurrentHole] = useState(0);
+  const [holeNoteOpen, setHoleNoteOpen] = useState(false);
 
   if (!round) return null;
 
   function updateField(field, value) {
     setScores(prev => { const n = JSON.parse(JSON.stringify(prev)); n[currentHole][field] = value; return n; });
   }
-  function toggleHero(hero) {
-    setScores(prev => { const n = JSON.parse(JSON.stringify(prev)); n[currentHole].heroes[hero] = n[currentHole].heroes[hero]===1?0:1; return n; });
+
+  // Multi-count hero/bandit — matches play view setScore behaviour
+  function tapHero(hero) {
+    setScores(prev => {
+      const n = JSON.parse(JSON.stringify(prev));
+      const cur = n[currentHole].heroes[hero] || 0;
+      n[currentHole].heroes[hero] = cur >= 1 ? 0 : 1;
+      return n;
+    });
   }
-  function toggleBandit(bandit) {
-    setScores(prev => { const n = JSON.parse(JSON.stringify(prev)); n[currentHole].bandits[bandit] = n[currentHole].bandits[bandit]===1?0:1; return n; });
+  function tapBandit(bandit) {
+    setScores(prev => {
+      const n = JSON.parse(JSON.stringify(prev));
+      const cur = n[currentHole].bandits[bandit] || 0;
+      n[currentHole].bandits[bandit] = cur >= 1 ? 0 : 1;
+      return n;
+    });
   }
 
   const hH = scores[currentHole].heroes, hB = scores[currentHole].bandits;
   const { total } = getRoundTotals(scores);
-  const HERO_COLORS = {"Love":P.green,"Acceptance":P.green,"Commitment":P.green,"Vulnerability":P.green,"Grit":P.green};
 
   function handleSave() {
     const updated = {
@@ -5127,76 +5139,172 @@ function RoundEditView({round, onSave, onBack, S}) {
 
   return (
     <div style={S.shell}>
-      <div style={{padding:"10px 12px 4px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+      {/* Header */}
+      <div style={{padding:"10px 12px 4px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
         <button onClick={onBack} style={S.iconBtn} {...pp()}><Icons.Back color={P.muted}/></button>
         <div style={{textAlign:"center"}}>
           <div style={{fontSize:15,fontWeight:700,color:P.white}}>Edit Round</div>
-          <div style={{fontSize:10,color:P.muted}}>Changes save when you tap Save</div>
+          <div style={{fontSize:10,color:P.muted}}>Hole {currentHole+1} of 18</div>
         </div>
-        <button onClick={handleSave} {...pp()} style={{padding:"6px 12px",borderRadius:8,border:`1.5px solid ${P.green}`,background:P.green+"15",color:P.green,fontSize:13,fontWeight:700,cursor:"pointer"}}>Save</button>
+        <button onClick={handleSave} {...pp()} style={{padding:"6px 14px",borderRadius:8,border:`1.5px solid ${P.green}`,background:P.green+"15",color:P.green,fontSize:13,fontWeight:700,cursor:"pointer"}}>Save</button>
       </div>
 
       {/* Course + date */}
-      <div style={{padding:"0 12px 6px",display:"flex",gap:6}}>
+      <div style={{padding:"0 12px 6px",display:"flex",gap:6,flexShrink:0}}>
         <input value={courseName} onChange={e=>setCourseName(sanitiseCourse(e.target.value))} placeholder="Course name" style={{flex:1,padding:"6px 10px",borderRadius:8,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:16,outline:"none"}}/>
         <input type="date" value={roundDate} onChange={e=>setRoundDate(e.target.value)} style={{...S.input,flex:"0 0 auto",width:140,fontSize:16,padding:"6px 8px"}}/>
       </div>
 
-      {/* Hole selector */}
-      <div style={{padding:"0 10px 4px"}}>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(9,1fr)",gap:2,marginBottom:2}}>
-          {Array.from({length:9},(_,j)=>{const i=j,s=getHoleStats(scores,i),act=i===currentHole,has=s.bandits>0||s.heroes>0;return <button key={i} onClick={()=>setCurrentHole(i)} {...pp()} style={{aspectRatio:"1",borderRadius:6,border:act?`2px solid ${P.accent}`:`1.5px solid ${P.border}`,background:act?P.accent+"15":has?P.cardAlt:P.card,color:act?P.accent:has?P.white:P.muted,fontWeight:act?700:500,fontSize:11,cursor:"pointer",minWidth:0,padding:0}}>{i+1}</button>;})}
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(9,1fr)",gap:2}}>
-          {Array.from({length:9},(_,j)=>{const i=j+9,s=getHoleStats(scores,i),act=i===currentHole,has=s.bandits>0||s.heroes>0;return <button key={i} onClick={()=>setCurrentHole(i)} {...pp()} style={{aspectRatio:"1",borderRadius:6,border:act?`2px solid ${P.accent}`:`1.5px solid ${P.border}`,background:act?P.accent+"15":has?P.cardAlt:P.card,color:act?P.accent:has?P.white:P.muted,fontWeight:act?700:500,fontSize:11,cursor:"pointer",minWidth:0,padding:0}}>{i+1}</button>;})}
-        </div>
+      {/* Hole grid — matches play view exactly */}
+      <div style={{padding:"0 10px 2px",flexShrink:0}}>
+        {[0,9].map(start=>(
+          <div key={start} style={{display:"grid",gridTemplateColumns:"repeat(9,1fr)",gap:2,marginBottom:start===0?2:0}}>
+            {Array.from({length:9},(_,j)=>{
+              const i=start+j, s=getHoleStats(scores,i), act=i===currentHole, has=s.bandits>0||s.heroes>0;
+              const nt=scoreNotation(scores[i].strokeScore,scores[i].par);
+              const diff=nt?.diff??null;
+              const bgFill=has?(s.net>0?P.green:s.net<0?P.red:P.cardAlt):act?P.accent+"15":P.card;
+              const borderColor=act?P.accent:diff===null?P.border:diff<=-1?P.green:diff>=1?P.red:P.border;
+              const borderWidth=act?"2px":"1.5px";
+              const numColor=has?"#ffffff":(act?P.accent:P.muted);
+              const textShadow=has?"0 0 0 1px rgba(0,0,0,0.6), 0 1px 2px rgba(0,0,0,0.5)":undefined;
+              return (
+                <button key={i} onClick={()=>{setCurrentHole(i);setHoleNoteOpen(false);}} {...pp()} style={{aspectRatio:"1",borderRadius:diff<=-1&&!act?"50%":diff>=1&&!act?"5px":7,border:`${borderWidth} solid ${borderColor}`,background:bgFill,color:numColor,fontWeight:700,fontSize:12,cursor:"pointer",transition:"all 0.12s ease",position:"relative",display:"flex",alignItems:"center",justifyContent:"center",minWidth:0,padding:0,textShadow}}>
+                  {!act&&diff!==null&&Math.abs(diff)>=2&&<span style={{position:"absolute",inset:3,borderRadius:diff<=-2?"50%":"3px",border:`1.5px solid rgba(255,255,255,0.7)`,pointerEvents:"none"}}/>}
+                  {i+1}
+                  {scores[i].holeNote&&!act&&<div style={{position:"absolute",top:1,right:2,width:3,height:3,borderRadius:"50%",background:has?"rgba(255,255,255,0.7)":P.accent}}/>}
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </div>
 
-      {/* Hole inputs */}
-      <div style={{padding:"2px 12px 4px",display:"flex",gap:5,alignItems:"flex-end"}}>
-        <div style={{textAlign:"center"}}><div style={{fontSize:9,color:P.muted,fontWeight:600}}>PAR</div><input value={scores[currentHole].par} onChange={e=>updateField("par",e.target.value.replace(/\D/g,"").slice(0,1))} style={{...S.miniInput,width:38,fontSize:16}} inputMode="numeric"/></div>
-        <div style={{textAlign:"center"}}><div style={{fontSize:9,color:P.muted,fontWeight:600}}>SCORE</div><input value={scores[currentHole].strokeScore} onChange={e=>updateField("strokeScore",e.target.value.replace(/\D/g,"").slice(0,2))} style={{...S.miniInput,width:38,fontSize:16}} inputMode="numeric"/></div>
-        <div style={{textAlign:"center"}}><div style={{fontSize:9,color:P.muted,fontWeight:600}}>PUTTS</div>
-          <div style={{display:"flex",alignItems:"center",gap:2}}>
-            <button onClick={()=>updateField("putts",Math.max(0,(parseInt(scores[currentHole].putts)||0)-1)||"")} style={{width:20,height:32,borderRadius:5,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:16,cursor:"pointer"}} {...pp()}>−</button>
-            <span style={{fontSize:15,fontWeight:700,color:P.white,width:20,textAlign:"center"}}>{scores[currentHole].putts||"—"}</span>
-            <button onClick={()=>updateField("putts",(parseInt(scores[currentHole].putts)||0)+1)} style={{width:20,height:32,borderRadius:5,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:16,cursor:"pointer"}} {...pp()}>+</button>
-          </div>
-        </div>
-        <div style={{display:"flex",gap:3,marginBottom:0,alignSelf:"flex-end",paddingBottom:2}}>
-                            </div>
-        <div style={{marginLeft:"auto",textAlign:"right"}}>
-          <div style={{fontSize:9,color:P.muted,fontWeight:600}}>HOLE {currentHole+1}</div>
-          <div style={{fontSize:18,fontWeight:800,color:P.accent}}>
+      {/* Score row — PAR | SCORE | PUTTS | PSR */}
+      <div style={{padding:"4px 8px 4px",display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+
+        {/* Hole label + net */}
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",flexShrink:0,minWidth:40}}>
+          <div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:0.5}}>HOLE</div>
+          <div style={{fontSize:18,fontWeight:900,color:P.white,lineHeight:1}}>{currentHole+1}</div>
+          <div style={{fontSize:11,fontWeight:700,color:(()=>{const s=getHoleStats(scores,currentHole);return s.net>0?P.green:s.net<0?P.red:P.gold;})()}}>
             {(()=>{const s=getHoleStats(scores,currentHole);return s.heroes+s.bandits>0?(s.net>0?"+":"")+s.net:"—";})()}
           </div>
         </div>
+
+        {/* PAR */}
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0}}>
+          <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700}}>PAR</div>
+          <input value={scores[currentHole].par} onChange={e=>{const p=e.target.value.replace(/\D/g,"").slice(0,1);updateField("par",p);if(p&&!scores[currentHole].strokeScore)updateField("strokeScore",p);}} style={{width:40,height:40,borderRadius:8,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:18,textAlign:"center",outline:"none",fontWeight:700,boxSizing:"border-box",padding:0,flexShrink:0,display:"block"}} inputMode="numeric"/>
+        </div>
+
+        {/* SCORE stepper */}
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0}}>
+          <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700}}>SCORE</div>
+          {(()=>{
+            const sv=scores[currentHole].strokeScore, parsed=parseInt(sv);
+            const num=(sv!==""&&sv!==null&&sv!==undefined&&!isNaN(parsed))?parsed:null;
+            const parNum=parseInt(scores[currentHole].par)||null;
+            const display=num!==null?num:(parNum||"—");
+            const displayColor=num!==null?P.white:P.muted;
+            const diff=(num!==null&&parNum)?num-parNum:null;
+            const borderRadius=diff!=null&&diff<=-1?"50%":diff!=null&&diff>=1?"6px":"8px";
+            const borderColor=diff!=null&&diff<0?P.green:diff!=null&&diff>0?P.red:P.border;
+            const borderWidth=diff!=null&&Math.abs(diff)>=2?"2.5px":"1.5px";
+            return (
+              <div style={{position:"relative",display:"flex",alignItems:"center",borderRadius,border:`${borderWidth} solid ${borderColor}`,overflow:"hidden",background:P.inputBg,flexShrink:0}}>
+                {diff!=null&&Math.abs(diff)>=2&&<div style={{position:"absolute",inset:3,borderRadius:diff<=-2?"50%":"3px",border:`1px solid ${diff<0?P.green:P.red}`,pointerEvents:"none",zIndex:1}}/>}
+                <button onClick={()=>{const cur=num!==null?num:(parNum||1);if(cur>1)updateField("strokeScore",String(cur-1));}} style={{width:32,height:40,background:"transparent",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",zIndex:2}}>
+                  <svg width="16" height="3" viewBox="0 0 16 3"><rect x="0" y="0" width="16" height="3" rx="1.5" fill={P.muted}/></svg>
+                </button>
+                <div style={{minWidth:28,textAlign:"center",fontSize:18,fontWeight:700,color:displayColor,lineHeight:1,userSelect:"none",flexShrink:0,padding:"0 2px",zIndex:2}}>{display}</div>
+                <button onClick={()=>{const cur=num!==null?num:(parNum||1);if(cur<15)updateField("strokeScore",String(cur+1));}} style={{width:32,height:40,background:"transparent",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",zIndex:2}}>
+                  <svg width="16" height="16" viewBox="0 0 16 16"><rect x="0" y="6.5" width="16" height="3" rx="1.5" fill={P.muted}/><rect x="6.5" y="0" width="3" height="16" rx="1.5" fill={P.muted}/></svg>
+                </button>
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* PUTTS stepper */}
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0}}>
+          <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700}}>PUTTS</div>
+          {(()=>{
+            const pv=scores[currentHole].putts, parsed=parseInt(pv);
+            const num=(pv!==""&&pv!==null&&pv!==undefined&&!isNaN(parsed))?parsed:null;
+            const display=num!==null?num:2;
+            const displayColor=num!==null?P.white:P.muted;
+            return (
+              <div style={{display:"flex",alignItems:"center",borderRadius:8,border:`1.5px solid ${P.border}`,overflow:"hidden",background:P.inputBg,flexShrink:0}}>
+                <button onClick={()=>{const cur=num!==null?num:2;if(cur<=0){updateField("putts","");return;}updateField("putts",String(cur-1));}} style={{width:32,height:40,background:"transparent",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent"}}>
+                  <svg width="16" height="3" viewBox="0 0 16 3"><rect x="0" y="0" width="16" height="3" rx="1.5" fill={P.muted}/></svg>
+                </button>
+                <div style={{minWidth:28,textAlign:"center",fontSize:18,fontWeight:700,color:displayColor,lineHeight:1,userSelect:"none",flexShrink:0,padding:"0 2px"}}>{display}</div>
+                <button onClick={()=>{const cur=num!==null?num:2;if(cur<9)updateField("putts",String(cur+1));}} style={{width:32,height:40,background:"transparent",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent"}}>
+                  <svg width="16" height="16" viewBox="0 0 16 16"><rect x="0" y="6.5" width="16" height="3" rx="1.5" fill={P.muted}/><rect x="6.5" y="0" width="3" height="16" rx="1.5" fill={P.muted}/></svg>
+                </button>
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* PSR */}
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0}}>
+          <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700}}>PSR</div>
+          <button onClick={()=>updateField("routine",scores[currentHole].routine?0:1)} style={{width:40,height:40,borderRadius:8,border:`1.5px solid ${scores[currentHole].routine?P.green:P.border}`,background:scores[currentHole].routine?P.green+"18":"transparent",color:scores[currentHole].routine?P.green:P.muted,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent",flexShrink:0}} {...pp()}>
+            {scores[currentHole].routine?"✓":"—"}
+          </button>
+        </div>
+
+        {/* FIR */}
+        {(parseInt(scores[currentHole].par)||0)>=4&&(
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0}}>
+            <div style={{fontSize:10,color:P.muted,letterSpacing:1,fontWeight:700}}>FIR</div>
+            <button onClick={()=>updateField("fairway",scores[currentHole].fairway===true?null:true)} style={{width:40,height:40,borderRadius:8,border:`1.5px solid ${scores[currentHole].fairway===true?P.green:P.border}`,background:scores[currentHole].fairway===true?P.green+"18":"transparent",color:scores[currentHole].fairway===true?P.green:P.muted,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",WebkitTapHighlightColor:"transparent",flexShrink:0}} {...pp()}>
+              {scores[currentHole].fairway===true?"✓":"—"}
+            </button>
+          </div>
+        )}
+
       </div>
 
-      {/* Hero/Bandit toggles */}
-      <div style={{flex:1,overflowY:"auto",padding:"0 10px 4px"}}>
+      {/* Hero/Bandit matchup grid — matches play view */}
+      <div style={{flex:1,overflowY:"auto",overflowX:"hidden",padding:"0 10px 4px",display:"flex",flexDirection:"column",gap:2}}>
         {MATCHUPS.map(({hero,verb,bandit},idx)=>{
-          const hActive=hH[hero]===1, bActive=hB[bandit]===1;
-          const hColor=HERO_COLORS[hero]||P.green;
+          const hVal=hH[hero]||0, bVal=hB[bandit]||0;
+          const hActive=hVal>0, bActive=bVal>0;
           return (
-            <div key={idx} style={{display:"grid",gridTemplateColumns:"40px 1fr 52px 1fr 40px",alignItems:"center",gap:3,marginBottom:3,padding:"5px 4px",borderRadius:10,background:hActive?hColor+"10":bActive?P.red+"08":idx%2===0?P.card:"transparent",border:`1px solid ${hActive?hColor+"33":bActive?P.red+"22":"transparent"}`,transition:"all 0.15s"}}>
-              <button onClick={()=>toggleHero(hero)} style={{...toggleBtn(P,"green",hActive),width:36,height:36,borderColor:hActive?hColor:P.greenDim,background:hActive?hColor:"transparent"}} {...pp()}>{hActive?<Icons.Check color="#fff" size={13}/>:""}</button>
-              <div style={{fontSize:13,color:hActive?hColor:P.white,fontWeight:700,textAlign:"center"}}>{hero}</div>
-              <div style={{textAlign:"center",fontSize:11,color:P.muted,fontStyle:"italic",fontWeight:600}}>{verb}</div>
-              <div style={{fontSize:13,color:bActive?P.red:P.white,fontWeight:700,textAlign:"center"}}>{bandit}</div>
-              <button onClick={()=>toggleBandit(bandit)} style={{...toggleBtn(P,"red",bActive),width:32,height:32,borderRadius:10}} {...pp()}>{bActive?<Icons.Check color="#fff" size={13}/>:""}</button>
+            <div key={idx} style={{display:"grid",gridTemplateColumns:"38px 1fr 50px 1fr 38px",alignItems:"center",gap:"clamp(2px,1vw,4px)",padding:"clamp(3px,0.8vh,7px) 6px",borderRadius:10,background:hActive?P.green+"10":bActive?P.red+"08":idx%2===0?P.card:"transparent",border:`1px solid ${hActive?P.green+"33":bActive?P.red+"22":"transparent"}`,transition:"all 0.18s ease"}}>
+              <button onClick={()=>tapHero(hero)} style={{...toggleBtn(P,"green",hActive),width:"clamp(30px,8vw,36px)",height:"clamp(30px,8vw,36px)",borderColor:hActive?P.green:P.greenDim,background:hActive?P.green:"transparent",boxShadow:hActive?`0 0 12px ${P.green}44`:"none",fontSize:"clamp(12px,3vw,14px)",fontWeight:900,color:hActive?"#fff":"transparent"}} {...pp()}>{hVal>0?hVal:""}</button>
+              <div style={{fontSize:"clamp(12px,3.5vw,14px)",color:hActive?P.green:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{hero}</div>
+              <div style={{textAlign:"center",fontSize:"clamp(10px,2.5vw,12px)",color:P.muted,fontStyle:"italic",fontWeight:600}}>{verb}</div>
+              <div style={{fontSize:"clamp(12px,3.5vw,14px)",color:bActive?P.red:P.white,fontWeight:700,textAlign:"center",transition:"color 0.15s"}}>{bandit}</div>
+              <button onClick={()=>tapBandit(bandit)} style={{...toggleBtn(P,"red",bActive),width:"clamp(30px,8vw,36px)",height:"clamp(30px,8vw,36px)",borderRadius:10,fontSize:"clamp(12px,3vw,14px)",fontWeight:900,color:bActive?"#fff":"transparent"}} {...pp()}>{bVal>0?bVal:""}</button>
             </div>
           );
         })}
       </div>
 
       {/* Hole note */}
-      <div style={{padding:"0 12px 4px"}}>
-        <textarea value={scores[currentHole].holeNote||""} onChange={e=>updateField("holeNote",sanitiseNote(e.target.value))} placeholder={`Hole ${currentHole+1} note...`} rows={2} style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:16,outline:"none",resize:"none",lineHeight:1.4}}/>
+      <div style={{margin:"0 10px 6px",flexShrink:0}}>
+        <button onClick={()=>setHoleNoteOpen(!holeNoteOpen)} style={{width:"100%",padding:"6px 12px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.card,color:P.white,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",transition:"transform 0.1s ease"}} {...pp()}>
+          <span style={{display:"flex",alignItems:"center",gap:5}}><Icons.Note color={scores[currentHole].holeNote?P.accent:P.muted} size={13}/> {scores[currentHole].holeNote?"Hole Note ✓":"Add Hole Note"}</span>
+          <span style={{fontSize:10,color:P.muted,transition:"transform 0.2s",transform:holeNoteOpen?"rotate(180deg)":"rotate(0)"}}>▼</span>
+        </button>
+        {holeNoteOpen&&<div style={{marginTop:4}}><textarea
+          key={`note-${currentHole}`}
+          defaultValue={scores[currentHole].holeNote}
+          onBlur={e=>updateField("holeNote",sanitiseNote(e.target.value))}
+          onInput={e=>updateField("holeNote",sanitiseNote(e.target.value))}
+          placeholder={`Hole ${currentHole+1} notes...`}
+          rows={2}
+          style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:13,outline:"none",resize:"none",lineHeight:1.4}}
+        /></div>}
       </div>
-      {/* Round total + notes */}
-      <div style={{padding:"4px 12px 6px",background:total.net>0?P.green+"10":total.net<0?P.red+"10":P.card,borderTop:`1px solid ${P.border}`,display:"flex",alignItems:"center",gap:12}}>
-        <div style={{textAlign:"center"}}>
+
+      {/* Round total footer */}
+      <div style={{padding:"6px 12px calc(6px + env(safe-area-inset-bottom,0px))",background:total.net>0?P.green+"10":total.net<0?P.red+"10":P.card,borderTop:`1px solid ${P.border}`,display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
+        <div style={{textAlign:"center",flexShrink:0}}>
           <div style={{fontSize:9,color:P.muted,letterSpacing:1,fontWeight:600}}>ROUND NET</div>
           <div style={{fontSize:22,fontWeight:900,color:total.net>0?P.green:total.net<0?P.red:P.gold}}>{total.net>0?"+":""}{total.net}</div>
         </div>
