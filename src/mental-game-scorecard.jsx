@@ -3301,6 +3301,9 @@ function LaunchScreen({onStartRound,onContinueRound,roundInProgress,onHub,savedR
         )}
         <div style={{display:"flex",gap:6,alignItems:"center"}}>
           {themeToggle}
+          <button onClick={onSettings} style={{display:"flex",alignItems:"center",justifyContent:"center",width:36,height:36,borderRadius:10,background:overlay1,border:`1px solid ${overlay2}`,cursor:"pointer",color:textMid}} {...pp()}>
+            <Icons.Gear color={textMid} size={16}/>
+          </button>
         </div>
       </div>
 
@@ -3323,8 +3326,7 @@ function LaunchScreen({onStartRound,onContinueRound,roundInProgress,onHub,savedR
 
         {/* Title */}
         <div style={{textAlign:"center",marginBottom:28,opacity:loaded?1:0,transform:loaded?"translateY(0)":"translateY(16px)",transition:"all 0.6s cubic-bezier(0.16,1,0.3,1) 0.3s"}}>
-          <div style={{fontSize:22,fontWeight:900,color:textHigh,letterSpacing:-0.3,lineHeight:1.15}}>5 Heroes</div>
-          <div style={{fontSize:26,fontWeight:900,color:textHigh,letterSpacing:-0.5,lineHeight:1.15,marginTop:2}}>Mental Game Scorecard</div>
+          <div style={{fontSize:26,fontWeight:900,color:textHigh,letterSpacing:-0.5,lineHeight:1.15}}>Mental Game Scorecard</div>
           <div style={{fontSize:11,fontWeight:600,color:PM_GOLD,letterSpacing:1.5,marginTop:6,textTransform:"uppercase"}}>by Paul Monahan</div>
         </div>
 
@@ -3505,8 +3507,8 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
 
         {/* Title */}
         <div style={{textAlign:"center",marginBottom:10,opacity:loaded?1:0,transform:loaded?"translateY(0)":"translateY(16px)",transition:"all 0.7s cubic-bezier(0.16,1,0.3,1) 0.4s"}}>
-          <div style={{fontSize:42,fontWeight:900,color:textHigh,letterSpacing:-1,lineHeight:1,textShadow:darkMode?"0 4px 32px rgba(0,0,0,0.5)":"0 2px 16px rgba(0,0,0,0.1)"}}>5 Heroes</div>
-          <div style={{fontSize:14,fontWeight:700,color:textMid,letterSpacing:1,marginTop:4}}>Mental Game Scorecard</div>
+          <div style={{fontSize:28,fontWeight:900,color:textHigh,letterSpacing:-0.5,lineHeight:1,textShadow:darkMode?"0 4px 32px rgba(0,0,0,0.5)":"0 2px 16px rgba(0,0,0,0.1)"}}>5 Heroes</div>
+          <div style={{fontSize:28,fontWeight:900,color:textMid,letterSpacing:-0.5,marginTop:2}}>Mental Game Scorecard</div>
           <div style={{fontSize:11,fontWeight:600,color:PM_GOLD,letterSpacing:1.5,marginTop:4,textTransform:"uppercase"}}>by Paul Monahan</div>
         </div>
 
