@@ -2045,6 +2045,17 @@ export default function App() {
   function advanceHole() {
     const nextHole = Math.min(17, currentHole + 1);
 
+    // If the hole has a par but no score entered, commit par as the score
+    // (the UI already shows par as the default — this just makes it stick)
+    const cur = scores[currentHole];
+    if (cur.par && !cur.strokeScore) {
+      setScores(prev => {
+        const n = JSON.parse(JSON.stringify(prev));
+        n[currentHole].strokeScore = cur.par;
+        return n;
+      });
+    }
+
     // ── Always check bandit spiral BEFORE any early return ──
     if (currentHole >= 2) {
       const last3 = [currentHole-2, currentHole-1, currentHole].map(i => getHoleStats(scores, i));
