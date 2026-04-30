@@ -4150,7 +4150,7 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
         return (
           <div style={{position:"fixed",inset:0,zIndex:300,background:P.bg,display:"flex",flexDirection:"column"}}>
             {/* Detail header */}
-            <div style={{padding:"14px 16px 10px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid ${P.border}`,flexShrink:0,background:P.bg}}>
+            <div style={{padding:`calc(14px + env(safe-area-inset-top, 0px)) 16px 10px`,display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:`1px solid ${P.border}`,flexShrink:0,background:P.bg}}>
               <button onClick={()=>setSelectedRound(null)} style={S.iconBtn} {...pp()}><Icons.Back color={P.muted}/></button>
               <div style={{textAlign:"center",flex:1,minWidth:0,padding:"0 8px"}}>
                 <div style={{fontSize:14,fontWeight:800,color:P.white,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.course}</div>
