@@ -99,7 +99,9 @@ function ClerkBridge() {
     window.__clerkOpenUserProfile = () => openUserProfile({});
     window.__clerkSignOut = () => signOut(() => { window.location.reload(); });
     window.__useUser = () => ({ user, isSignedIn, isLoaded });
-  });
+    // Notify the app to re-render when auth state changes
+    window.dispatchEvent(new Event("clerk_auth_change"));
+  }, [isSignedIn, user?.id]);
 
   return null;
 }

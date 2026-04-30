@@ -1848,6 +1848,17 @@ export default function App() {
   }
 
   // Whether user has created a profile (unlocks unlimited rounds)
+  // Use state so React re-renders when auth changes (window globals don't trigger re-render)
+  const [clerkAuthTick, setClerkAuthTick] = useState(0);
+  useEffect(() => {
+    const handler = () => setClerkAuthTick(t => t + 1);
+    window.addEventListener("clerk_auth_change", handler);
+    window.addEventListener("convex_ready", handler);
+    return () => {
+      window.removeEventListener("clerk_auth_change", handler);
+      window.removeEventListener("convex_ready", handler);
+    };
+  }, []);
   const clerkUser = window.__useUser ? window.__useUser() : null;
   const hasProfile = !!(clerkUser?.isSignedIn);
   const roundsRemaining = hasProfile ? Infinity : Math.max(0, FREE_ROUNDS_LIMIT - savedRounds.length);
