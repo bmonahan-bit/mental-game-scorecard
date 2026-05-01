@@ -3456,7 +3456,7 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
   const pillBorder= darkMode ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.1)";
   const dockBg    = darkMode ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)";
   const dockBorder= darkMode ? "rgba(255,255,255,0.1)"  : "rgba(0,0,0,0.08)";
-  const logoSrc   = darkMode ? HEROES_LOGO_WHITE : HEROES_LOGO_DARK;
+  const logoSrc   = darkMode ? SHIELD_WHITE_LOGO : HEROES_LOGO_DARK;
   const banditSrc = darkMode ? BANDIT_LOGO_WHITE : BANDIT_LOGO_DARK;
   const heroLabel = darkMode ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)";
   const footerRule= PM_GOLD+"66";
