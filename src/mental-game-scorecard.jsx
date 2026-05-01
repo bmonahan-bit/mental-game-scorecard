@@ -3469,7 +3469,7 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
       <div style={{position:"absolute",inset:0,background:`radial-gradient(ellipse 80% 50% at 50% 110%, ${darkMode?"rgba(220,38,38,0.12)":"rgba(220,38,38,0.07)"} 0%, transparent 60%)`,zIndex:0,pointerEvents:"none"}}/>
       {/* Shield watermark */}
       <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:"110%",maxWidth:520,zIndex:0,pointerEvents:"none"}}>
-        <img src={SHIELD_LOGO} alt="" style={{width:"100%",height:"auto",objectFit:"contain",opacity:darkMode?0.13:0.12,mixBlendMode:darkMode?"screen":"multiply",filter:darkMode?"brightness(0) invert(1)":"none"}}/>
+        <img src={SHIELD_LOGO} alt="" style={{width:"100%",height:"auto",objectFit:"contain",opacity:darkMode?0.18:0.12,mixBlendMode:darkMode?"screen":"multiply",filter:darkMode?"grayscale(1) brightness(4)":"none"}}/>
       </div>
       <div style={{position:"absolute",top:"28%",left:"50%",transform:"translateX(-50%)",width:320,height:320,borderRadius:"50%",border:`1px solid ${ringColor}`,zIndex:1,pointerEvents:"none"}}/>
       <div style={{position:"absolute",top:"22%",left:"50%",transform:"translateX(-50%)",width:480,height:480,borderRadius:"50%",border:`1px solid ${ringColor}`,zIndex:1,pointerEvents:"none"}}/>
