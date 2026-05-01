@@ -3038,7 +3038,7 @@ export default function App() {
           return (
           <div style={{margin:"0 12px 4px",padding:"6px 10px",borderRadius:12,background:total.net>0?P.green+"12":total.net<0?P.red+"12":P.card,border:`1.5px solid ${total.net>0?P.green+"44":total.net<0?P.red+"44":P.border}`,display:"flex",alignItems:"center",justifyContent:"space-between",gap:6,transition:"all 0.3s ease"}}>
             <div style={{display:"flex",alignItems:"center",gap:5,flex:1}}>
-              <img src={darkMode?HEROES_LOGO_WHITE:HEROES_LOGO_DARK} alt="Heroes" style={{width:32,height:32,objectFit:"contain",flexShrink:0}}/>
+              <img src={HEROES_LOGO_DARK} alt="Heroes" style={{width:32,height:32,objectFit:"contain",flexShrink:0,filter:darkMode?"invert(1) brightness(2)":"none"}}/>
               <div>
                 <div style={{fontSize:10,color:P.green,letterSpacing:1,fontWeight:700}}>HEROES</div>
                 <div style={{display:"flex",alignItems:"baseline",gap:3}}>
@@ -3063,7 +3063,7 @@ export default function App() {
                   <span style={{fontSize:22,fontWeight:900,color:P.red,lineHeight:1}}>{bT}</span>
                 </div>
               </div>
-              <img src={darkMode?BANDIT_LOGO_WHITE:BANDIT_LOGO_DARK} alt="Bandits" style={{width:32,height:32,objectFit:"contain",flexShrink:0}}/>
+              <img src={BANDIT_LOGO_DARK} alt="Bandits" style={{width:32,height:32,objectFit:"contain",flexShrink:0,filter:darkMode?"invert(1) brightness(2)":"none"}}/>
             </div>
           </div>
           );
@@ -3301,9 +3301,6 @@ function LaunchScreen({onStartRound,onContinueRound,roundInProgress,onHub,savedR
         )}
         <div style={{display:"flex",gap:6,alignItems:"center"}}>
           {themeToggle}
-          <button onClick={onSettings} style={{display:"flex",alignItems:"center",justifyContent:"center",width:36,height:36,borderRadius:10,background:overlay1,border:`1px solid ${overlay2}`,cursor:"pointer",color:textMid}} {...pp()}>
-            <Icons.Gear color={textMid} size={16}/>
-          </button>
         </div>
       </div>
 
@@ -3319,14 +3316,15 @@ function LaunchScreen({onStartRound,onContinueRound,roundInProgress,onHub,savedR
           <img src={BADGE_LOGO} alt="5 Heroes" style={{
             width:"100%",height:"100%",objectFit:"contain",
             filter: darkMode
-              ? "brightness(10) saturate(0) drop-shadow(0 0 20px rgba(255,255,255,0.15))"
+              ? "brightness(1.1) drop-shadow(0 0 24px rgba(59,130,246,0.6))"
               : "none",
           }}/>
         </div>
 
         {/* Title */}
         <div style={{textAlign:"center",marginBottom:28,opacity:loaded?1:0,transform:loaded?"translateY(0)":"translateY(16px)",transition:"all 0.6s cubic-bezier(0.16,1,0.3,1) 0.3s"}}>
-          <div style={{fontSize:26,fontWeight:900,color:textHigh,letterSpacing:-0.5,lineHeight:1.15}}>Mental Game Scorecard</div>
+          <div style={{fontSize:22,fontWeight:900,color:textHigh,letterSpacing:-0.3,lineHeight:1.15}}>5 Heroes</div>
+          <div style={{fontSize:26,fontWeight:900,color:textHigh,letterSpacing:-0.5,lineHeight:1.15,marginTop:2}}>Mental Game Scorecard</div>
           <div style={{fontSize:11,fontWeight:600,color:PM_GOLD,letterSpacing:1.5,marginTop:6,textTransform:"uppercase"}}>by Paul Monahan</div>
         </div>
 
@@ -3455,8 +3453,9 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
   const pillBorder= darkMode ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.1)";
   const dockBg    = darkMode ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)";
   const dockBorder= darkMode ? "rgba(255,255,255,0.1)"  : "rgba(0,0,0,0.08)";
-  const logoSrc   = darkMode ? HEROES_LOGO_WHITE : HEROES_LOGO_DARK;
-  const banditSrc = darkMode ? BANDIT_LOGO_WHITE : BANDIT_LOGO_DARK;
+  const logoSrc   = HEROES_LOGO_DARK;
+  const banditSrc = BANDIT_LOGO_DARK;
+  const logoDMFilter = darkMode ? "invert(1) brightness(2)" : "none";
   const heroLabel = darkMode ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)";
   const footerRule= PM_GOLD+"66";
   const footerText= darkMode ? "rgba(255,255,255,0.2)"  : "rgba(0,0,0,0.25)";
@@ -3493,22 +3492,22 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
         {/* Logos collision */}
         <div style={{display:"flex",alignItems:"flex-end",justifyContent:"center",marginBottom:16,height:120,position:"relative",width:"100%"}}>
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,transform:loaded?"translateX(0)":"translateX(-100px)",opacity:loaded?1:0,transition:"transform 1s cubic-bezier(0.34,1.4,0.64,1) 0.1s, opacity 0.5s ease 0.1s"}}>
-            <img src={logoSrc} alt="Heroes" onClick={()=>tapLogo("hero")} style={{width:logoPopped?96:90,height:logoPopped?96:90,objectFit:"contain",filter:`drop-shadow(0 6px 24px rgba(22,163,74,${darkMode?0.65:0.4}))`,transition:"width 0.4s cubic-bezier(0.34,1.56,0.64,1), height 0.4s cubic-bezier(0.34,1.56,0.64,1)",cursor:"pointer",animation:heroBounce?"logoBounce 0.5s cubic-bezier(0.36,0.07,0.19,0.97)":undefined}}/>
+            <img src={logoSrc} alt="Heroes" onClick={()=>tapLogo("hero")} style={{width:logoPopped?96:90,height:logoPopped?96:90,objectFit:"contain",filter:`${logoDMFilter} drop-shadow(0 6px 24px rgba(22,163,74,${darkMode?0.65:0.4}))`,transition:"width 0.4s cubic-bezier(0.34,1.56,0.64,1), height 0.4s cubic-bezier(0.34,1.56,0.64,1)",cursor:"pointer",animation:heroBounce?"logoBounce 0.5s cubic-bezier(0.36,0.07,0.19,0.97)":undefined}}/>
             <span style={{fontSize:9,fontWeight:800,letterSpacing:2.5,color:heroLabel}}>HEROES</span>
           </div>
           <div style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#ca8a04,#fbbf24)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 24px rgba(202,138,4,0.8), 0 0 48px rgba(202,138,4,0.3)",opacity:loaded?1:0,transition:"opacity 0.4s ease 0.9s",flexShrink:0,margin:"0 14px 22px",zIndex:1}}>
             <span style={{fontSize:10,fontWeight:900,color:"#fff",letterSpacing:0.5}}>VS</span>
           </div>
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,transform:loaded?"translateX(0)":"translateX(100px)",opacity:loaded?1:0,transition:"transform 1s cubic-bezier(0.34,1.4,0.64,1) 0.1s, opacity 0.5s ease 0.1s"}}>
-            <img src={banditSrc} alt="Bandits" onClick={()=>tapLogo("bandit")} style={{width:logoPopped?96:90,height:logoPopped?96:90,objectFit:"contain",filter:`drop-shadow(0 6px 24px rgba(220,38,38,${darkMode?0.65:0.4}))`,transition:"width 0.4s cubic-bezier(0.34,1.56,0.64,1), height 0.4s cubic-bezier(0.34,1.56,0.64,1)",cursor:"pointer",animation:banditBounce?"logoBounce 0.5s cubic-bezier(0.36,0.07,0.19,0.97)":undefined}}/>
+            <img src={banditSrc} alt="Bandits" onClick={()=>tapLogo("bandit")} style={{width:logoPopped?96:90,height:logoPopped?96:90,objectFit:"contain",filter:`${logoDMFilter} drop-shadow(0 6px 24px rgba(220,38,38,${darkMode?0.65:0.4}))`,transition:"width 0.4s cubic-bezier(0.34,1.56,0.64,1), height 0.4s cubic-bezier(0.34,1.56,0.64,1)",cursor:"pointer",animation:banditBounce?"logoBounce 0.5s cubic-bezier(0.36,0.07,0.19,0.97)":undefined}}/>
             <span style={{fontSize:9,fontWeight:800,letterSpacing:2.5,color:heroLabel}}>BANDITS</span>
           </div>
         </div>
 
         {/* Title */}
         <div style={{textAlign:"center",marginBottom:10,opacity:loaded?1:0,transform:loaded?"translateY(0)":"translateY(16px)",transition:"all 0.7s cubic-bezier(0.16,1,0.3,1) 0.4s"}}>
-          <div style={{fontSize:28,fontWeight:900,color:textHigh,letterSpacing:-0.5,lineHeight:1,textShadow:darkMode?"0 4px 32px rgba(0,0,0,0.5)":"0 2px 16px rgba(0,0,0,0.1)"}}>5 Heroes</div>
-          <div style={{fontSize:28,fontWeight:900,color:textMid,letterSpacing:-0.5,marginTop:2}}>Mental Game Scorecard</div>
+          <div style={{fontSize:42,fontWeight:900,color:textHigh,letterSpacing:-1,lineHeight:1,textShadow:darkMode?"0 4px 32px rgba(0,0,0,0.5)":"0 2px 16px rgba(0,0,0,0.1)"}}>5 Heroes</div>
+          <div style={{fontSize:14,fontWeight:700,color:textMid,letterSpacing:1,marginTop:4}}>Mental Game Scorecard</div>
           <div style={{fontSize:11,fontWeight:600,color:PM_GOLD,letterSpacing:1.5,marginTop:4,textTransform:"uppercase"}}>by Paul Monahan</div>
         </div>
 
@@ -6547,8 +6546,8 @@ function RoundSummaryView({scores,total,courseName,courseData,roundDate,postRoun
           <div style={{fontSize:48,fontWeight:900,color:total.net>0?P.green:total.net<0?P.red:P.gold,lineHeight:1}}>{total.net>0?"+":""}{total.net}</div>
           {totalStroke>0&&<div style={{fontSize:16,color:P.accent,fontWeight:700,marginTop:6}}>Shot {totalStroke}{stp!==null?` (${stp>0?"+":""}${stp})`:""}</div>}
           <div style={{display:"flex",justifyContent:"center",gap:28,marginTop:8}}>
-            <div style={{textAlign:"center"}}><img src={darkMode ? HEROES_LOGO_WHITE : HEROES_LOGO_DARK} alt="" style={{width:40,height:40,objectFit:"contain",display:"block",margin:"0 auto 4px"}}/><span style={{fontSize:22,fontWeight:800,color:P.green}}>{total.heroes}</span><div style={{fontSize:9,color:P.green,fontWeight:700,letterSpacing:1.5,marginTop:2}}>HEROES</div></div>
-            <div style={{textAlign:"center"}}><img src={darkMode ? BANDIT_LOGO_WHITE : BANDIT_LOGO_DARK} alt="" style={{width:40,height:40,objectFit:"contain",display:"block",margin:"0 auto 4px"}}/><span style={{fontSize:22,fontWeight:800,color:P.red}}>{total.bandits}</span><div style={{fontSize:9,color:P.red,fontWeight:700,letterSpacing:1.5,marginTop:2}}>BANDITS</div></div>
+            <div style={{textAlign:"center"}}><img src={HEROES_LOGO_DARK} alt="" style={{width:40,height:40,objectFit:"contain",display:"block",margin:"0 auto 4px",filter:darkMode?"invert(1) brightness(2)":"none"}}/><span style={{fontSize:22,fontWeight:800,color:P.green}}>{total.heroes}</span><div style={{fontSize:9,color:P.green,fontWeight:700,letterSpacing:1.5,marginTop:2}}>HEROES</div></div>
+            <div style={{textAlign:"center"}}><img src={BANDIT_LOGO_DARK} alt="" style={{width:40,height:40,objectFit:"contain",display:"block",margin:"0 auto 4px",filter:darkMode?"invert(1) brightness(2)":"none"}}/><span style={{fontSize:22,fontWeight:800,color:P.red}}>{total.bandits}</span><div style={{fontSize:9,color:P.red,fontWeight:700,letterSpacing:1.5,marginTop:2}}>BANDITS</div></div>
           </div>
         </div>
 
@@ -8047,8 +8046,9 @@ function HeroBanditTab(){
   const [tab,setTab]=useState("heroes"); const [exp,setExp]=useState(null);
   const data=tab==="heroes"?OB_HEROES:OB_BANDITS;
   const activeColor=tab==="heroes"?P.green:P.red;
-  const heroLogo=dm?HEROES_LOGO_WHITE:HEROES_LOGO_DARK;
-  const banditLogo=dm?BANDIT_LOGO_WHITE:BANDIT_LOGO_DARK;
+  const heroLogo=HEROES_LOGO_DARK;
+  const banditLogo=BANDIT_LOGO_DARK;
+  const dmLogoFilter=dm?"invert(1) brightness(2)":"none";
   return <div>
     <div style={{fontSize:14,lineHeight:1.7,color:P.muted,fontWeight:500,marginBottom:10}}>Channeling the Five Heroes will allow you to experience golf with objectivity, joy, and passion. Beware the Five Bandits — thought patterns that will steal your potential if you are not careful.</div>
     <div style={{padding:"10px 14px",borderRadius:12,background:P.cardAlt,border:`1px solid ${P.border}`,marginBottom:14,textAlign:"center"}}>
@@ -8057,7 +8057,7 @@ function HeroBanditTab(){
     </div>
     <div style={{display:"flex",gap:6,marginBottom:12}}>{[{k:"heroes",l:"Heroes",c:P.green,logo:heroLogo},{k:"bandits",l:"Bandits",c:P.red,logo:banditLogo}].map(t=>(
       <button key={t.k} onClick={()=>{setTab(t.k);setExp(null);}} {...pp()} style={{flex:1,padding:"10px 8px",borderRadius:12,border:`1.5px solid ${tab===t.k?t.c+"55":P.border}`,background:tab===t.k?t.c+"12":P.card,color:tab===t.k?t.c:P.muted,fontSize:14,fontWeight:700,cursor:"pointer",transition:"all 0.15s",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-        <img src={t.logo} alt="" style={{width:22,height:22,objectFit:"contain"}}/>
+        <img src={t.logo} alt="" style={{width:22,height:22,objectFit:"contain",filter:dmLogoFilter}}/>
         {t.l}
       </button>
     ))}</div>
@@ -8388,7 +8388,7 @@ function ShareView({onBack, P}) {
       </button>
       <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"0 32px",textAlign:"center"}}>
         <div style={{opacity:0.1,marginBottom:24}}>
-          <img src={HEROES_LOGO_WHITE} alt="" style={{width:120,height:120,objectFit:"contain"}}/>
+          <img src={HEROES_LOGO_DARK} alt="" style={{width:120,height:120,objectFit:"contain",filter:"invert(1) brightness(2)"}}/>
         </div>
         <div style={{fontSize:11,fontWeight:800,letterSpacing:3,color:PM_GOLD,marginBottom:12}}>TAP TO SHARE</div>
         <div style={{fontSize:26,fontWeight:900,color:"#fff",lineHeight:1.2,marginBottom:12}}>Bring a Friend<br/>to the Game</div>
@@ -8450,7 +8450,7 @@ function PaywallView({onUnlock, onBack, onPrivacy, P, S}) {
       <div style={{padding:"52px 28px 24px",flexShrink:0,position:"relative",overflow:"hidden",textAlign:"center"}}>
         {/* Shield watermark */}
         <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",opacity:0.05,pointerEvents:"none"}}>
-          <img src={HEROES_LOGO_WHITE} alt="" style={{width:220,height:220,objectFit:"contain"}}/>
+          <img src={HEROES_LOGO_DARK} alt="" style={{width:220,height:220,objectFit:"contain",filter:"invert(1) brightness(2)"}}/>
         </div>
         {/* Gold accent line */}
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${PM_GOLD}66,transparent)`}}/>
