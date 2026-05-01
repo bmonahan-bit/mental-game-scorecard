@@ -3313,7 +3313,7 @@ function LaunchScreen({onStartRound,onContinueRound,roundInProgress,onHub,savedR
 
         {/* Badge */}
         <div style={{
-          width:180,height:180,marginBottom:20,
+          width:darkMode?240:180,height:darkMode?240:180,marginBottom:20,
           opacity:loaded?1:0,transform:loaded?"scale(1)":"scale(0.85)",
           transition:"all 0.7s cubic-bezier(0.34,1.4,0.64,1) 0.1s",
         }}>
