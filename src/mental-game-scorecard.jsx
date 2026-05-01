@@ -3313,12 +3313,13 @@ function LaunchScreen({onStartRound,onContinueRound,roundInProgress,onHub,savedR
 
         {/* Badge */}
         <div style={{
-          width:darkMode?240:180,height:darkMode?240:180,marginBottom:20,
+          width:180,height:180,marginBottom:20,
           opacity:loaded?1:0,transform:loaded?"scale(1)":"scale(0.85)",
           transition:"all 0.7s cubic-bezier(0.34,1.4,0.64,1) 0.1s",
         }}>
           <img src={darkMode ? SHIELD_WHITE_LOGO : BADGE_LOGO} alt="5 Heroes" style={{
             width:"100%",height:"100%",objectFit:"contain",
+            padding: darkMode ? "10px 20px" : 0,
           }}/>
         </div>
 
