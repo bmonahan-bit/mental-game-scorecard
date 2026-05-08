@@ -3354,19 +3354,23 @@ function LaunchScreen({onStartRound,onContinueRound,roundInProgress,onHub,savedR
         )}
 
         {/* Start Round CTA */}
-        <button onClick={()=>roundInProgress?onContinueRound():onStartRound()} {...pp()} style={{
-          width:"100%",maxWidth:300,padding:"18px 24px",borderRadius:18,
-          background:roundInProgress?"linear-gradient(135deg,#1d4ed8,#2563eb)":"linear-gradient(135deg,#16a34a,#22c55e)",
-          border:"none",color:"#fff",fontSize:19,fontWeight:900,cursor:"pointer",letterSpacing:0.3,
-          boxShadow:roundInProgress?"0 8px 32px rgba(37,99,235,0.45)":"0 8px 32px rgba(22,163,74,0.45)",
-          display:"flex",alignItems:"center",justifyContent:"center",gap:10,
+        <div style={{
+          width:"100%",maxWidth:300,marginBottom:12,
           opacity:loaded?1:0,transform:loaded?"translateY(0)":"translateY(20px)",
-          transition:"all 0.6s cubic-bezier(0.16,1,0.3,1) 0.55s",
-          marginBottom:12,
+          transition:"opacity 0.6s cubic-bezier(0.16,1,0.3,1) 0.55s, transform 0.6s cubic-bezier(0.16,1,0.3,1) 0.55s",
         }}>
-          <Icons.Flag color="#fff" size={20}/>
-          {roundInProgress?"Continue Round":"Start Round"}
-        </button>
+          <button onClick={()=>roundInProgress?onContinueRound():onStartRound()} {...pp()} style={{
+            width:"100%",padding:"18px 24px",borderRadius:18,
+            background:roundInProgress?"linear-gradient(135deg,#1d4ed8,#2563eb)":"linear-gradient(135deg,#16a34a,#22c55e)",
+            border:"none",color:"#fff",fontSize:19,fontWeight:900,cursor:"pointer",letterSpacing:0.3,
+            boxShadow:roundInProgress?"0 8px 32px rgba(37,99,235,0.45)":"0 8px 32px rgba(22,163,74,0.45)",
+            display:"flex",alignItems:"center",justifyContent:"center",gap:10,
+            touchAction:"manipulation",
+          }}>
+            <Icons.Flag color="#fff" size={20}/>
+            {roundInProgress?"Continue Round":"Start Round"}
+          </button>
+        </div>
 
         {/* More → Dashboard */}
         <button onClick={onHub} {...pp()} style={{
