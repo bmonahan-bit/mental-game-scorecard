@@ -3492,14 +3492,14 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
         {/* Logos collision */}
         <div style={{display:"flex",alignItems:"flex-end",justifyContent:"center",marginBottom:16,height:120,position:"relative",width:"100%"}}>
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,transform:loaded?"translateX(0)":"translateX(-100px)",opacity:loaded?1:0,transition:"transform 1s cubic-bezier(0.34,1.4,0.64,1) 0.1s, opacity 0.5s ease 0.1s"}}>
-            <img src={logoSrc} alt="Heroes" onClick={()=>tapLogo("hero")} style={{width:logoPopped?96:90,height:logoPopped?96:90,objectFit:"contain",filter:`drop-shadow(0 6px 24px rgba(22,163,74,${darkMode?0.65:0.4}))`,transition:"width 0.4s cubic-bezier(0.34,1.56,0.64,1), height 0.4s cubic-bezier(0.34,1.56,0.64,1)",cursor:"pointer",animation:heroBounce?"logoBounce 0.5s cubic-bezier(0.36,0.07,0.19,0.97)":undefined}}/>
+            <img src={logoSrc} alt="Heroes" onClick={()=>tapLogo("hero")} style={{height:logoPopped?96:90,width:"auto",objectFit:"contain",filter:`drop-shadow(0 6px 24px rgba(22,163,74,${darkMode?0.65:0.4}))`,transition:"height 0.4s cubic-bezier(0.34,1.56,0.64,1)",cursor:"pointer",animation:heroBounce?"logoBounce 0.5s cubic-bezier(0.36,0.07,0.19,0.97)":undefined}}/>
             <span style={{fontSize:9,fontWeight:800,letterSpacing:2.5,color:heroLabel}}>HEROES</span>
           </div>
           <div style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#ca8a04,#fbbf24)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 24px rgba(202,138,4,0.8), 0 0 48px rgba(202,138,4,0.3)",opacity:loaded?1:0,transition:"opacity 0.4s ease 0.9s",flexShrink:0,margin:"0 14px 22px",zIndex:1}}>
             <span style={{fontSize:10,fontWeight:900,color:"#fff",letterSpacing:0.5}}>VS</span>
           </div>
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,transform:loaded?"translateX(0)":"translateX(100px)",opacity:loaded?1:0,transition:"transform 1s cubic-bezier(0.34,1.4,0.64,1) 0.1s, opacity 0.5s ease 0.1s"}}>
-            <img src={banditSrc} alt="Bandits" onClick={()=>tapLogo("bandit")} style={{width:logoPopped?96:90,height:logoPopped?96:90,objectFit:"contain",filter:`drop-shadow(0 6px 24px rgba(220,38,38,${darkMode?0.65:0.4}))`,transition:"width 0.4s cubic-bezier(0.34,1.56,0.64,1), height 0.4s cubic-bezier(0.34,1.56,0.64,1)",cursor:"pointer",animation:banditBounce?"logoBounce 0.5s cubic-bezier(0.36,0.07,0.19,0.97)":undefined}}/>
+            <img src={banditSrc} alt="Bandits" onClick={()=>tapLogo("bandit")} style={{height:logoPopped?96:90,width:"auto",objectFit:"contain",filter:`drop-shadow(0 6px 24px rgba(220,38,38,${darkMode?0.65:0.4}))`,transition:"height 0.4s cubic-bezier(0.34,1.56,0.64,1)",cursor:"pointer",animation:banditBounce?"logoBounce 0.5s cubic-bezier(0.36,0.07,0.19,0.97)":undefined}}/>
             <span style={{fontSize:9,fontWeight:800,letterSpacing:2.5,color:heroLabel}}>BANDITS</span>
           </div>
         </div>
