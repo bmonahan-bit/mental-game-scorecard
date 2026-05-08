@@ -3279,38 +3279,8 @@ function LaunchScreen({onStartRound,onContinueRound,roundInProgress,onHub,savedR
   const darkMode = P.bg === "#09090b";
   const [loaded, setLoaded] = useState(false);
   const pp = pressProps;
-  const ctaRef = React.useRef(null);
-  const ctaLastFire = React.useRef(0);
 
   useEffect(() => { setTimeout(() => setLoaded(true), 60); }, []);
-
-  // Attach native DOM listeners (click + touchend + pointerup) to the Start
-  // Round CTA so the action fires reliably on Capacitor iOS WKWebView, which
-  // has been observed to drop React synthetic click events on certain
-  // elements. The 300ms guard prevents multiple events from double-firing the
-  // action. window.alert is included once on first fire so we can confirm via
-  // the device that the listener IS reaching here — if you tap and see no
-  // alert at all, the touch is being intercepted upstream of this button.
-  useEffect(() => {
-    const btn = ctaRef.current;
-    if (!btn) return;
-    const fire = (ev) => {
-      const now = Date.now();
-      if (now - ctaLastFire.current < 300) return;
-      ctaLastFire.current = now;
-      if (ev && ev.type === "touchend" && ev.cancelable) ev.preventDefault();
-      if (roundInProgress) onContinueRound();
-      else onStartRound();
-    };
-    btn.addEventListener("click", fire);
-    btn.addEventListener("touchend", fire);
-    btn.addEventListener("pointerup", fire);
-    return () => {
-      btn.removeEventListener("click", fire);
-      btn.removeEventListener("touchend", fire);
-      btn.removeEventListener("pointerup", fire);
-    };
-  }, [roundInProgress, onStartRound, onContinueRound]);
 
   const lastRound = savedRounds && savedRounds.length > 0 ? savedRounds[0] : null;
   const totalRounds = savedRounds ? savedRounds.length : 0;
@@ -3398,29 +3368,15 @@ function LaunchScreen({onStartRound,onContinueRound,roundInProgress,onHub,savedR
           </div>
         )}
 
-        {/* Start Round CTA — multiple event paths (React onClick + native click + touchend + pointerup) */}
-        <button
-          ref={ctaRef}
-          type="button"
-          onClick={()=>{
-            const now = Date.now();
-            if (now - ctaLastFire.current < 300) return;
-            ctaLastFire.current = now;
-            if (roundInProgress) onContinueRound();
-            else onStartRound();
-          }}
-          style={{
-            width:"100%",maxWidth:300,padding:"18px 24px",borderRadius:18,
-            background:roundInProgress?"linear-gradient(135deg,#1d4ed8,#2563eb)":"linear-gradient(135deg,#16a34a,#22c55e)",
-            border:"none",color:"#fff",fontSize:19,fontWeight:900,cursor:"pointer",letterSpacing:0.3,
-            boxShadow:roundInProgress?"0 8px 32px rgba(37,99,235,0.45)":"0 8px 32px rgba(22,163,74,0.45)",
-            display:"flex",alignItems:"center",justifyContent:"center",gap:10,
-            marginBottom:12,
-            touchAction:"manipulation",
-            WebkitTapHighlightColor:"transparent",
-            position:"relative",
-            zIndex:10,
-          }}>
+        {/* Start Round CTA — same handler pattern as the Dashboard button below (which works on mobile). */}
+        <button onClick={()=>{ if(roundInProgress) onContinueRound(); else onStartRound(); }} {...pp()} style={{
+          width:"100%",maxWidth:300,padding:"18px 24px",borderRadius:18,
+          background:roundInProgress?"linear-gradient(135deg,#1d4ed8,#2563eb)":"linear-gradient(135deg,#16a34a,#22c55e)",
+          border:"none",color:"#fff",fontSize:19,fontWeight:900,cursor:"pointer",letterSpacing:0.3,
+          display:"flex",alignItems:"center",justifyContent:"center",gap:10,
+          marginBottom:12,
+          opacity:loaded?1:0,transition:"opacity 0.6s ease 0.55s",
+        }}>
           <Icons.Flag color="#fff" size={20}/>
           {roundInProgress?"Continue Round":"Start Round"}
         </button>
