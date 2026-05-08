@@ -3279,8 +3279,32 @@ function LaunchScreen({onStartRound,onContinueRound,roundInProgress,onHub,savedR
   const darkMode = P.bg === "#09090b";
   const [loaded, setLoaded] = useState(false);
   const pp = pressProps;
+  const ctaRef = React.useRef(null);
+  const ctaLastFire = React.useRef(0);
 
   useEffect(() => { setTimeout(() => setLoaded(true), 60); }, []);
+
+  // Attach native DOM listeners (click + touchend) to the Start Round CTA so
+  // the action fires reliably on Capacitor iOS WKWebView, which has been
+  // observed to drop React synthetic click events on certain elements. The
+  // 300ms guard prevents touchend + synthetic click from double-firing.
+  useEffect(() => {
+    const btn = ctaRef.current;
+    if (!btn) return;
+    const fire = () => {
+      const now = Date.now();
+      if (now - ctaLastFire.current < 300) return;
+      ctaLastFire.current = now;
+      if (roundInProgress) onContinueRound();
+      else onStartRound();
+    };
+    btn.addEventListener("click", fire);
+    btn.addEventListener("touchend", fire);
+    return () => {
+      btn.removeEventListener("click", fire);
+      btn.removeEventListener("touchend", fire);
+    };
+  }, [roundInProgress, onStartRound, onContinueRound]);
 
   const lastRound = savedRounds && savedRounds.length > 0 ? savedRounds[0] : null;
   const totalRounds = savedRounds ? savedRounds.length : 0;
@@ -3368,13 +3392,10 @@ function LaunchScreen({onStartRound,onContinueRound,roundInProgress,onHub,savedR
           </div>
         )}
 
-        {/* Start Round CTA — kept simple to guarantee click reliability across mobile/web */}
+        {/* Start Round CTA — native DOM listeners attached via ctaRef in useEffect above */}
         <button
+          ref={ctaRef}
           type="button"
-          onClick={()=>{
-            if (roundInProgress) onContinueRound();
-            else onStartRound();
-          }}
           style={{
             width:"100%",maxWidth:300,padding:"18px 24px",borderRadius:18,
             background:roundInProgress?"linear-gradient(135deg,#1d4ed8,#2563eb)":"linear-gradient(135deg,#16a34a,#22c55e)",
