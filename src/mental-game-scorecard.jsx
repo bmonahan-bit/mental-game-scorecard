@@ -3284,25 +3284,31 @@ function LaunchScreen({onStartRound,onContinueRound,roundInProgress,onHub,savedR
 
   useEffect(() => { setTimeout(() => setLoaded(true), 60); }, []);
 
-  // Attach native DOM listeners (click + touchend) to the Start Round CTA so
-  // the action fires reliably on Capacitor iOS WKWebView, which has been
-  // observed to drop React synthetic click events on certain elements. The
-  // 300ms guard prevents touchend + synthetic click from double-firing.
+  // Attach native DOM listeners (click + touchend + pointerup) to the Start
+  // Round CTA so the action fires reliably on Capacitor iOS WKWebView, which
+  // has been observed to drop React synthetic click events on certain
+  // elements. The 300ms guard prevents multiple events from double-firing the
+  // action. window.alert is included once on first fire so we can confirm via
+  // the device that the listener IS reaching here — if you tap and see no
+  // alert at all, the touch is being intercepted upstream of this button.
   useEffect(() => {
     const btn = ctaRef.current;
     if (!btn) return;
-    const fire = () => {
+    const fire = (ev) => {
       const now = Date.now();
       if (now - ctaLastFire.current < 300) return;
       ctaLastFire.current = now;
+      if (ev && ev.type === "touchend" && ev.cancelable) ev.preventDefault();
       if (roundInProgress) onContinueRound();
       else onStartRound();
     };
     btn.addEventListener("click", fire);
     btn.addEventListener("touchend", fire);
+    btn.addEventListener("pointerup", fire);
     return () => {
       btn.removeEventListener("click", fire);
       btn.removeEventListener("touchend", fire);
+      btn.removeEventListener("pointerup", fire);
     };
   }, [roundInProgress, onStartRound, onContinueRound]);
 
@@ -3392,10 +3398,17 @@ function LaunchScreen({onStartRound,onContinueRound,roundInProgress,onHub,savedR
           </div>
         )}
 
-        {/* Start Round CTA — native DOM listeners attached via ctaRef in useEffect above */}
+        {/* Start Round CTA — multiple event paths (React onClick + native click + touchend + pointerup) */}
         <button
           ref={ctaRef}
           type="button"
+          onClick={()=>{
+            const now = Date.now();
+            if (now - ctaLastFire.current < 300) return;
+            ctaLastFire.current = now;
+            if (roundInProgress) onContinueRound();
+            else onStartRound();
+          }}
           style={{
             width:"100%",maxWidth:300,padding:"18px 24px",borderRadius:18,
             background:roundInProgress?"linear-gradient(135deg,#1d4ed8,#2563eb)":"linear-gradient(135deg,#16a34a,#22c55e)",
@@ -3405,8 +3418,8 @@ function LaunchScreen({onStartRound,onContinueRound,roundInProgress,onHub,savedR
             marginBottom:12,
             touchAction:"manipulation",
             WebkitTapHighlightColor:"transparent",
-            opacity:loaded?1:0,
-            transition:"opacity 0.6s cubic-bezier(0.16,1,0.3,1) 0.55s",
+            position:"relative",
+            zIndex:10,
           }}>
           <Icons.Flag color="#fff" size={20}/>
           {roundInProgress?"Continue Round":"Start Round"}
