@@ -3317,9 +3317,9 @@ function LaunchScreen({onStartRound,onContinueRound,roundInProgress,onHub,savedR
           opacity:loaded?1:0,transform:loaded?"scale(1)":"scale(0.85)",
           transition:"all 0.7s cubic-bezier(0.34,1.4,0.64,1) 0.1s",
         }}>
-          <img src={darkMode ? SHIELD_WHITE_LOGO : BADGE_LOGO} alt="5 Heroes" style={{
+          <img src={BADGE_LOGO} alt="5 Heroes" style={{
             width:"100%",height:"100%",objectFit:"contain",
-            transform: darkMode ? "scale(1.3)" : "none",
+            filter: darkMode ? "brightness(0) invert(1)" : "none",
           }}/>
         </div>
 
