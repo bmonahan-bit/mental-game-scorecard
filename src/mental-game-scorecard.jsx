@@ -1703,18 +1703,21 @@ export default function App() {
   React.useEffect(()=>{
     if(tipDone) return;
     const key = TIP_REF_KEYS[tipStep];
-    const frame = requestAnimationFrame(()=>{
+    function measure(){
       const el = tipRefs[key]?.current;
       if(!el) return;
       const r = el.getBoundingClientRect();
+      if(r.width===0||r.height===0) return; // not laid out yet
       // For slide 5 (notes5), extend rect to bottom of screen to cover notes + mental bar + nav
       if(key === "notes5") {
         setTipRect({top:r.top-4, left:r.left-4, width:r.width+8, height:160});
       } else {
         setTipRect({top:r.top-4, left:r.left-4, width:r.width+8, height:r.height+8});
       }
-    });
-    return ()=>cancelAnimationFrame(frame);
+    }
+    // Delay first measurement to ensure layout is complete (initial mount)
+    const timer = setTimeout(()=>requestAnimationFrame(measure), 150);
+    return ()=>clearTimeout(timer);
   },[tipStep, tipDone]);
   function nextTip(){const next=tipStep+1;setTipStep(next);try{localStorage.setItem("mgp_tip_step",next);}catch{}}
   function skipTips(){setTipStep(TOTAL_TIPS);try{localStorage.setItem("mgp_tip_step",TOTAL_TIPS);}catch{}}
