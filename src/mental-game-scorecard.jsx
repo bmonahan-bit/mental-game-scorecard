@@ -2482,8 +2482,8 @@ export default function App() {
               {tipRect&&<div style={{
                 position:"absolute",
                 top:tipRect.top-6,left:tipRect.left-6,width:tipRect.width+12,height:tipRect.height+12,
-                borderRadius:12,background:"transparent",
-                boxShadow:`0 0 0 9999px rgba(0,0,0,0.75), inset 0 0 0 2px ${P.green}, 0 0 0 4px ${P.green}66`,
+                borderRadius:12,background:"rgba(255,255,255,0.08)",
+                boxShadow:`0 0 0 9999px rgba(0,0,0,0.75), inset 0 0 0 2px ${P.green}, 0 0 0 4px ${P.green}66, inset 0 0 20px rgba(255,255,255,0.05)`,
                 pointerEvents:"none",zIndex:992,
               }}/>}
               <div style={{
