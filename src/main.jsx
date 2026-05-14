@@ -38,9 +38,20 @@ if (sentryDsn) {
 // mutation helpers as window globals that the app calls.
 function ConvexBridge() {
   const { isSignedIn } = useUser();
+  const [adminActive, setAdminActive] = React.useState(false);
+
+  // Listen for admin dashboard activation
+  React.useEffect(() => {
+    const on = () => setAdminActive(true);
+    const off = () => setAdminActive(false);
+    window.addEventListener("admin_stats_on", on);
+    window.addEventListener("admin_stats_off", off);
+    return () => { window.removeEventListener("admin_stats_on", on); window.removeEventListener("admin_stats_off", off); };
+  }, []);
 
   const rounds   = useQuery(api.rounds.getRounds,   isSignedIn ? {} : "skip");
   const settings = useQuery(api.settings.getSettings, isSignedIn ? {} : "skip");
+  const adminStats = useQuery(api.admin.getGroupStats, isSignedIn && adminActive ? {} : "skip");
 
   const upsertRoundMut        = useMutation(api.rounds.upsertRound);
   const bulkUpsertRoundsMut   = useMutation(api.rounds.bulkUpsertRounds);
@@ -73,6 +84,9 @@ function ConvexBridge() {
       if (!isSignedIn) return;
       upsertSettingsMut({ data, carryForward }).catch(e => console.error('convexUpsertSettings', e));
     };
+
+    // Admin stats
+    window.__convexAdminStats = adminStats ?? null;
 
     // Dispatch an event so the app re-checks Convex data
     window.dispatchEvent(new Event('convex_ready'));

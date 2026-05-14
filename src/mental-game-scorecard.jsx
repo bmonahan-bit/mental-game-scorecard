@@ -1874,6 +1874,10 @@ export default function App() {
     const onOffline=()=>setIsOffline(true);
     window.addEventListener("online",onOnline);
     window.addEventListener("offline",onOffline);
+    // Admin hash route
+    const onHash=()=>{if(window.location.hash==="#admindash"){setView("admindash");window.location.hash="";}};
+    window.addEventListener("hashchange",onHash);
+    if(window.location.hash==="#admindash"){setView("admindash");window.location.hash="";};
     window.__navToSettings = () => setView("settings");
     (async()=>{
       try{const r=localStorage.getItem(STORAGE_KEY);if(r)setSavedRounds(JSON.parse(r));}catch{}
@@ -1885,6 +1889,7 @@ export default function App() {
     return () => {
       window.removeEventListener("online",onOnline);
       window.removeEventListener("offline",onOffline);
+      window.removeEventListener("hashchange",onHash);
     };
   }, []);
 
@@ -2371,10 +2376,11 @@ export default function App() {
   if (view==="rounddetail") return <ThemeCtx.Provider value={P}><ToastLayer/><RoundDetailView round={selectedRound} onBack={nav("dashboard")} onShare={(r)=>shareRound(r,darkMode)} S={S} /></ThemeCtx.Provider>;
   if (showPrivacyPolicy) return <ThemeCtx.Provider value={P}><ToastLayer/><RateAppModal/><PrivacyPolicyView onBack={()=>setShowPrivacyPolicy(false)} S={S}/></ThemeCtx.Provider>;
   if (showHelp) return <ThemeCtx.Provider value={P}><ToastLayer/><HelpView onBack={()=>setShowHelp(false)} S={S}/></ThemeCtx.Provider>;
-  if (view==="settings") return <ThemeCtx.Provider value={P}><ToastLayer/><SettingsView settings={settings} updateSetting={updateSetting} darkMode={darkMode} toggleTheme={toggleTheme} onBack={nav("hub")} S={S} savedRounds={savedRounds} inGameCaddie={inGameCaddie} setInGameCaddie={setInGameCaddie} onResetTour={()=>{try{localStorage.removeItem("mgp_tip_step");}catch{}setTipStep(0);setView("play");}} onPrivacyPolicy={()=>setShowPrivacyPolicy(true)} onHelp={()=>setShowHelp(true)} onGuide={()=>setView("guide")} /></ThemeCtx.Provider>;
+  if (view==="settings") return <ThemeCtx.Provider value={P}><ToastLayer/><SettingsView settings={settings} updateSetting={updateSetting} darkMode={darkMode} toggleTheme={toggleTheme} onBack={nav("hub")} S={S} savedRounds={savedRounds} inGameCaddie={inGameCaddie} setInGameCaddie={setInGameCaddie} onResetTour={()=>{try{localStorage.removeItem("mgp_tip_step");}catch{}setTipStep(0);setView("play");}} onPrivacyPolicy={()=>setShowPrivacyPolicy(true)} onHelp={()=>setShowHelp(true)} onGuide={()=>setView("guide")} onAdminDash={()=>setView("admindash")} /></ThemeCtx.Provider>;
   if (view==="scorecard") return <ThemeCtx.Provider value={P}><ToastLayer/><ScorecardView scores={scores} front={front} back={back} total={total} courseName={courseName} roundDate={roundDate} onBack={()=>setView(prevView||"play")} onHome={()=>setView("hub")} onSelectHole={h=>{setCurrentHole(h);setView("play");}} S={S} handicap={settings.handicap} /></ThemeCtx.Provider>;
   if (view==="editround") return <ThemeCtx.Provider value={P}><ToastLayer/><RateAppModal/><RoundEditView round={editingRound} onSave={updatedRound=>{const updated=savedRounds.map(r=>r.id===updatedRound.id?updatedRound:r);persistRounds(updated);setEditingRound(null);setView("history");}} onBack={()=>{setEditingRound(null);setView("history");}} S={S} /></ThemeCtx.Provider>;
   if (view==="badges") return <ThemeCtx.Provider value={P}><ToastLayer/><BadgesView rounds={savedRounds} onBack={nav("hub")} S={S} /></ThemeCtx.Provider>;
+  if (view==="admindash") return <ThemeCtx.Provider value={P}><ToastLayer/><AdminDashboardView onBack={nav("hub")} S={S} /></ThemeCtx.Provider>;
   if (view==="roundsummary") return <ThemeCtx.Provider value={P}><ToastLayer/><RoundSummaryView scores={scores} total={total} courseName={courseName} courseData={courseData} roundDate={roundDate} postRoundNotes={postRoundNotes} setPostRoundNotes={setPostRoundNotes} carryForward={carryForward} setCarryForward={setCarryForward} onSave={saveAndFinish} onBack={nav("play")} onViewScorecard={()=>{setPrevView("roundsummary");setView("scorecard");}} S={S} /></ThemeCtx.Provider>;
   if (view==="roundstats") return <ThemeCtx.Provider value={P}><ToastLayer/><FireworksCanvas active={showFireworks} onDone={()=>setShowFireworks(false)}/><RoundStatsView round={completedRound} onHome={(dest)=>{if(dest==="caddie"){setPrevView("roundstats");setView("caddie");}else if(dest==="roundsummary"){setView("roundsummary");}else setView(dest||"hub");}} onShare={(r)=>shareRound(r,darkMode)} S={S} /></ThemeCtx.Provider>;
 
@@ -4567,7 +4573,7 @@ function CourseSelectModal({onConfirm, onSkip, settings, updateSetting, P, S}) {
   );
 }
 
-function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,savedRounds,inGameCaddie,setInGameCaddie,onResetTour,onPrivacyPolicy,onHelp,onGuide}) {
+function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,savedRounds,inGameCaddie,setInGameCaddie,onResetTour,onPrivacyPolicy,onHelp,onGuide,onAdminDash}) {
   const P = useTheme();
   const pp = pressProps;
   const [confirmClear, setConfirmClear] = React.useState(false);
@@ -4753,6 +4759,9 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
           <Row label="Built with">
             <span style={{fontSize:12,color:P.muted,fontWeight:500}}>Paul Monahan × Claude</span>
           </Row>
+          {onAdminDash&&<Row label="Admin Dashboard" sub="Group stats for administrators">
+            <button onClick={onAdminDash} {...pp()} style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${PM_GOLD}`,background:PM_GOLD+"12",color:PM_GOLD,fontSize:12,fontWeight:700,cursor:"pointer"}}>Open</button>
+          </Row>}
           <Row label="Scorecard Tour" sub="Replay the in-play tutorial" last>
             <button onClick={onResetTour} {...pp()} style={{padding:"7px 14px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:12,fontWeight:700,cursor:"pointer"}}>Replay →</button>
           </Row>
@@ -7857,6 +7866,230 @@ function HelpView({onBack, S}) {
 }
 
 
+
+// ═══════════════════════════════════════
+// ADMIN DASHBOARD
+// ═══════════════════════════════════════
+function AdminDashboardView({onBack, S}) {
+  const P = useTheme();
+  const pp = pressProps;
+  const darkMode = P.bg === "#09090b";
+  const [stats, setStats] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
+
+  React.useEffect(() => {
+    window.dispatchEvent(new Event("admin_stats_on"));
+    return () => window.dispatchEvent(new Event("admin_stats_off"));
+  }, []);
+
+  // Poll for admin stats from Convex bridge
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      const d = window.__convexAdminStats;
+      if (d) { setStats(d); setLoading(false); setError(null); }
+    }, 500);
+    // Timeout after 10s
+    const timeout = setTimeout(() => {
+      if (!stats) { setLoading(false); setError("Could not load admin data. Make sure your email is in the ADMIN_EMAILS environment variable in the Convex dashboard."); }
+    }, 10000);
+    return () => { clearInterval(interval); clearTimeout(timeout); };
+  }, []);
+
+  function StatCard({label, value, sub, color}) {
+    return (
+      <div style={{flex:1,minWidth:70,textAlign:"center",padding:"12px 8px",borderRadius:12,background:P.card,border:`1px solid ${P.border}`}}>
+        <div style={{fontSize:22,fontWeight:900,color:color||P.white,lineHeight:1}}>{value}</div>
+        <div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:0.5,marginTop:4}}>{label}</div>
+        {sub&&<div style={{fontSize:9,color:P.muted,marginTop:2}}>{sub}</div>}
+      </div>
+    );
+  }
+
+  function Section({title, children}) {
+    return (
+      <div style={{marginBottom:16}}>
+        <div style={{fontSize:10,fontWeight:800,letterSpacing:2,color:PM_GOLD,marginBottom:8,paddingLeft:2,textTransform:"uppercase"}}>{title}</div>
+        {children}
+      </div>
+    );
+  }
+
+  function BarChart({items, colorFn}) {
+    if (!items || items.length === 0) return null;
+    const max = Math.max(...items.map(i => i.count));
+    return (
+      <div style={{display:"flex",flexDirection:"column",gap:6}}>
+        {items.map((item, i) => (
+          <div key={i} style={{display:"flex",alignItems:"center",gap:8}}>
+            <div style={{width:85,fontSize:12,fontWeight:700,color:P.white,textAlign:"right",flexShrink:0}}>{item.name}</div>
+            <div style={{flex:1,height:20,borderRadius:6,background:P.cardAlt,overflow:"hidden",position:"relative"}}>
+              <div style={{height:"100%",width:`${max>0?(item.count/max)*100:0}%`,borderRadius:6,background:colorFn?colorFn(item):P.green,transition:"width 0.3s ease"}}/>
+              <span style={{position:"absolute",right:6,top:2,fontSize:10,fontWeight:700,color:P.white}}>{item.count}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div style={S.shell}>
+      {/* Header */}
+      <div style={{padding:"12px 16px 8px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+        <button onClick={onBack} style={S.iconBtn} {...pp()}><Icons.Home color={P.muted} size={17}/></button>
+        <div style={{fontSize:17,fontWeight:800,color:P.white}}>Admin Dashboard</div>
+        <div style={{width:36}}/>
+      </div>
+
+      {loading ? (
+        <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12}}>
+          <div style={{width:24,height:24,borderRadius:"50%",border:`3px solid ${P.border}`,borderTopColor:P.green,animation:"spin 0.7s linear infinite"}}/>
+          <div style={{fontSize:13,color:P.muted}}>Loading admin stats...</div>
+        </div>
+      ) : error ? (
+        <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:32}}>
+          <div style={{textAlign:"center",maxWidth:300}}>
+            <div style={{fontSize:15,fontWeight:700,color:P.red,marginBottom:8}}>Access Denied</div>
+            <div style={{fontSize:13,color:P.muted,lineHeight:1.6}}>{error}</div>
+            <button onClick={onBack} style={{marginTop:16,padding:"10px 24px",borderRadius:10,border:"none",background:P.green,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}} {...pp()}>Go Back</button>
+          </div>
+        </div>
+      ) : stats ? (
+        <div style={{flex:1,overflowY:"auto",padding:"0 16px 32px"}}>
+
+          {/* Overview */}
+          <Section title="Overview">
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              <StatCard label="TOTAL USERS" value={stats.overview.totalUsers}/>
+              <StatCard label="TOTAL ROUNDS" value={stats.overview.totalRounds}/>
+              <StatCard label="THIS WEEK" value={stats.overview.roundsThisWeek} color={P.green}/>
+            </div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:8}}>
+              <StatCard label="ACTIVE 7D" value={stats.overview.activeUsers7d} color={P.accent}/>
+              <StatCard label="ACTIVE 30D" value={stats.overview.activeUsers30d}/>
+              <StatCard label="AVG ROUNDS/USER" value={stats.overview.avgRoundsPerUser}/>
+            </div>
+          </Section>
+
+          {/* Mental Net */}
+          <Section title="Mental Net">
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              <StatCard label="AVG NET" value={stats.mentalNet.avgNet>0?"+"+stats.mentalNet.avgNet:stats.mentalNet.avgNet} color={stats.mentalNet.avgNet>0?P.green:stats.mentalNet.avgNet<0?P.red:P.gold}/>
+              <StatCard label="BEST" value={"+"+stats.mentalNet.bestNet} color={P.green}/>
+              <StatCard label="WORST" value={stats.mentalNet.worstNet} color={P.red}/>
+            </div>
+            <div style={{display:"flex",gap:8,marginTop:8}}>
+              <StatCard label="POSITIVE" value={stats.mentalNet.positiveNets} color={P.green}/>
+              <StatCard label="EVEN" value={stats.mentalNet.evenNets} color={P.gold}/>
+              <StatCard label="NEGATIVE" value={stats.mentalNet.negativeNets} color={P.red}/>
+            </div>
+            {/* Net distribution */}
+            <div style={{marginTop:12,background:P.card,borderRadius:12,padding:"12px 14px",border:`1px solid ${P.border}`}}>
+              <div style={{fontSize:10,fontWeight:700,color:P.muted,letterSpacing:1,marginBottom:8}}>NET DISTRIBUTION</div>
+              <div style={{display:"flex",gap:4,alignItems:"flex-end",height:60}}>
+                {Object.entries(stats.mentalNet.netBuckets).map(([label, count]) => {
+                  const maxB = Math.max(...Object.values(stats.mentalNet.netBuckets));
+                  const h = maxB > 0 ? (count / maxB) * 100 : 0;
+                  const color = label.includes("-") || label.includes("≤") ? P.red : label === "0" ? P.gold : P.green;
+                  return (
+                    <div key={label} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+                      <div style={{fontSize:9,fontWeight:700,color:P.white}}>{count}</div>
+                      <div style={{width:"100%",height:`${Math.max(h, 4)}%`,borderRadius:4,background:color,transition:"height 0.3s"}}/>
+                      <div style={{fontSize:7,color:P.muted,fontWeight:600,whiteSpace:"nowrap"}}>{label}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </Section>
+
+          {/* Heroes & Bandits */}
+          <Section title="Heroes & Bandits">
+            <div style={{display:"flex",gap:8,marginBottom:12}}>
+              <StatCard label="TOTAL HEROES" value={stats.heroesBandits.totalHeroes} color={P.green}/>
+              <StatCard label="TOTAL BANDITS" value={stats.heroesBandits.totalBandits} color={P.red}/>
+              <StatCard label="H:B RATIO" value={stats.heroesBandits.ratio+":1"} color={stats.heroesBandits.ratio>=1?P.green:P.red}/>
+            </div>
+            <div style={{background:P.card,borderRadius:12,padding:"12px 14px",border:`1px solid ${P.border}`,marginBottom:8}}>
+              <div style={{fontSize:10,fontWeight:700,color:P.green,letterSpacing:1,marginBottom:8}}>TOP HEROES</div>
+              <BarChart items={stats.heroesBandits.topHeroes} colorFn={()=>P.green}/>
+            </div>
+            <div style={{background:P.card,borderRadius:12,padding:"12px 14px",border:`1px solid ${P.border}`}}>
+              <div style={{fontSize:10,fontWeight:700,color:P.red,letterSpacing:1,marginBottom:8}}>TOP BANDITS</div>
+              <BarChart items={stats.heroesBandits.topBandits} colorFn={()=>P.red}/>
+            </div>
+          </Section>
+
+          {/* Scoring */}
+          {stats.scoring.roundsWithStrokes > 0 && (
+            <Section title="Scoring">
+              <div style={{display:"flex",gap:8}}>
+                <StatCard label="AVG STROKE" value={stats.scoring.avgStroke}/>
+                <StatCard label="AVG PAR" value={stats.scoring.avgPar}/>
+                <StatCard label="AVG OVER PAR" value={stats.scoring.avgOverPar>0?"+"+stats.scoring.avgOverPar:stats.scoring.avgOverPar} color={stats.scoring.avgOverPar>0?P.red:P.green}/>
+              </div>
+            </Section>
+          )}
+
+          {/* Top Courses */}
+          {stats.courses.length > 0 && (
+            <Section title="Top Courses">
+              <div style={{background:P.card,borderRadius:12,padding:"12px 14px",border:`1px solid ${P.border}`}}>
+                {stats.courses.map((c, i) => (
+                  <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:i<stats.courses.length-1?`1px solid ${P.border}`:"none"}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:13,fontWeight:700,color:P.white,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</div>
+                    </div>
+                    <div style={{display:"flex",gap:12,alignItems:"center",flexShrink:0}}>
+                      <div style={{textAlign:"center"}}>
+                        <div style={{fontSize:14,fontWeight:800,color:P.white}}>{c.rounds}</div>
+                        <div style={{fontSize:8,color:P.muted,fontWeight:600}}>ROUNDS</div>
+                      </div>
+                      <div style={{textAlign:"center"}}>
+                        <div style={{fontSize:14,fontWeight:800,color:c.avgNet>0?P.green:c.avgNet<0?P.red:P.gold}}>{c.avgNet>0?"+":""}{Math.round(c.avgNet*10)/10}</div>
+                        <div style={{fontSize:8,color:P.muted,fontWeight:600}}>AVG NET</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {/* Weekly Trend */}
+          <Section title="Weekly Trend (8 Weeks)">
+            <div style={{background:P.card,borderRadius:12,padding:"12px 14px",border:`1px solid ${P.border}`}}>
+              <div style={{display:"flex",gap:4,alignItems:"flex-end",height:80,marginBottom:8}}>
+                {stats.weeklyTrend.map((w, i) => {
+                  const maxR = Math.max(...stats.weeklyTrend.map(x => x.rounds), 1);
+                  const h = (w.rounds / maxR) * 100;
+                  return (
+                    <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+                      <div style={{fontSize:8,fontWeight:700,color:P.white}}>{w.rounds}</div>
+                      <div style={{width:"100%",height:`${Math.max(h, 4)}%`,borderRadius:4,background:w.avgNet>0?P.green:w.avgNet<0?P.red:P.gold,transition:"height 0.3s"}}/>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{display:"flex",gap:4}}>
+                {stats.weeklyTrend.map((w, i) => (
+                  <div key={i} style={{flex:1,textAlign:"center"}}>
+                    <div style={{fontSize:7,color:P.muted,fontWeight:600}}>{w.week}</div>
+                    <div style={{fontSize:8,fontWeight:700,color:w.avgNet>0?P.green:w.avgNet<0?P.red:P.gold}}>{w.avgNet>0?"+":""}{w.avgNet}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Section>
+
+        </div>
+      ) : null}
+
+      <style>{`@keyframes spin{to{transform:rotate(360deg);}}`}</style>
+    </div>
+  );
+}
 
 // ═══════════════════════════════════════
 // ONBOARDING
