@@ -63,13 +63,13 @@ export const getGroupStats = query({
     const evenNets = nets.filter((n) => n === 0).length;
 
     // Net distribution buckets
-    const netBuckets: Record<string, number> = { "≤-5": 0, "-4 to -1": 0, "0": 0, "1 to 4": 0, "≥5": 0 };
+    const netBuckets: Record<string, number> = { "-5 or less": 0, "-4 to -1": 0, "0": 0, "1 to 4": 0, "5 or more": 0 };
     for (const n of nets) {
-      if (n <= -5) netBuckets["≤-5"]++;
+      if (n <= -5) netBuckets["-5 or less"]++;
       else if (n < 0) netBuckets["-4 to -1"]++;
       else if (n === 0) netBuckets["0"]++;
       else if (n <= 4) netBuckets["1 to 4"]++;
-      else netBuckets["≥5"]++;
+      else netBuckets["5 or more"]++;
     }
 
     // ── Heroes & Bandits breakdown ──
