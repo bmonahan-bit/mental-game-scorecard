@@ -1680,16 +1680,6 @@ export default function App() {
   const [tipStep, setTipStep] = useState(()=>{try{const s=localStorage.getItem("mgp_tip_step");return s?parseInt(s):0;}catch{return 0;}});
   const TOTAL_TIPS = 5;
   const tipDone = tipStep >= TOTAL_TIPS;
-  const [tipRect, setTipRect] = useState(null);
-
-  // Lock ALL scrolling on document while tour is active
-  React.useEffect(()=>{
-    if(tipDone) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    document.body.style.touchAction = "none";
-    return ()=>{ document.body.style.overflow = prev; document.body.style.touchAction = ""; };
-  },[tipDone]);
   const tipRefs = {
     course: React.useRef(null),
     grid: React.useRef(null),
@@ -1700,27 +1690,19 @@ export default function App() {
     nav: React.useRef(null),
   };
   const TIP_REF_KEYS = ["course","grid","scoreRow","matchup","notes5"];
+  // Scroll active tip element into view when step changes
   React.useEffect(()=>{
     if(tipDone) return;
-    const key = TIP_REF_KEYS[tipStep];
-    function measure(){
-      const el = tipRefs[key]?.current;
-      if(!el) return;
-      const r = el.getBoundingClientRect();
-      if(r.width===0||r.height===0) return; // not laid out yet
-      // For slide 5 (notes5), extend rect to bottom of screen to cover notes + mental bar + nav
-      if(key === "notes5") {
-        setTipRect({top:r.top-4, left:r.left-4, width:r.width+8, height:160});
-      } else {
-        setTipRect({top:r.top-4, left:r.left-4, width:r.width+8, height:r.height+8});
-      }
-    }
-    // Delay first measurement to ensure layout is complete (initial mount)
-    const timer = setTimeout(()=>requestAnimationFrame(measure), 150);
-    return ()=>clearTimeout(timer);
+    const el = tipRefs[TIP_REF_KEYS[tipStep]]?.current;
+    if(el) el.scrollIntoView({block:"nearest",behavior:"smooth"});
   },[tipStep, tipDone]);
   function nextTip(){const next=tipStep+1;setTipStep(next);try{localStorage.setItem("mgp_tip_step",next);}catch{}}
   function skipTips(){setTipStep(TOTAL_TIPS);try{localStorage.setItem("mgp_tip_step",TOTAL_TIPS);}catch{}}
+  // Style applied to the active tip ref element to lift it above the overlay
+  function tipHighlightStyle(key){
+    if(tipDone||TIP_REF_KEYS[tipStep]!==key) return {};
+    return {position:"relative",zIndex:993,borderRadius:12,outline:"2px solid #22c55e",outlineOffset:4,background:darkMode?"#09090b":"#ffffff"};
+  }
   const [inGameCaddie, setInGameCaddie] = useState(true);
   const [caddieCard, setCaddieCard] = useState(null);
   const [caddieQueue, setCaddieQueue] = useState([]);
@@ -2460,48 +2442,28 @@ export default function App() {
         {/* Multi-step tooltip tour */}
         {!tipDone&&(()=>{
           const tips=[
-            {step:1,title:"Course & Caddie",body:"Before your round, select your course to auto-fill hole data and yardages. Turn on the In-Game Caddie for mental guidance during play.",icon:"Flag",cardPos:"below"},
-            {step:2,title:"Hole Grid",body:"Tap any hole to jump to it. Holes will fill in green when Heroes showed up. Red holes mean Bandits interfered.",icon:"Grid",cardPos:"below"},
-            {step:3,title:"PAR, SCORE & STATS",body:"Enter your stroke score and putts. Toggle PSR to track your pre-shot routine. Then use the → arrow to move to the next hole. Hit Save to lock in the round.",icon:"Flag",cardPos:"below"},
-            {step:4,title:"Heroes & Bandits",body:"After each shot, tap which Heroes showed up and which Bandits crept in. This is the heart of your mental game. (A hero or bandit can show up more than once a hole.)",icon:"Shield",cardPos:"above"},
-            {step:5,title:"Notes, Net & Intentions",body:"Add a Hole Note to capture what happened. Your Mental Net shows Heroes minus Bandits for the round. Tap Intention to keep your focus for the day front of mind.",icon:"Note",cardPos:"above"},
+            {step:1,title:"Course & Caddie",body:"Before your round, select your course to auto-fill hole data and yardages. Turn on the In-Game Caddie for mental guidance during play.",icon:"Flag"},
+            {step:2,title:"Hole Grid",body:"Tap any hole to jump to it. Holes will fill in green when Heroes showed up. Red holes mean Bandits interfered.",icon:"Grid"},
+            {step:3,title:"PAR, SCORE & STATS",body:"Enter your stroke score and putts. Toggle PSR to track your pre-shot routine. Then use the → arrow to move to the next hole. Hit Save to lock in the round.",icon:"Flag"},
+            {step:4,title:"Heroes & Bandits",body:"After each shot, tap which Heroes showed up and which Bandits crept in. This is the heart of your mental game. (A hero or bandit can show up more than once a hole.)",icon:"Shield"},
+            {step:5,title:"Notes, Net & Intentions",body:"Add a Hole Note to capture what happened. Your Mental Net shows Heroes minus Bandits for the round. Tap Intention to keep your focus for the day front of mind.",icon:"Note"},
           ];
           const t=tips[tipStep];
           const isLast=tipStep===TOTAL_TIPS-1;
           const Tic=Icons[t.icon];
-          const cardWidth=Math.min(window.innerWidth*0.88,340);
-          const cardLeft=(window.innerWidth-cardWidth)/2;
-          const hl=tipRect?{top:tipRect.top-6,left:tipRect.left-6,width:tipRect.width+12,height:tipRect.height+12}:{top:0,left:0,width:0,height:0};
-          const cardEstHeight=200;
-          const belowTop = tipRect ? hl.top+hl.height+14 : window.innerHeight*0.4;
-          const aboveTop = tipRect ? hl.top-14-cardEstHeight : window.innerHeight*0.4;
-          // Clamp so card never goes off bottom or top
-          const clampedBelowTop = Math.min(belowTop, window.innerHeight-cardEstHeight-16);
-          const clampedAboveTop = Math.max(aboveTop, 16);
-          const cardTop = t.cardPos==="below" ? clampedBelowTop : clampedAboveTop;
           return(
-            <div style={{position:"fixed",inset:0,zIndex:991,pointerEvents:"none"}}>
-              {/* Clickable backdrop — behind the cutout */}
-              <div onClick={skipTips} style={{position:"absolute",inset:0,pointerEvents:"auto"}}/>
-              {tipRect&&<div style={{
-                position:"absolute",
-                top:tipRect.top-6,left:tipRect.left-6,width:tipRect.width+12,height:tipRect.height+12,
-                borderRadius:12,background:"transparent",
-                boxShadow:`0 0 0 9999px rgba(0,0,0,0.82), inset 0 0 0 2px ${P.green}`,
-                pointerEvents:"none",zIndex:992,
-              }}/>}
+            <>
+              {/* Dark overlay — sits between normal content and the highlighted element */}
+              <div onClick={skipTips} style={{position:"fixed",inset:0,zIndex:992,background:"rgba(0,0,0,0.75)",pointerEvents:"auto"}}/>
+              {/* Tooltip card — fixed center */}
               <div style={{
-                position:"absolute",left:cardLeft,width:cardWidth,
-                top:cardTop,
+                position:"fixed",left:"50%",transform:"translateX(-50%)",
+                bottom:32,width:Math.min(window.innerWidth*0.88,340),
                 background:P.card,borderRadius:16,padding:"16px 18px 14px",
                 border:`1.5px solid ${P.green}66`,
                 boxShadow:"0 12px 40px rgba(0,0,0,0.6)",
-                zIndex:993,pointerEvents:"auto",
+                zIndex:994,pointerEvents:"auto",
               }}>
-                {t.cardPos==="below"&&<div style={{position:"absolute",top:-9,left:"50%",transform:"translateX(-50%)",width:0,height:0,borderLeft:"9px solid transparent",borderRight:"9px solid transparent",borderBottom:`9px solid ${P.green}66`}}/>}
-                {t.cardPos==="below"&&<div style={{position:"absolute",top:-7,left:"50%",transform:"translateX(-50%)",width:0,height:0,borderLeft:"8px solid transparent",borderRight:"8px solid transparent",borderBottom:`8px solid ${P.card}`}}/>}
-                {t.cardPos==="above"&&<div style={{position:"absolute",bottom:-9,left:"50%",transform:"translateX(-50%)",width:0,height:0,borderLeft:"9px solid transparent",borderRight:"9px solid transparent",borderTop:`9px solid ${P.green}66`}}/>}
-                {t.cardPos==="above"&&<div style={{position:"absolute",bottom:-7,left:"50%",transform:"translateX(-50%)",width:0,height:0,borderLeft:"8px solid transparent",borderRight:"8px solid transparent",borderTop:`8px solid ${P.card}`}}/>}
                 <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
                   <div style={{width:36,height:36,borderRadius:10,background:P.green+"22",border:`1.5px solid ${P.green}44`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Tic color={P.green} size={18}/></div>
                   <div style={{flex:1,fontSize:14,fontWeight:900,color:P.white}}>{t.title}</div>
@@ -2516,7 +2478,7 @@ export default function App() {
                   <button onClick={nextTip} style={{flex:2,padding:"9px",borderRadius:9,border:"none",background:P.green,color:"#fff",fontSize:13,fontWeight:800,cursor:"pointer"}}>{isLast?"Got it ✓":"Next →"}</button>
                 </div>
               </div>
-            </div>
+            </>
           );
         })()}
         {/* Streak Banner */}
@@ -2645,7 +2607,7 @@ export default function App() {
           </div>
         </div>
 
-        <div ref={tipRefs.course} style={{flexShrink:0,paddingTop:6}}>
+        <div ref={tipRefs.course} style={{flexShrink:0,paddingTop:6,...tipHighlightStyle("course")}}>
         <CourseSearchBar
           P={P} S={S}
           courseName={courseName}
@@ -2670,7 +2632,7 @@ export default function App() {
         </div>
 
         {/* Hole Grid */}
-        <div ref={tipRefs.grid} style={{padding:"0 12px 2px",flexShrink:0}}>
+        <div ref={tipRefs.grid} style={{padding:"0 12px 2px",flexShrink:0,...tipHighlightStyle("grid")}}>
           {/* Grid toggle header */}
           <button onClick={()=>setHoleGridOpen(o=>!o)} {...pp()} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",padding:"2px 2px",background:"transparent",border:"none",cursor:"pointer",marginBottom:holeGridOpen?2:0}}>
             <div style={{transform:holeGridOpen?"rotate(-90deg)":"rotate(90deg)",transition:"transform 0.2s",lineHeight:0}}><Icons.Chev color={P.muted} size={11}/></div>
@@ -2712,7 +2674,7 @@ export default function App() {
           const runningPar = completedPar + curPar;
           const runningDiff = (completedHoles.length > 0 || (hasCurrentScore && hasCurrentPar)) ? runningStroke - runningPar : null;
           return (
-        <div ref={tipRefs.scoreRow} key={animKey} style={{padding:"2px 12px 4px",display:"flex",flexDirection:"column",gap:0,animation:"fadeSlide 0.25s ease-out",flexShrink:0}}>
+        <div ref={tipRefs.scoreRow} key={animKey} style={{padding:"2px 12px 4px",display:"flex",flexDirection:"column",gap:0,animation:"fadeSlide 0.25s ease-out",flexShrink:0,...tipHighlightStyle("scoreRow")}}>
 
           {/* Row 1: Hole info + nav arrows */}
           <div style={{display:"flex",alignItems:"center",gap:6}}>
@@ -2812,7 +2774,7 @@ export default function App() {
           );})()}
 
         {/* Matchup Grid — collapsible */}
-        <div ref={tipRefs.matchup} style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minHeight:0}}>
+        <div ref={tipRefs.matchup} style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minHeight:0,...tipHighlightStyle("matchup")}}>
         <div style={{padding:"0 12px 2px",flexShrink:0}}>
 
           {/* Toggle header */}
@@ -2842,7 +2804,7 @@ export default function App() {
         </div>{/* end matchup ref wrapper */}
 
         {/* Hole Note — above intentions */}
-        <div ref={tipRefs.notes5} style={{margin:"0 12px 6px",flexShrink:0}}>
+        <div ref={tipRefs.notes5} style={{margin:"0 12px 6px",flexShrink:0,...tipHighlightStyle("notes5")}}>
           <button onClick={()=>setHoleNoteOpen(!holeNoteOpen)} style={{width:"100%",padding:"6px 12px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.card,color:P.white,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",transition:"transform 0.1s ease"}} {...pp()}>
             <span style={{display:"flex",alignItems:"center",gap:5}}><Icons.Note color={scores[currentHole].holeNote?P.accent:P.muted} size={13}/> {scores[currentHole].holeNote?"Hole Note ✓":"Add Hole Note"}</span>
             <span style={{fontSize:10,color:P.muted,transition:"transform 0.2s",transform:holeNoteOpen?"rotate(180deg)":"rotate(0)"}}>▼</span>
