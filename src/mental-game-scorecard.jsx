@@ -7879,8 +7879,10 @@ function AdminDashboardView({onBack, S}) {
   const [error, setError] = React.useState(null);
 
   React.useEffect(() => {
+    // Fire repeatedly to make sure AdminBridge picks it up
     window.dispatchEvent(new Event("admin_stats_on"));
-    return () => window.dispatchEvent(new Event("admin_stats_off"));
+    const kick = setInterval(() => window.dispatchEvent(new Event("admin_stats_on")), 1000);
+    return () => { clearInterval(kick); window.dispatchEvent(new Event("admin_stats_off")); };
   }, []);
 
   // Poll for admin stats from Convex bridge
@@ -7895,10 +7897,10 @@ function AdminDashboardView({onBack, S}) {
       return false;
     }
     if (check()) return;
-    const interval = setInterval(check, 300);
+    const interval = setInterval(check, 500);
     const timeout = setTimeout(() => {
-      if (!stats) { setLoading(false); setError("Could not load admin data. Make sure your email is in the ADMIN_EMAILS environment variable in the Convex dashboard."); }
-    }, 12000);
+      if (!stats) { setLoading(false); setError("Could not load admin data. Check Convex logs for details."); }
+    }, 15000);
     return () => { clearInterval(interval); clearTimeout(timeout); };
   }, []);
 

@@ -31,8 +31,13 @@ export const getGroupStats = query({
     if (!identity) return null;
 
     const adminEmails = getAdminEmails();
-    const email = (identity.email ?? "").toLowerCase();
-    if (!adminEmails.includes(email)) return null;
+    // Clerk may provide email via different fields
+    const email = (identity.email ?? (identity as any).emailAddress ?? "").toLowerCase();
+    // Also check subject (Clerk user ID) in case email isn't in JWT
+    const subject = identity.subject ?? "";
+    const isAdmin = adminEmails.includes(email) || adminEmails.includes(subject);
+    console.log("Admin check —", JSON.stringify({ email, subject, name: identity.name, issuer: identity.issuer, adminEmails, isAdmin }));
+    if (!isAdmin) return null;
 
     // Fetch all rounds (Option A: in-memory aggregation)
     const allRounds = await ctx.db.query("rounds").take(10000);
