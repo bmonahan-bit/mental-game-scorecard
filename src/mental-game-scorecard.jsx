@@ -589,7 +589,7 @@ function useCourseSearch() {
 }
 
 // ─── COURSE SEARCH COMPONENT ───
-function CourseSearchBar({ P, S, courseName, setCourseName, onCourseLoaded, selectedTee, setSelectedTee, courseData, setCourseData, inGameCaddie, setInGameCaddie }) {
+function CourseSearchBar({ P, S, courseName, setCourseName, onCourseLoaded, selectedTee, setSelectedTee, courseData, setCourseData, inGameCaddie, setInGameCaddie, settings, updateSetting }) {
   const { query, search, results, loading, loadCourse, loadingCourse, clear } = useCourseSearch();
   const [open, setOpen] = useState(false);
   const [localCourseData, setLocalCourseData] = useState(courseData);
@@ -719,6 +719,18 @@ function CourseSearchBar({ P, S, courseName, setCourseName, onCourseLoaded, sele
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontSize:13, fontWeight:700, color:P.white, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{localCourseData.club_name}{localCourseData.course_name && localCourseData.course_name !== localCourseData.club_name ? ` — ${localCourseData.course_name}` : ""}</div>
               <div style={{ fontSize:10, color:P.muted }}>{[localCourseData.location?.city, localCourseData.location?.state].filter(Boolean).join(", ")}</div>
+              {updateSetting && (() => {
+                const currentFav = settings?.favCourse;
+                const fullName = localCourseData.club_name+(localCourseData.course_name && localCourseData.course_name !== localCourseData.club_name ? ` — ${localCourseData.course_name}` : "");
+                const isFav = currentFav === fullName;
+                return !isFav ? (
+                  <button onClick={(e)=>{e.stopPropagation();updateSetting("favCourse",fullName);if(selectedTee)updateSetting("favTee",selectedTee);if(localCourseData._tees?.length)updateSetting("favTeeOptions",localCourseData._tees.map(t=>t.tee_name+(t.gender?` (${t.gender})`:"")));showToast("Saved as favorite!","success");}} {...pp()} style={{marginTop:4,padding:"3px 8px",borderRadius:6,border:`1px solid ${P.gold}55`,background:P.gold+"12",color:P.gold,fontSize:10,fontWeight:700,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:4}}>
+                    <Icons.Star color={P.gold} size={10}/> Save as Favorite
+                  </button>
+                ) : (
+                  <div style={{marginTop:4,fontSize:10,fontWeight:700,color:P.gold,display:"flex",alignItems:"center",gap:3}}><Icons.Star color={P.gold} size={10}/> Favorite</div>
+                );
+              })()}
             </div>
             {/* Tee + Caddie stacked */}
             <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0,alignItems:"flex-end"}}>
@@ -2361,7 +2373,7 @@ export default function App() {
   if (view==="home") return <ThemeCtx.Provider value={P}><ToastLayer/><OpenRoundModal/><LaunchScreen onStartRound={startNewRound} onContinueRound={()=>{const lastTouched=scores.reduce((last,h,i)=>{const hasData=h.strokeScore||h.putts||Object.values(h.heroes).some(v=>v>0)||Object.values(h.bandits).some(v=>v>0);return hasData?i:last;},-1);setCurrentHole(Math.max(0,lastTouched));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} onHub={()=>setView("hub")} savedRounds={savedRounds} themeToggle={themeToggle} S={S} hasProfile={hasProfile} clerkUser={clerkUser} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }}/></ThemeCtx.Provider>;
   if (view==="hub") return <ThemeCtx.Provider value={P}><ToastLayer/><RateAppModal/><OpenRoundModal/><HomeScreen onNav={(v)=>navTo(v)} onStartRound={startNewRound} onContinueRound={()=>{const lastTouched=scores.reduce((last,h,i)=>{const hasData=h.strokeScore||h.putts||Object.values(h.heroes).some(v=>v>0)||Object.values(h.bandits).some(v=>v>0);return hasData?i:last;},-1);setCurrentHole(Math.max(0,lastTouched));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }} /></ThemeCtx.Provider>;
   if (view==="checklist") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist key={preroundKey} onBack={nav("hub")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",todayET());const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setView("play");}} onSkip={()=>{setView("play");}} S={S} lastIntention={carryForward} settings={settings} updateSetting={updateSetting} /></ThemeCtx.Provider>;
-  if (view==="courseselect") return <ThemeCtx.Provider value={P}><ToastLayer/><div style={{height:"100%",background:P.bg,position:"relative"}}><HomeScreen onNav={()=>{}} onStartRound={()=>{}} onContinueRound={()=>{}} roundInProgress={false} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }}/><CourseSelectModal P={P} S={S} settings={settings} onSkip={()=>resetAndStartNew()} onConfirm={(data)=>resetAndStartNew(data)}/></div></ThemeCtx.Provider>;
+  if (view==="courseselect") return <ThemeCtx.Provider value={P}><ToastLayer/><div style={{height:"100%",background:P.bg,position:"relative"}}><HomeScreen onNav={()=>{}} onStartRound={()=>{}} onContinueRound={()=>{}} roundInProgress={false} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }}/><CourseSelectModal P={P} S={S} settings={settings} updateSetting={updateSetting} onSkip={()=>resetAndStartNew()} onConfirm={(data)=>resetAndStartNew(data)}/></div></ThemeCtx.Provider>;
   if (view==="preround") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist key={preroundKey} onBack={nav("hub")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",todayET());const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setView("play");}} onSkip={()=>{setView("play");}} S={S} lastIntention={carryForward} settings={settings} updateSetting={updateSetting} /></ThemeCtx.Provider>;
   if (view==="tiger5") return <ThemeCtx.Provider value={P}><ToastLayer/><Tiger5View onBack={()=>setView(prevView||"home")} S={S}/></ThemeCtx.Provider>;
   if (view==="caddie") return <ThemeCtx.Provider value={P}><ToastLayer/><InnerCaddieView onBack={nav(prevView)} S={S} /></ThemeCtx.Provider>;
@@ -2639,6 +2651,8 @@ export default function App() {
           setSelectedTee={setSelectedTee}
           courseData={courseData}
           setCourseData={setCourseData}
+          settings={settings}
+          updateSetting={updateSetting}
         />
         <div style={{padding:"0 12px 4px",display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
           <input type="date" value={roundDate} onChange={e=>setRoundDate(e.target.value)} style={{...S.input,flex:"0 0 auto",width:130,fontSize:16,padding:"6px 8px"}}/>
@@ -4412,7 +4426,7 @@ function FavCourseSearch({settings, updateSetting, P}) {
   );
 }
 
-function CourseSelectModal({onConfirm, onSkip, settings, P, S}) {
+function CourseSelectModal({onConfirm, onSkip, settings, updateSetting, P, S}) {
   const pp = pressProps;
   const [query, setQuery] = React.useState("");
   const [results, setResults] = React.useState([]);
@@ -4539,6 +4553,20 @@ function CourseSelectModal({onConfirm, onSkip, settings, P, S}) {
               </div>
             </div>
           )}
+
+          {/* Save as Favorite */}
+          {confirmed&&displayName&&updateSetting&&(()=>{
+            const isFav = settings.favCourse === displayName;
+            return !isFav ? (
+              <button onClick={()=>{updateSetting("favCourse",displayName);if(selectedTee)updateSetting("favTee",selectedTee);if(tees.length)updateSetting("favTeeOptions",tees);showToast("Saved as favorite!","success");}} {...pp()} style={{padding:"10px 16px",borderRadius:12,border:`1.5px solid ${P.gold}55`,background:P.gold+"12",color:P.gold,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,width:"100%"}}>
+                <Icons.Star color={P.gold} size={14}/> Save as Favorite
+              </button>
+            ) : (
+              <div style={{padding:"10px 16px",borderRadius:12,border:`1.5px solid ${P.gold}33`,background:P.gold+"08",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                <Icons.Star color={P.gold} size={14}/><span style={{fontSize:13,fontWeight:700,color:P.gold}}>Saved as Favorite</span>
+              </div>
+            );
+          })()}
 
         </div>
 
