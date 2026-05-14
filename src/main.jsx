@@ -51,8 +51,7 @@ function ConvexBridge() {
 
   const rounds   = useQuery(api.rounds.getRounds,   isSignedIn ? {} : "skip");
   const settings = useQuery(api.settings.getSettings, isSignedIn ? {} : "skip");
-  const isAdmin  = useQuery(api.admin.isAdmin,        isSignedIn ? {} : "skip");
-  const adminStats = useQuery(api.admin.getGroupStats, isSignedIn && adminActive ? {} : "skip");
+  const adminStats = useQuery(api.admin.getGroupStats, (isSignedIn && adminActive) ? {} : "skip");
 
   const upsertRoundMut        = useMutation(api.rounds.upsertRound);
   const bulkUpsertRoundsMut   = useMutation(api.rounds.bulkUpsertRounds);
@@ -86,8 +85,7 @@ function ConvexBridge() {
       upsertSettingsMut({ data, carryForward }).catch(e => console.error('convexUpsertSettings', e));
     };
 
-    // Admin
-    window.__convexIsAdmin = isAdmin === true;
+    // Admin — derive admin status from whether stats loaded successfully
     window.__convexAdminStats = adminStats ?? null;
 
     // Dispatch an event so the app re-checks Convex data

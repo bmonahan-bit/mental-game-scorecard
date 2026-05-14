@@ -11,11 +11,15 @@ function getAdminEmails(): string[] {
 export const isAdmin = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return false;
-    const adminEmails = getAdminEmails();
-    const email = (identity.email ?? "").toLowerCase();
-    return adminEmails.includes(email);
+    try {
+      const identity = await ctx.auth.getUserIdentity();
+      if (!identity) return false;
+      const adminEmails = getAdminEmails();
+      const email = (identity.email ?? "").toLowerCase();
+      return adminEmails.includes(email);
+    } catch {
+      return false;
+    }
   },
 });
 

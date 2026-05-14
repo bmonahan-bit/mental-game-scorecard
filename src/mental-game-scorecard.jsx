@@ -4759,7 +4759,7 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
           <Row label="Built with">
             <span style={{fontSize:12,color:P.muted,fontWeight:500}}>Paul Monahan × Claude</span>
           </Row>
-          {onAdminDash&&window.__convexIsAdmin&&<Row label="Admin Dashboard" sub="Group stats for administrators">
+          {onAdminDash&&(()=>{try{return sessionStorage.getItem("mgp_is_admin")==="true";}catch{return false;}})()&&<Row label="Admin Dashboard" sub="Group stats for administrators">
             <button onClick={onAdminDash} {...pp()} style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${PM_GOLD}`,background:PM_GOLD+"12",color:PM_GOLD,fontSize:12,fontWeight:700,cursor:"pointer"}}>Open</button>
           </Row>}
           <Row label="Scorecard Tour" sub="Replay the in-play tutorial" last>
@@ -7889,6 +7889,7 @@ function AdminDashboardView({onBack, S}) {
       const d = window.__convexAdminStats;
       if (d && typeof d === "object" && d.overview) {
         setStats(d); setLoading(false); setError(null);
+        try { sessionStorage.setItem("mgp_is_admin", "true"); } catch {}
         return true;
       }
       return false;
