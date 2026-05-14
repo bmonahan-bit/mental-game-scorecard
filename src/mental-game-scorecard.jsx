@@ -11,7 +11,6 @@ const { useUser, useClerk, SignIn, SignUp, SignInButton, SignOutButton, UserButt
 
 const PM_NAVY = "#1a2b4a";
 const PM_GOLD = "#c9a84c";
-const FREE_ROUNDS_LIMIT = 3;
 
 // ── Environment validation ──────────────────────────────────
 // Runs at startup and warns loudly in console if critical vars missing
@@ -59,10 +58,6 @@ function sanitiseText(val, maxLen = 200, trim = true) {
     .replace(/on\w+\s*=/gi, "")        // strip event handlers
     .slice(0, maxLen);
   return trim ? cleaned.trim() : cleaned;
-}
-function sanitiseEmail(val) {
-  if (typeof val !== "string") return "";
-  return val.toLowerCase().trim().replace(/[^a-z0-9@._+-]/g, "").slice(0, 254);
 }
 function sanitiseName(val) { return sanitiseText(val, 60); }
 function sanitiseCourse(val) { return sanitiseText(val, 100); }
@@ -202,21 +197,6 @@ function SaveBtn({P, onSave, hint}) {
   );
 }
 
-function ShareBtn({P, onShare}) {
-  const [sharing, setSharing] = React.useState(false);
-  async function handle() {
-    if(sharing) return;
-    setSharing(true);
-    await onShare();
-    setTimeout(()=>setSharing(false), 1500);
-  }
-  return (
-    <button onClick={handle} {...pp()} style={{flexShrink:0,display:"flex",alignItems:"center",gap:4,padding:"9px 10px",borderRadius:10,border:`1.5px solid ${sharing?P.green:P.accent+"44"}`,background:sharing?P.green+"20":P.accent+"10",color:sharing?P.green:P.accent,fontSize:11,fontWeight:700,cursor:"pointer",transition:"all 0.2s"}}>
-      {sharing?<Icons.Check color={P.green} size={12}/>:<Icons.Share color={P.accent} size={12}/>}
-      {sharing?"Done":"Share"}
-    </button>
-  );
-}
 
 
 function BalloonCanvas({ active, onDone }) {
@@ -542,40 +522,46 @@ function useCourseSearch() {
   const [courseData, setCourseData] = useState(null); // full loaded course
   const [loadingCourse, setLoadingCourse] = useState(false);
   const debounceRef = useRef(null);
+  const abortRef = useRef(null);
 
   const search = useCallback((val) => {
     setQuery(val);
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (abortRef.current) abortRef.current.abort();
     if (!val || val.length < 2 || !GOLF_API_KEY || GOLF_API_KEY === "YOUR_API_KEY_HERE" || GOLF_API_KEY === "undefined") {
       setResults([]);
       return;
     }
     debounceRef.current = setTimeout(async () => {
+      const ac = new AbortController();
+      abortRef.current = ac;
       setLoading(true);
       try {
         // Try exact query first, then append wildcard for partial matching
         const res = await fetch(
           `${GOLF_API_BASE}/search?search_query=${encodeURIComponent(val + "*")}`,
-          { headers: { Authorization: `Key ${GOLF_API_KEY}` } }
+          { headers: { Authorization: `Key ${GOLF_API_KEY}` }, signal: ac.signal }
         );
+        if (!res.ok) { setResults([]); return; }
         const data = await res.json();
         const courses = data.courses || [];
         // If wildcard returns nothing, try without it
         if (courses.length === 0) {
           const res2 = await fetch(
             `${GOLF_API_BASE}/search?search_query=${encodeURIComponent(val)}`,
-            { headers: { Authorization: `Key ${GOLF_API_KEY}` } }
+            { headers: { Authorization: `Key ${GOLF_API_KEY}` }, signal: ac.signal }
           );
+          if (!res2.ok) { setResults([]); return; }
           const data2 = await res2.json();
           setResults((data2.courses || []).slice(0, 20));
         } else {
           setResults(courses.slice(0, 20));
         }
       } catch(e) {
+        if (e?.name === "AbortError") return;
         // Offline or API error — fail silently, user can still enter course name manually
         setResults([]);
-        setLoading(false);
-        if (e?.name !== "AbortError") logError(e, { context: "course_search" });
+        logError(e, { context: "course_search" });
       }
       finally { setLoading(false); }
     }, 300);
@@ -627,9 +613,11 @@ function CourseSearchBar({ P, S, courseName, setCourseName, onCourseLoaded, sele
     setOpen(false);
     const id = course.id;
     if (!id) return;
+    try {
     const res = await fetch(`${GOLF_API_BASE}/courses/${id}`, {
       headers: { Authorization: `Key ${GOLF_API_KEY}` }
     });
+    if (!res.ok) return;
     const data = await res.json();
     const full = data.course || null;
     if (!full) return;
@@ -649,6 +637,7 @@ function CourseSearchBar({ P, S, courseName, setCourseName, onCourseLoaded, sele
       }
       // No auto-select if no favTee match — user picks from dropdown
     }
+    } catch(e) { console.warn('Course load failed', e); }
   }
 
   function handleTeeSelect(val) {
@@ -962,53 +951,6 @@ function checkNewMilestones(rounds) {
 
 // Score notation: returns { label, style } for a stroke score vs par
 // GIR: auto-calculated — strokes before putting must be <= par - 2
-// ─── SCROLL WHEEL PICKER ───
-function Stepper({ value, min=1, max=15, onChange, notation, P, defaultVal=null, emptyable=false }) {
-  // isEmpty = user hasn't tapped yet; display shows defaultVal (par) in muted style
-  const isEmpty = value===""||value===null||value===undefined;
-  const num = isEmpty ? null : parseInt(value);
-  const displayNum = isEmpty ? (defaultVal ? parseInt(defaultVal)||null : null) : (num!==null&&!isNaN(num)?num:null);
-
-  const borderRadius = notation?.diff<=-1?"50%":notation?.diff>=1?"6px":"8px";
-  const borderColor = notation?.diff&&notation.diff!==0?(notation.diff<0?P.green:P.red):P.border;
-  const borderWidth = notation?.diff&&Math.abs(notation.diff)>=2?"2.5px":"1.5px";
-
-  function dec() {
-    if (isEmpty) {
-      const start = defaultVal ? parseInt(defaultVal)||min : min;
-      if (emptyable) { onChange(""); return; }
-      onChange(String(Math.max(min, start - 1)));
-      return;
-    }
-    if (emptyable && num <= min) { onChange(""); return; }
-    if (num > min) onChange(String(num - 1));
-  }
-  function inc() {
-    if (isEmpty) {
-      const start = defaultVal ? parseInt(defaultVal)||min : min;
-      onChange(String(start));
-      return;
-    }
-    if (num < max) onChange(String(num + 1));
-  }
-
-  function handleDec(e) { e.stopPropagation(); dec(); }
-  function handleInc(e) { e.stopPropagation(); inc(); }
-
-  return (
-    <div style={{display:"flex",alignItems:"center",borderRadius,border:`${borderWidth} solid ${borderColor}`,overflow:"hidden",background:P.inputBg,position:"relative",flexShrink:0}}>
-      {notation?.diff&&Math.abs(notation.diff)>=2&&(
-        <div style={{position:"absolute",inset:3,borderRadius:notation.diff<=-2?"50%":"3px",border:`1px solid ${notation.diff<0?P.green:P.red}`,pointerEvents:"none",zIndex:1}}/>
-      )}
-      <button onTouchEnd={handleDec} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>−</button>
-      <div style={{minWidth:28,textAlign:"center",fontSize:18,fontWeight:700,color:isEmpty?P.muted:P.white,lineHeight:1,userSelect:"none",flexShrink:0,padding:"0 2px"}}>
-        {displayNum!==null?displayNum:"—"}
-      </div>
-      <button onTouchEnd={handleInc} style={{width:32,height:40,background:"transparent",border:"none",color:P.muted,fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,WebkitTapHighlightColor:"transparent",lineHeight:1}}>+</button>
-    </div>
-  );
-}
-
 function calcGir(hole) {
   const s = parseInt(hole.strokeScore), p = parseInt(hole.par);
   const putts = hole.putts !== "" && hole.putts !== null && hole.putts !== undefined ? (parseInt(hole.putts) || 0) : null;
@@ -1489,28 +1431,6 @@ function openUrl(url) {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
-function makeSwipeHandlers(onLeft, onRight, threshold = 40) {
-  let startX = null, startY = null, startT = null;
-  return {
-    onTouchStart: e => {
-      startX = e.touches[0].clientX;
-      startY = e.touches[0].clientY;
-      startT = Date.now();
-    },
-    onTouchEnd: e => {
-      if (startX === null) return;
-      const dx = e.changedTouches[0].clientX - startX;
-      const dy = e.changedTouches[0].clientY - startY;
-      const dt = Date.now() - startT;
-      const velocity = Math.abs(dx) / Math.max(dt, 1);
-      if (Math.abs(dx) > Math.abs(dy) && (Math.abs(dx) > threshold || velocity > 0.3)) {
-        dx < 0 ? onLeft() : onRight();
-      }
-      startX = null;
-    }
-  };
-}
-
 function vibrate(ms=12) { 
   try { 
     // Use Capacitor Haptics if available (native iOS feel)
@@ -1746,7 +1666,6 @@ export default function App() {
   const [matchupOpen, setMatchupOpen] = useState(true);
   const [holeGridOpen, setHoleGridOpen] = useState(true);
   const [tipStep, setTipStep] = useState(()=>{try{const s=localStorage.getItem("mgp_tip_step");return s?parseInt(s):0;}catch{return 0;}});
-  const [dropdownOpen, setDropdownOpen] = useState(false);
   const TOTAL_TIPS = 5;
   const tipDone = tipStep >= TOTAL_TIPS;
   const [tipRect, setTipRect] = useState(null);
@@ -1827,12 +1746,8 @@ export default function App() {
   const [prevView, setPrevView] = useState("home");
   const [editingRound, setEditingRound] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [showCommunityPrompt, setShowCommunityPrompt] = useState(false);
   const lastConvexSync = React.useRef(0);
   const CONVEX_SYNC_THROTTLE_MS = 30000; // max one sync per 30 seconds
-  const [showProfileGate, setShowProfileGate] = useState(false);
-  const [showCoursePrompt, setShowCoursePrompt] = useState(false);
-  const [coursePromptCallback, setCoursePromptCallback] = useState(null);
   // ─── SETTINGS ───
   const [settings, setSettings] = useState({
     favCourse: "", favTee: "", handicap: "", units: "imperial",
@@ -1864,8 +1779,6 @@ export default function App() {
   }, []);
   const clerkUser = window.__useUser ? window.__useUser() : null;
   const hasProfile = !!(clerkUser?.isSignedIn);
-  const roundsRemaining = hasProfile ? Infinity : Math.max(0, FREE_ROUNDS_LIMIT - savedRounds.length);
-  const trialExpired = !hasProfile && savedRounds.length >= FREE_ROUNDS_LIMIT;
 
   // identity sync removed — handled by Clerk
 
@@ -1876,10 +1789,12 @@ export default function App() {
     (async () => {
       try {
         const r1 = await fetch(`${GOLF_API_BASE}/search?search_query=${encodeURIComponent(fav)}`, { headers: { Authorization: `Key ${GOLF_API_KEY}` } });
+        if (!r1.ok) return;
         const d1 = await r1.json();
         const match = (d1.courses||[]).find(c=>c.club_name===fav) || d1.courses?.[0];
         if (!match) return;
         const r2 = await fetch(`${GOLF_API_BASE}/courses/${match.id}`, { headers: { Authorization: `Key ${GOLF_API_KEY}` } });
+        if (!r2.ok) return;
         const d2 = await r2.json();
         const full = d2.course;
         if (!full) return;
@@ -1887,9 +1802,13 @@ export default function App() {
         const female = (full.tees?.female||[]).map(t=>({...t,gender:"Female"}));
         full._tees = [...male, ...female];
         setCourseData(full);
-        // Match favTee exactly — no fallback to first tee
+        // Match favTee — supports both legacy "(W)" format and current "(Female)"/"(Male)" format
         const favTeeVal = settings?.favTee;
-        const tee = favTeeVal ? full._tees.find(t=>(t.tee_name+(t.gender==="Female"?" (W)":""))===favTeeVal) : null;
+        const tee = favTeeVal ? full._tees.find(t=>{
+          const canonical = t.tee_name+(t.gender ? ` (${t.gender})` : "");
+          const legacy = t.tee_name+(t.gender==="Female"?" (W)":"");
+          return canonical===favTeeVal || legacy===favTeeVal;
+        }) : null;
         if (tee) {
           setSelectedTee(tee.tee_name + (tee.gender ? ` (${tee.gender})` : ""));
           if (tee.holes) {
@@ -1927,7 +1846,7 @@ export default function App() {
     const localIds = new Set(localRounds.map(r=>r.roundId).filter(Boolean));
     const newFromCloud = cloudRounds
       .filter(r => !localIds.has(r.roundId))
-      .map(r => ({ id: r.savedAt||Date.now(), roundId: r.roundId, course: r.courseName||"Unnamed Course", date: r.date, scores: r.scores, totalPar: r.totalPar, totalStroke: r.totalStroke, notes: r.notes, preRoundMeta: r.preRoundMeta, net: r.net, heroes: r.net >= 0 ? r.net : 0, bandits: r.net < 0 ? Math.abs(r.net) : 0 }));
+      .map(r => { const totals = r.scores ? getRoundTotals(r.scores).total : null; return { id: r.savedAt||Date.now(), roundId: r.roundId, course: r.courseName||"Unnamed Course", date: r.date, scores: r.scores, totalPar: r.totalPar, totalStroke: r.totalStroke, notes: r.notes, preRoundMeta: r.preRoundMeta, net: r.net, heroes: r.heroes != null ? r.heroes : (totals ? totals.heroes : 0), bandits: r.bandits != null ? r.bandits : (totals ? totals.bandits : 0) }; });
 
     if (newFromCloud.length > 0) {
       const merged = [...localRounds, ...newFromCloud].sort((a,b) => (b.date||"").localeCompare(a.date||""));
@@ -1939,7 +1858,7 @@ export default function App() {
     // Also push any local rounds that don't have roundIds up to Convex
     const unsynced = localRounds.filter(r => !r.roundId);
     if (unsynced.length > 0 && window.__convexBulkUpsertRounds) {
-      const toSync = unsynced.map(r => ({ roundId: String(r.id||Date.now()+Math.random()), date: r.date, courseName: r.course, net: r.net||0, totalStroke: r.totalStroke, totalPar: r.totalPar, scores: r.scores, notes: r.notes, preRoundMeta: r.preRoundMeta, savedAt: r.id||Date.now() }));
+      const toSync = unsynced.map(r => ({ roundId: String(r.id||Date.now()+Math.random()), date: r.date, courseName: r.course, net: r.net||0, heroes: r.heroes||0, bandits: r.bandits||0, totalStroke: r.totalStroke, totalPar: r.totalPar, scores: r.scores, notes: r.notes, preRoundMeta: r.preRoundMeta, savedAt: r.id||Date.now() }));
       window.__convexBulkUpsertRounds(toSync);
     }
 
@@ -1958,8 +1877,10 @@ export default function App() {
   });
 
   useEffect(() => {
-    window.addEventListener("online",()=>setIsOffline(false));
-    window.addEventListener("offline",()=>setIsOffline(true));
+    const onOnline=()=>setIsOffline(false);
+    const onOffline=()=>setIsOffline(true);
+    window.addEventListener("online",onOnline);
+    window.addEventListener("offline",onOffline);
     window.__navToSettings = () => setView("settings");
     (async()=>{
       try{const r=localStorage.getItem(STORAGE_KEY);if(r)setSavedRounds(JSON.parse(r));}catch{}
@@ -1968,6 +1889,10 @@ export default function App() {
       try{const cf=localStorage.getItem("mgp_carry_forward");if(cf)setCarryForward(cf);}catch{}
       try{const sv=localStorage.getItem("mgp_settings");if(sv){const s=JSON.parse(sv);setSettings(s);setInGameCaddie(s.caddieDefault!==false);}}catch{}
     })();
+    return () => {
+      window.removeEventListener("online",onOnline);
+      window.removeEventListener("offline",onOffline);
+    };
   }, []);
 
   function finishOnboarding(){
@@ -2246,7 +2171,7 @@ export default function App() {
     const round = { id:existing?.id||Date.now(), roundId, course, date:roundDate, scores:ts, totalPar:getTotalPar(ts), totalStroke:getTotalStroke(ts), notes:postRoundNotes, ...getRoundTotals(ts).total };
     persistRounds(existing ? savedRounds.map(r=>r.id===existing.id?round:r) : [round, ...savedRounds]);
     // Sync to Convex
-    if(window.__convexUpsertRound) window.__convexUpsertRound({ roundId, date:round.date, courseName:round.course, net:round.net||0, totalStroke:round.totalStroke, totalPar:round.totalPar, scores:ts, notes:round.notes });
+    if(window.__convexUpsertRound) window.__convexUpsertRound({ roundId, date:round.date, courseName:round.course, net:round.net||0, heroes:round.heroes||0, bandits:round.bandits||0, totalStroke:round.totalStroke, totalPar:round.totalPar, scores:ts, notes:round.notes });
     vibrate([10,20,10]);
     showToast(existing ? "Draft updated!" : "Draft saved!", "success");
   }
@@ -2262,7 +2187,7 @@ export default function App() {
     const round = { id:Date.now(), roundId, course:courseName||"Unnamed Course", date:roundDate, scores:trimmedScores, holesPlayed, totalPar:getTotalPar(trimmedScores), totalStroke:getTotalStroke(trimmedScores), notes:postRoundNotes, savedRoundsCount: savedRounds.length + 1, ...getRoundTotals(trimmedScores).total };
     persistRounds([round, ...savedRounds]);
     // Sync to Convex
-    if(window.__convexUpsertRound) window.__convexUpsertRound({ roundId, date:round.date, courseName:round.course, net:round.net||0, totalStroke:round.totalStroke, totalPar:round.totalPar, scores:trimmedScores, notes:round.notes });
+    if(window.__convexUpsertRound) window.__convexUpsertRound({ roundId, date:round.date, courseName:round.course, net:round.net||0, heroes:round.heroes||0, bandits:round.bandits||0, totalStroke:round.totalStroke, totalPar:round.totalPar, scores:trimmedScores, notes:round.notes });
     setCompletedRound(round);
     try { localStorage.setItem("mgp_carry_forward", carryForward); } catch {}
     if(round.net>=3){ setTimeout(()=>showToast(`Mental Net ${round.net>0?"+":""}${round.net} — great round!`, "success", 4000), 800); }
@@ -2279,7 +2204,6 @@ export default function App() {
     if(round?.roundId && window.__convexDeleteRound) window.__convexDeleteRound(round.roundId);
   }
   function startNewRound() {
-    if(trialExpired) { setShowProfileGate(true); return; }
     const roundHasData=scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts);
     if(roundHasData){setShowOpenRoundModal(true);return;}
     setView("courseselect");
@@ -2320,10 +2244,12 @@ export default function App() {
       (async()=>{
         try{
           const r1=await fetch(`${GOLF_API_BASE}/search?search_query=${encodeURIComponent(name)}`,{headers:{Authorization:`Key ${GOLF_API_KEY}`}});
+          if(!r1.ok) return;
           const d1=await r1.json();
           const match=(d1.courses||[]).find(c=>c.club_name===name||(c.club_name+(c.course_name&&c.course_name!==c.club_name?` — ${c.course_name}`:""))===name)||d1.courses?.[0];
           if(!match) return;
           const r2=await fetch(`${GOLF_API_BASE}/courses/${match.id}`,{headers:{Authorization:`Key ${GOLF_API_KEY}`}});
+          if(!r2.ok) return;
           const d2=await r2.json();
           const full=d2.course;
           if(!full) return;
@@ -2439,100 +2365,6 @@ export default function App() {
     );
   }
 
-  function CoursePromptModal() {
-    if(!showCoursePrompt) return null;
-    const [val, setVal] = React.useState("");
-    function confirm() {
-      if(val.trim()) setCourseName(val.trim());
-      setShowCoursePrompt(false);
-      if(coursePromptCallback) coursePromptCallback()();
-    }
-    return (
-      <div style={{position:"fixed",inset:0,zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",padding:"env(safe-area-inset-top,0px) 20px env(safe-area-inset-bottom,0px)"}}>
-        <div style={{background:P.card,borderRadius:16,padding:"24px 20px",width:"100%",maxWidth:360,border:`1.5px solid ${P.border}`}}>
-          <div style={{fontSize:16,fontWeight:800,color:P.white,marginBottom:6}}>Which course did you play?</div>
-          <div style={{fontSize:12,color:P.muted,marginBottom:14}}>This helps you track your mental performance across different courses.</div>
-          <input
-            value={val}
-            onChange={e=>setVal(e.target.value)}
-            onKeyDown={e=>e.key==="Enter"&&val.trim()&&confirm()}
-            placeholder="Course name..."
-            autoFocus
-            style={{width:"100%",padding:"11px 14px",borderRadius:10,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:14,outline:"none",marginBottom:12}}
-          />
-          <div style={{display:"flex",gap:8}}>
-            <button onClick={()=>{setShowCoursePrompt(false);if(coursePromptCallback)coursePromptCallback()();}} style={{flex:1,padding:"11px",borderRadius:10,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:13,fontWeight:600,cursor:"pointer"}}>Skip</button>
-            <button onClick={confirm} style={{flex:2,padding:"11px",borderRadius:10,border:"none",background:P.green,color:"#fff",fontSize:13,fontWeight:800,cursor:"pointer"}}>Continue</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  function ProfileGateModal() {
-    if(!showProfileGate) return null;
-    return (
-      <div onClick={()=>setShowProfileGate(false)} style={{position:"fixed",inset:0,zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.75)",backdropFilter:"blur(10px)",padding:"env(safe-area-inset-top,0px) 20px env(safe-area-inset-bottom,0px)"}}>
-        <div onClick={e=>e.stopPropagation()} style={{background:P.card,borderRadius:20,padding:"28px 22px",width:"100%",maxWidth:400,border:`1.5px solid ${PM_GOLD}44`,boxShadow:"0 24px 60px rgba(0,0,0,0.5)"}}>
-          <div style={{textAlign:"center",marginBottom:20}}>
-            <div style={{width:52,height:52,borderRadius:15,background:PM_GOLD+"18",border:`1.5px solid ${PM_GOLD}44`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}><Icons.Shield color={PM_GOLD} size={24}/></div>
-            <div style={{fontSize:19,fontWeight:900,color:P.white,marginBottom:8}}>Your 3 free rounds are up</div>
-            <div style={{fontSize:13,color:P.muted,lineHeight:1.6}}>Create your free account to keep playing and back up your rounds to the cloud. It takes 20 seconds.</div>
-          </div>
-          <div style={{background:PM_GOLD+"08",border:`1px solid ${PM_GOLD}33`,borderRadius:12,padding:"12px 14px",marginBottom:18}}>
-            {["Unlimited rounds, forever free","Cloud backup — rounds safe if you switch phones","Personalized insights from Paul based on your Heroes and Bandits"].map((t,i)=>(
-              <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:i<2?8:0}}>
-                <Icons.Check color={PM_GOLD} size={13}/>
-                <span style={{fontSize:12,color:P.white,lineHeight:1.5}}>{t}</span>
-              </div>
-            ))}
-          </div>
-          <button onClick={()=>{setShowProfileGate(false);openWithClerk("signUp");}} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:P.green,color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",marginBottom:8}}>
-            Create Free Account
-          </button>
-          <button onClick={()=>setShowProfileGate(false)} style={{width:"100%",padding:"10px",borderRadius:12,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:13,fontWeight:600,cursor:"pointer"}}>
-            Maybe later
-          </button>
-          <div style={{fontSize:10,color:P.muted,textAlign:"center",lineHeight:1.5,marginTop:10}}>
-            Free forever. No payment required. By continuing you agree to Paul Monahan Golf's{" "}
-            <span style={{color:PM_GOLD,cursor:"pointer"}} onClick={()=>{setShowProfileGate(false);setShowPrivacyPolicy(true);}}>Privacy Policy</span>.
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  function CommunityPromptModal() {
-    if(!showCommunityPrompt) return null;
-    function dismiss() { setShowCommunityPrompt(false); }
-    const topBandit = (() => { const bt={}; savedRounds.forEach(r=>{if(!r.scores)return;r.scores.forEach(h=>{Object.keys(h.bandits||{}).forEach(k=>{if(h.bandits[k])bt[k]=(bt[k]||0)+1;});});}); return Object.keys(bt).sort((a,b)=>bt[b]-bt[a])[0]||null; })();
-    return (
-      <div style={{position:"fixed",inset:0,zIndex:9997,display:"flex",alignItems:"flex-end",justifyContent:"center",background:"rgba(0,0,0,0.6)",backdropFilter:"blur(8px)",padding:"0 0 calc(20px + env(safe-area-inset-bottom,0px))"}}>
-        <div style={{background:P.card,borderRadius:"20px 20px 16px 16px",padding:"24px 20px 28px",width:"100%",maxWidth:480,border:`1.5px solid ${P.border}`,boxShadow:"0 -20px 60px rgba(0,0,0,0.4)",animation:"slideUpSheet 0.35s cubic-bezier(0.16,1,0.3,1)"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
-            <div>
-              <div style={{fontSize:17,fontWeight:900,color:P.white,marginBottom:4}}>Join Paul's Community</div>
-              {topBandit&&<div style={{fontSize:12,color:PM_GOLD,fontWeight:600}}>Your round showed {topBandit} as your biggest challenge. Paul has specific drills for this.</div>}
-            </div>
-            <button onClick={dismiss} style={{background:"none",border:"none",color:P.muted,fontSize:18,cursor:"pointer",padding:"0 0 0 12px",flexShrink:0}}>✕</button>
-          </div>
-          <div style={{background:PM_GOLD+"10",border:`1px solid ${PM_GOLD}33`,borderRadius:12,padding:"10px 14px",marginBottom:16}}>
-            <div style={{fontSize:12,color:P.white,lineHeight:1.6}}>
-              Get <span style={{fontWeight:700,color:PM_GOLD}}>personalized coaching insights</span> based on your actual Heroes & Bandits data — delivered by Paul directly to your inbox.
-            </div>
-          </div>
-          <button onClick={()=>{dismiss();openWithClerk("signUp");}} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:`linear-gradient(135deg,${PM_NAVY},#2563eb)`,color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",marginBottom:10}}>
-            Create Free Account →
-          </button>
-          <div style={{fontSize:10,color:P.muted,textAlign:"center",lineHeight:1.5}}>
-            Free forever. No spam — unsubscribe anytime. Your mental game data personalizes your experience.
-          </div>
-        </div>
-        <style>{`@keyframes slideUpSheet{from{opacity:0;transform:translateY(40px);}to{opacity:1;transform:translateY(0);}}`}</style>
-      </div>
-    );
-  }
-
   function RateAppModal() {
     if(!showRateApp) return null;
     function dismiss(rated) {
@@ -2558,10 +2390,10 @@ export default function App() {
   if (showPaywall) return <ThemeCtx.Provider value={P}><PaywallView onUnlock={(plan)=>unlockPro(plan)} onBack={()=>setShowPaywall(false)} onPrivacy={()=>setShowPrivacyPolicy(true)} P={P} S={S}/></ThemeCtx.Provider>;
   if (showOnboarding) return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><OpenRoundModal/><OnboardingFlow onFinish={finishOnboarding} onPrivacy={()=>setShowPrivacyPolicy(true)} P={P} S={S}/></ThemeCtx.Provider>;
   if (showShare) return <ThemeCtx.Provider value={P}><ShareView onBack={()=>setShowShare(false)} P={P}/></ThemeCtx.Provider>;
-  if (view==="home") return <ThemeCtx.Provider value={P}><ToastLayer/><OpenRoundModal/><ProfileGateModal/><LaunchScreen onStartRound={startNewRound} onContinueRound={()=>{const lastTouched=scores.reduce((last,h,i)=>{const hasData=h.strokeScore||h.putts||Object.values(h.heroes).some(v=>v>0)||Object.values(h.bandits).some(v=>v>0);return hasData?i:last;},-1);setCurrentHole(Math.max(0,lastTouched));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} onHub={()=>setView("hub")} savedRounds={savedRounds} themeToggle={themeToggle} S={S} hasProfile={hasProfile} clerkUser={clerkUser} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }}/></ThemeCtx.Provider>;
-  if (view==="hub") return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><CommunityPromptModal/><ProfileGateModal/><CoursePromptModal/><OpenRoundModal/><HomeScreen onNav={(v)=>{if(v==="upgrade"){setShowPaywall(true);return;}if(v==="share"){setShowShare(true);return;}navTo(v);}} onContinueRound={()=>{const lastTouched=scores.reduce((last,h,i)=>{const hasData=h.strokeScore||h.putts||Object.values(h.heroes).some(v=>v>0)||Object.values(h.bandits).some(v=>v>0);return hasData?i:last;},-1);setCurrentHole(Math.max(0,lastTouched));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} isPro={isPro} roundsRemaining={roundsRemaining} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }} onUpgrade={()=>setShowPaywall(true)} /></ThemeCtx.Provider>;
+  if (view==="home") return <ThemeCtx.Provider value={P}><ToastLayer/><OpenRoundModal/><LaunchScreen onStartRound={startNewRound} onContinueRound={()=>{const lastTouched=scores.reduce((last,h,i)=>{const hasData=h.strokeScore||h.putts||Object.values(h.heroes).some(v=>v>0)||Object.values(h.bandits).some(v=>v>0);return hasData?i:last;},-1);setCurrentHole(Math.max(0,lastTouched));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} onHub={()=>setView("hub")} savedRounds={savedRounds} themeToggle={themeToggle} S={S} hasProfile={hasProfile} clerkUser={clerkUser} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }}/></ThemeCtx.Provider>;
+  if (view==="hub") return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><OpenRoundModal/><HomeScreen onNav={(v)=>{if(v==="upgrade"){setShowPaywall(true);return;}if(v==="share"){setShowShare(true);return;}navTo(v);}} onStartRound={startNewRound} onContinueRound={()=>{const lastTouched=scores.reduce((last,h,i)=>{const hasData=h.strokeScore||h.putts||Object.values(h.heroes).some(v=>v>0)||Object.values(h.bandits).some(v=>v>0);return hasData?i:last;},-1);setCurrentHole(Math.max(0,lastTouched));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} isPro={isPro} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }} onUpgrade={()=>setShowPaywall(true)} /></ThemeCtx.Provider>;
   if (view==="checklist") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist key={preroundKey} onBack={nav("hub")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",todayET());const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setView("play");}} onSkip={()=>{setView("play");}} S={S} lastIntention={carryForward} settings={settings} updateSetting={updateSetting} /></ThemeCtx.Provider>;
-  if (view==="courseselect") return <ThemeCtx.Provider value={P}><ToastLayer/><div style={{height:"100%",background:P.bg,position:"relative"}}><HomeScreen onNav={()=>{}} onContinueRound={()=>{}} roundInProgress={false} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} isPro={isPro} roundsRemaining={roundsRemaining} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }}/><CourseSelectModal P={P} S={S} settings={settings} onSkip={()=>resetAndStartNew()} onConfirm={(data)=>resetAndStartNew(data)}/></div></ThemeCtx.Provider>;
+  if (view==="courseselect") return <ThemeCtx.Provider value={P}><ToastLayer/><div style={{height:"100%",background:P.bg,position:"relative"}}><HomeScreen onNav={()=>{}} onStartRound={()=>{}} onContinueRound={()=>{}} roundInProgress={false} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} isPro={isPro} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }}/><CourseSelectModal P={P} S={S} settings={settings} onSkip={()=>resetAndStartNew()} onConfirm={(data)=>resetAndStartNew(data)}/></div></ThemeCtx.Provider>;
   if (view==="preround") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist key={preroundKey} onBack={nav("hub")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",todayET());const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setView("play");}} onSkip={()=>{setView("play");}} S={S} lastIntention={carryForward} settings={settings} updateSetting={updateSetting} /></ThemeCtx.Provider>;
   if (view==="tiger5") return <ThemeCtx.Provider value={P}><ToastLayer/><Tiger5View onBack={()=>setView(prevView||"home")} S={S}/></ThemeCtx.Provider>;
   if (view==="caddie") return <ThemeCtx.Provider value={P}><ToastLayer/><InnerCaddieView onBack={nav(prevView)} S={S} /></ThemeCtx.Provider>;
@@ -2570,16 +2402,16 @@ export default function App() {
   if (view==="guide") return <ThemeCtx.Provider value={P}><ToastLayer/><OnboardingFlow onFinish={nav("hub")} onPrivacy={()=>setShowPrivacyPolicy(true)} P={P} S={S}/></ThemeCtx.Provider>;
   if (view==="transform") return <ThemeCtx.Provider value={P}><ToastLayer/><TransformView onBack={nav("hub")} S={S} P={P}/></ThemeCtx.Provider>;
   if (view==="dashboard") return <ThemeCtx.Provider value={P}><ToastLayer/><DashboardView rounds={savedRounds} onBack={nav("hub")} isHome={true} S={S} onSelectRound={r=>{setSelectedRound(r);setView("rounddetail");}}/></ThemeCtx.Provider>;
-  if (view==="history") return <ThemeCtx.Provider value={P}><ToastLayer/><HistoryView rounds={savedRounds} onBack={()=>{setView("home");setSelectedRound(null);}} onDelete={deleteRound} selectedRound={selectedRound} setSelectedRound={setSelectedRound} onShare={(r)=>shareRound(r,darkMode)} onEdit={r=>{setEditingRound(r);setView("editround");}} S={S} /></ThemeCtx.Provider>;
+  if (view==="history") return <ThemeCtx.Provider value={P}><ToastLayer/><RateAppModal/><HistoryView rounds={savedRounds} onBack={()=>{setView("home");setSelectedRound(null);}} onDelete={deleteRound} selectedRound={selectedRound} setSelectedRound={setSelectedRound} onShare={(r)=>shareRound(r,darkMode)} onEdit={r=>{setEditingRound(r);setView("editround");}} S={S} /></ThemeCtx.Provider>;
   if (view==="rounddetail") return <ThemeCtx.Provider value={P}><ToastLayer/><RoundDetailView round={selectedRound} onBack={nav("dashboard")} onShare={(r)=>shareRound(r,darkMode)} S={S} /></ThemeCtx.Provider>;
   if (showPrivacyPolicy) return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><PrivacyPolicyView onBack={()=>setShowPrivacyPolicy(false)} S={S}/></ThemeCtx.Provider>;
   if (showHelp) return <ThemeCtx.Provider value={P}><ToastLayer/><HelpView onBack={()=>setShowHelp(false)} S={S}/></ThemeCtx.Provider>;
-  if (view==="settings") return <ThemeCtx.Provider value={P}><ToastLayer/><ProfileGateModal/><SettingsView settings={settings} updateSetting={updateSetting} darkMode={darkMode} toggleTheme={toggleTheme} onBack={nav("hub")} S={S} savedRounds={savedRounds} inGameCaddie={inGameCaddie} setInGameCaddie={setInGameCaddie} onResetTour={()=>{try{localStorage.removeItem("mgp_tip_step");}catch{}setTipStep(0);setView("play");}} isPro={isPro} onManageSubscription={()=>setShowPaywall(true)} onCancelPro={()=>setShowCancelPro(true)} onPrivacyPolicy={()=>setShowPrivacyPolicy(true)} onHelp={()=>setShowHelp(true)} onCreateProfile={()=>setShowProfileGate(true)} onGuide={()=>setView("guide")} onShare={()=>setShowShare(true)} /></ThemeCtx.Provider>;
+  if (view==="settings") return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><SettingsView settings={settings} updateSetting={updateSetting} darkMode={darkMode} toggleTheme={toggleTheme} onBack={nav("hub")} S={S} savedRounds={savedRounds} inGameCaddie={inGameCaddie} setInGameCaddie={setInGameCaddie} onResetTour={()=>{try{localStorage.removeItem("mgp_tip_step");}catch{}setTipStep(0);setView("play");}} isPro={isPro} onManageSubscription={()=>setShowPaywall(true)} onCancelPro={()=>setShowCancelPro(true)} onPrivacyPolicy={()=>setShowPrivacyPolicy(true)} onHelp={()=>setShowHelp(true)} onGuide={()=>setView("guide")} onShare={()=>setShowShare(true)} /></ThemeCtx.Provider>;
   if (view==="scorecard") return <ThemeCtx.Provider value={P}><ToastLayer/><ScorecardView scores={scores} front={front} back={back} total={total} courseName={courseName} roundDate={roundDate} onBack={()=>setView(prevView||"play")} onHome={()=>setView("hub")} onSelectHole={h=>{setCurrentHole(h);setView("play");}} S={S} handicap={settings.handicap} /></ThemeCtx.Provider>;
-  if (view==="editround") return <ThemeCtx.Provider value={P}><ToastLayer/><RoundEditView round={editingRound} onSave={updatedRound=>{const updated=savedRounds.map(r=>r.id===updatedRound.id?updatedRound:r);persistRounds(updated);setEditingRound(null);setView("history");}} onBack={()=>{setEditingRound(null);setView("history");}} S={S} /></ThemeCtx.Provider>;
+  if (view==="editround") return <ThemeCtx.Provider value={P}><ToastLayer/><RateAppModal/><RoundEditView round={editingRound} onSave={updatedRound=>{const updated=savedRounds.map(r=>r.id===updatedRound.id?updatedRound:r);persistRounds(updated);setEditingRound(null);setView("history");}} onBack={()=>{setEditingRound(null);setView("history");}} S={S} /></ThemeCtx.Provider>;
   if (view==="badges") return <ThemeCtx.Provider value={P}><ToastLayer/><BadgesView rounds={savedRounds} onBack={nav("hub")} S={S} /></ThemeCtx.Provider>;
   if (view==="roundsummary") return <ThemeCtx.Provider value={P}><ToastLayer/><RoundSummaryView scores={scores} total={total} courseName={courseName} courseData={courseData} roundDate={roundDate} postRoundNotes={postRoundNotes} setPostRoundNotes={setPostRoundNotes} carryForward={carryForward} setCarryForward={setCarryForward} onSave={saveAndFinish} onBack={nav("play")} onViewScorecard={()=>{setPrevView("roundsummary");setView("scorecard");}} S={S} /></ThemeCtx.Provider>;
-  if (view==="roundstats") return <ThemeCtx.Provider value={P}><ToastLayer/><CommunityPromptModal/><FireworksCanvas active={showFireworks} onDone={()=>setShowFireworks(false)}/><RoundStatsView round={completedRound} onHome={(dest)=>{if(dest==="caddie"){setPrevView("roundstats");setView("caddie");}else if(dest==="roundsummary"){setView("roundsummary");}else setView(dest||"hub");}} onShare={(r)=>shareRound(r,darkMode)} S={S} /></ThemeCtx.Provider>;
+  if (view==="roundstats") return <ThemeCtx.Provider value={P}><ToastLayer/><FireworksCanvas active={showFireworks} onDone={()=>setShowFireworks(false)}/><RoundStatsView round={completedRound} onHome={(dest)=>{if(dest==="caddie"){setPrevView("roundstats");setView("caddie");}else if(dest==="roundsummary"){setView("roundsummary");}else setView(dest||"hub");}} onShare={(r)=>shareRound(r,darkMode)} S={S} /></ThemeCtx.Provider>;
 
   // ─── PLAY VIEW ───
   const hB = scores[currentHole].bandits, hH = scores[currentHole].heroes;
@@ -2643,7 +2475,7 @@ export default function App() {
         )}
 
         {/* Multi-step tooltip tour */}
-        {!tipDone&&!dropdownOpen&&(()=>{
+        {!tipDone&&(()=>{
           const tips=[
             {step:1,title:"Course & Caddie",body:"Before your round, select your course to auto-fill hole data and yardages. Turn on the In-Game Caddie for mental guidance during play.",icon:"Flag",cardPos:"below"},
             {step:2,title:"Hole Grid",body:"Tap any hole to jump to it. Holes will fill in green when Heroes showed up. Red holes mean Bandits interfered.",icon:"Grid",cardPos:"below"},
@@ -3297,7 +3129,6 @@ function LaunchScreen({onStartRound,onContinueRound,roundInProgress,onHub,savedR
   const textHigh = darkMode ? "#ffffff" : "#0f172a";
   const textMid = darkMode ? "rgba(255,255,255,0.45)" : "rgba(15,23,42,0.5)";
   const textLow = darkMode ? "rgba(255,255,255,0.3)" : "rgba(15,23,42,0.35)";
-  const shieldSrc = darkMode ? SHIELD_LOGO : SHIELD_LOGO;
 
   return (
     <div style={{...S.shell, position:"relative", overflow:"hidden", background:P.bg}}>
@@ -3402,7 +3233,7 @@ function LaunchScreen({onStartRound,onContinueRound,roundInProgress,onHub,savedR
   );
 }
 
-function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggle,S,savedRounds,settings,isPro,roundsRemaining,hasProfile,onSettings,onSignOut}) {
+function HomeScreen({onNav,onStartRound,onContinueRound,roundInProgress,roundCount,themeToggle,S,savedRounds,settings,isPro,hasProfile,onSettings,onSignOut}) {
   const P=useTheme();
   const darkMode = P.bg === "#09090b";
   const [loaded,setLoaded]=useState(false);
@@ -3529,7 +3360,7 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
         </div>
 
         {/* PRIMARY CTA */}
-        <button onClick={()=>roundInProgress?onContinueRound():onNav("preround")} {...pp()} style={{
+        <button onClick={()=>roundInProgress?onContinueRound():onStartRound()} {...pp()} style={{
           width:"100%",maxWidth:320,padding:"18px 24px",borderRadius:18,
           background:roundInProgress?"linear-gradient(135deg, #1d4ed8, #2563eb)":"linear-gradient(135deg, #16a34a, #22c55e)",
           border:"none",color:"#fff",
@@ -3544,7 +3375,7 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
           {roundInProgress?"Continue Round":"Start Round"}
         </button>
         {roundInProgress&&(
-          <button onClick={()=>onNav("preround")} {...pp()} style={{marginBottom:12,padding:"6px 18px",borderRadius:12,background:"transparent",border:`1px solid ${P.border}`,color:P.muted,fontSize:12,fontWeight:600,cursor:"pointer",opacity:loaded?1:0,transition:"opacity 0.6s ease 0.57s"}}>
+          <button onClick={()=>onStartRound()} {...pp()} style={{marginBottom:12,padding:"6px 18px",borderRadius:12,background:"transparent",border:`1px solid ${P.border}`,color:P.muted,fontSize:12,fontWeight:600,cursor:"pointer",opacity:loaded?1:0,transition:"opacity 0.6s ease 0.57s"}}>
             + New Round
           </button>
         )}
@@ -3560,7 +3391,7 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
             opacity:loaded?1:0,transition:"opacity 0.6s ease 0.58s",
           }}>
             <Icons.Star color={PM_GOLD} size={14}/>
-            Start free 7-day trial → Pro
+            Upgrade to Pro
           </button>
         )}
 
@@ -3577,13 +3408,6 @@ function HomeScreen({onNav,onContinueRound,roundInProgress,roundCount,themeToggl
           Share the app
         </button>
 
-        {/* Trial counter — shown when not yet profiled and rounds remain */}
-        {!hasProfile&&roundsRemaining<=FREE_ROUNDS_LIMIT&&roundsRemaining>0&&!roundInProgress&&(
-          <div style={{marginBottom:8,padding:"7px 14px",borderRadius:10,background:roundsRemaining===1?P.red+"12":PM_GOLD+"10",border:`1px solid ${roundsRemaining===1?P.red:PM_GOLD}33`,width:"100%",maxWidth:320,textAlign:"center",opacity:loaded?1:0,transition:"opacity 0.6s ease 0.58s"}}>
-            <span style={{fontSize:12,fontWeight:700,color:roundsRemaining===1?P.red:PM_GOLD}}>{roundsRemaining} free round{roundsRemaining!==1?"s":""} remaining</span>
-            <span style={{fontSize:11,color:P.muted}}> — create a profile to continue</span>
-          </div>
-        )}
         {/* Personal bests strip */}
         {savedRounds&&savedRounds.length>=2&&(()=>{
           const bestNet=Math.max(...savedRounds.map(r=>r.net));
@@ -4520,21 +4344,6 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
   );
 }
 
-function FavInput({value, onCommit, placeholder, width}) {
-  const P = useTheme();
-  const [local, setLocal] = React.useState(value);
-  React.useEffect(()=>{ setLocal(value); }, [value]);
-  return (
-    <input
-      value={local}
-      onChange={e=>setLocal(e.target.value)}
-      onBlur={e=>onCommit(e.target.value)}
-      placeholder={placeholder}
-      style={{width,padding:"7px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:13,fontWeight:500,outline:"none"}}
-    />
-  );
-}
-
 
 function HandicapInput({value, onCommit, P}) {
   const [local, setLocal] = React.useState(value);
@@ -4567,6 +4376,7 @@ function FavCourseSearch({settings, updateSetting, P}) {
       setLoading(true);
       try{
         const res=await fetch(`${GOLF_API_BASE}/search?search_query=${encodeURIComponent(query)}`,{headers:{Authorization:`Key ${GOLF_API_KEY}`}});
+        if(!res.ok) { setResults([]); return; }
         const d=await res.json();
         const courses=d.courses||[];
         setResults(courses.slice(0,8));
@@ -4595,6 +4405,7 @@ function FavCourseSearch({settings, updateSetting, P}) {
     setResults([]);
     try{
       const res=await fetch(`${GOLF_API_BASE}/courses/${course.id}`,{headers:{Authorization:`Key ${GOLF_API_KEY}`}});
+      if(!res.ok) return;
       const d=await res.json();
       const full=d.course;
       if(full){
@@ -4602,13 +4413,13 @@ function FavCourseSearch({settings, updateSetting, P}) {
         const female=(full.tees?.female||[]).map(t=>({...t,gender:"Female"}));
         const flat=[...male,...female];
         setTees(flat);
-        updateSetting("favTeeOptions", flat.map(t=>t.tee_name+(t.gender==="Female"?" (W)":"")));
+        updateSetting("favTeeOptions", flat.map(t=>t.tee_name+(t.gender ? ` (${t.gender})` : "")));
       }
     }catch{}
   }
 
   const teeOptions = tees.length>0
-    ? tees.map(t=>t.tee_name+(t.gender==="Female"?" (W)":""))
+    ? tees.map(t=>t.tee_name+(t.gender ? ` (${t.gender})` : ""))
     : (settings.favTeeOptions||[]);
 
   return (
@@ -4684,6 +4495,7 @@ function CourseSelectModal({onConfirm, onSkip, settings, P, S}) {
       setLoading(true);
       try{
         const res=await fetch(`${GOLF_API_BASE}/search?search_query=${encodeURIComponent(query)}`,{headers:{Authorization:`Key ${GOLF_API_KEY}`}});
+        if(!res.ok) { setResults([]); return; }
         const d=await res.json();
         setResults((d.courses||[]).slice(0,6));
       }catch{}finally{setLoading(false);}
@@ -4698,6 +4510,7 @@ function CourseSelectModal({onConfirm, onSkip, settings, P, S}) {
     setConfirmed(true);
     try{
       const res=await fetch(`${GOLF_API_BASE}/courses/${course.id}`,{headers:{Authorization:`Key ${GOLF_API_KEY}`}});
+      if(!res.ok) return;
       const d=await res.json();
       const full=d.course;
       if(full){
@@ -4705,7 +4518,7 @@ function CourseSelectModal({onConfirm, onSkip, settings, P, S}) {
         const female=(full.tees?.female||[]).map(t=>({...t,gender:"Female"}));
         const flat=[...male,...female];
         setCourseData(full);
-        const teeNames=flat.map(t=>t.tee_name+(t.gender==="Female"?" (W)":""));
+        const teeNames=flat.map(t=>t.tee_name+(t.gender ? ` (${t.gender})` : ""));
         setTees(teeNames);
         if(!selectedTee&&teeNames.length>0) setSelectedTee(teeNames[0]);
       }
@@ -4801,7 +4614,7 @@ function CourseSelectModal({onConfirm, onSkip, settings, P, S}) {
   );
 }
 
-function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,savedRounds,inGameCaddie,setInGameCaddie,onResetTour,isPro,onManageSubscription,onCancelPro,onPrivacyPolicy,onHelp,onCreateProfile,onGuide,onShare}) {
+function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,savedRounds,inGameCaddie,setInGameCaddie,onResetTour,isPro,onManageSubscription,onCancelPro,onPrivacyPolicy,onHelp,onGuide,onShare}) {
   const P = useTheme();
   const pp = pressProps;
   const [confirmClear, setConfirmClear] = React.useState(false);
@@ -4839,8 +4652,6 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
   const roundCount = savedRounds.length;
   const avgNet = roundCount ? (savedRounds.reduce((s,r)=>s+r.net,0)/roundCount).toFixed(1) : null;
   const dm = P.bg === "#09090b";
-
-  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
   function clearAllData() {
     try { localStorage.removeItem("mental_game_rounds"); } catch {}
@@ -4976,16 +4787,6 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
           </Row>
         </Section>
 
-        <Section title="Coach" style={{display:"none"}}>
-          <Row label="Coach Code" sub="Enter code from your coach to connect">
-            <input
-              defaultValue={(() => { try { return localStorage.getItem("mgp_coach_code")||""; } catch { return ""; } })()}
-              onBlur={e => { try { localStorage.setItem("mgp_coach_code", e.target.value.trim().toUpperCase()); showToast("Coach code saved","success"); } catch {} }}
-              placeholder="e.g. COACH-ABC12"
-              style={{width:130,padding:"6px 10px",borderRadius:8,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:12,outline:"none",textAlign:"center",fontWeight:700,letterSpacing:1}}
-            />
-          </Row>
-        </Section>
         <Section title="About">
           <Row label="Share the App" sub="Invite a friend to play better">
             <button onClick={()=>onShare&&onShare()} {...pp()} style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,cursor:"pointer"}}>Share</button>
@@ -5031,40 +4832,6 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
           </Row>
         </Section>
 
-        {/* Delete confirm modal */}
-        {showDeleteConfirm&&(
-          <div style={{position:"fixed",inset:0,zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",padding:"0 20px"}}>
-            <div style={{background:P.card,borderRadius:20,padding:"24px 20px",width:"100%",maxWidth:360,border:`1.5px solid ${P.red}33`,textAlign:"center"}}>
-              <div style={{width:48,height:48,borderRadius:14,background:P.red+"18",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}><Icons.Skull color={P.red} size={22}/></div>
-              <div style={{fontSize:17,fontWeight:900,color:P.white,marginBottom:8}}>Delete All Data?</div>
-              <div style={{fontSize:13,color:P.muted,lineHeight:1.6,marginBottom:20}}>This permanently deletes all {savedRounds.length} saved rounds, badges, and history. This cannot be undone.</div>
-              <div style={{display:"flex",gap:10}}>
-                <button onClick={()=>setShowDeleteConfirm(false)} {...pp()} style={{flex:1,padding:"12px",borderRadius:10,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:14,fontWeight:600,cursor:"pointer"}}>Cancel</button>
-                <button onClick={clearAllData} {...pp()} style={{flex:1,padding:"12px",borderRadius:10,border:"none",background:P.red,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer"}}>Delete All</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <Section title="Subscription" style={{display:"none"}}>
-          <div style={{padding:"14px 0",borderBottom:`1px solid ${P.border}`}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <div>
-                <div style={{fontSize:14,fontWeight:700,color:P.white}}>Mental Game Pro</div>
-                <div style={{fontSize:11,color:isPro?"#16a34a":P.muted,fontWeight:600,marginTop:2}}>{isPro?"Active — full access":"Not subscribed"}</div>
-              </div>
-              {isPro?(
-                <div style={{display:"flex",alignItems:"center",gap:6,padding:"4px 10px",borderRadius:20,background:"#16a34a18",border:"1px solid #16a34a44"}}>
-                  <div style={{width:6,height:6,borderRadius:"50%",background:"#16a34a"}}/>
-                  <span style={{fontSize:11,fontWeight:700,color:"#16a34a"}}>PRO</span>
-                </div>
-              ):(
-                <button onClick={onManageSubscription} {...pp()} style={{padding:"7px 14px",borderRadius:9,border:"none",background:"#16a34a",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer"}}>Subscribe</button>
-              )}
-            </div>
-          </div>
-        </Section>
-
         <div style={{textAlign:"center",paddingTop:8}}>
           <div style={{display:"inline-flex",alignItems:"center",gap:8}}>
             <div style={{height:1,width:20,background:P.border}}/>
@@ -5076,181 +4843,6 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
       </div>
     </div>
   );
-}
-
-
-// ─── SHARE CARD GENERATOR ───
-function generateShareCard(round, darkMode) {
-  const canvas = document.createElement("canvas");
-  canvas.width = 1080; canvas.height = 1080;
-  const ctx = canvas.getContext("2d");
-  const bg = darkMode ? "#09090b" : "#f6f7f4";
-  const card = darkMode ? "#141416" : "#ffffff";
-  const fg = darkMode ? "#f8fafc" : "#0f172a";
-  const muted = darkMode ? "#6b7280" : "#94a3b8";
-  const border = darkMode ? "#27272a" : "#e2e8f0";
-  const green = "#16a34a", red = "#dc2626", gold = "#ca8a04";
-  const net = round.net || 0;
-  const netColor = net > 0 ? green : net < 0 ? red : gold;
-  const f = (x) => Math.round(x); // shorthand
-
-  function roundRect(x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x+r, y);
-    ctx.lineTo(x+w-r, y); ctx.arcTo(x+w, y, x+w, y+r, r);
-    ctx.lineTo(x+w, y+h-r); ctx.arcTo(x+w, y+h, x+w-r, y+h, r);
-    ctx.lineTo(x+r, y+h); ctx.arcTo(x, y+h, x, y+h-r, r);
-    ctx.lineTo(x, y+r); ctx.arcTo(x, y, x+r, y, r);
-    ctx.closePath();
-  }
-
-  // Background
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, 1080, 1080);
-
-  // Top gradient bar
-  const topGrad = ctx.createLinearGradient(0, 0, 1080, 0);
-  topGrad.addColorStop(0, netColor);
-  topGrad.addColorStop(1, netColor + "44");
-  ctx.fillStyle = topGrad;
-  ctx.fillRect(0, 0, 1080, 10);
-
-  // Subtle background circle (decorative)
-  ctx.beginPath();
-  ctx.arc(920, 200, 280, 0, Math.PI * 2);
-  ctx.fillStyle = netColor + "08";
-  ctx.fill();
-
-  // ── HEADER ──
-  ctx.fillStyle = muted;
-  ctx.font = "600 26px -apple-system, sans-serif";
-  ctx.textAlign = "left";
-  ctx.fillText("MENTAL GAME SCORECARD", 72, 80);
-
-  // Course name
-  ctx.fillStyle = fg;
-  ctx.font = "bold 58px -apple-system, sans-serif";
-  const course = round.course || "Unnamed Course";
-  // Truncate if too long
-  ctx.fillText(course.length > 26 ? course.slice(0, 26) + "…" : course, 72, 152);
-
-  // Date
-  ctx.fillStyle = muted;
-  ctx.font = "500 32px -apple-system, sans-serif";
-  ctx.fillText(round.date || "", 72, 202);
-
-  // ── MENTAL NET CARD ──
-  roundRect(72, 240, 936, 300, 28);
-  ctx.fillStyle = card;
-  ctx.fill();
-  roundRect(72, 240, 936, 300, 28);
-  ctx.strokeStyle = border;
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // Net number
-  ctx.fillStyle = netColor;
-  ctx.font = "bold 200px -apple-system, sans-serif";
-  ctx.textAlign = "center";
-  const netLabel = (net > 0 ? "+" : net < 0 ? "" : "") + (net === 0 ? "E" : net);
-  ctx.fillText(netLabel, 540, 460);
-
-  ctx.fillStyle = muted;
-  ctx.font = "700 30px -apple-system, sans-serif";
-  ctx.fillText("MENTAL NET", 540, 510);
-
-  // ── HEROES / BANDITS CARDS ──
-  const cardY = 572, cardH = 180, cardW = 454;
-
-  // Heroes card
-  roundRect(72, cardY, cardW, cardH, 20);
-  ctx.fillStyle = green + "12";
-  ctx.fill();
-  roundRect(72, cardY, cardW, cardH, 20);
-  ctx.strokeStyle = green + "44";
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  ctx.fillStyle = green;
-  ctx.font = "bold 90px -apple-system, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText(round.heroes || 0, 72 + cardW/2, cardY + 106);
-  ctx.fillStyle = muted;
-  ctx.font = "700 26px -apple-system, sans-serif";
-  ctx.fillText("HEROES", 72 + cardW/2, cardY + 148);
-
-  // Bandits card
-  roundRect(554, cardY, cardW, cardH, 20);
-  ctx.fillStyle = red + "12";
-  ctx.fill();
-  roundRect(554, cardY, cardW, cardH, 20);
-  ctx.strokeStyle = red + "44";
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  ctx.fillStyle = red;
-  ctx.font = "bold 90px -apple-system, sans-serif";
-  ctx.fillText(round.bandits || 0, 554 + cardW/2, cardY + 106);
-  ctx.fillStyle = muted;
-  ctx.font = "700 26px -apple-system, sans-serif";
-  ctx.fillText("BANDITS", 554 + cardW/2, cardY + 148);
-
-  // ── SCORE ROW ──
-  if (round.totalStroke > 0 || round.putts > 0) {
-    const scoreY = 790;
-    const stp = round.totalStroke - (round.totalPar || 0);
-    const scoreItems = [];
-    if (round.totalStroke > 0) scoreItems.push({ label: "SCORE", val: `${round.totalStroke}${round.totalPar ? " (" + (stp > 0 ? "+" : "") + stp + ")" : ""}` });
-    if (round.putts > 0) scoreItems.push({ label: "PUTTS", val: String(round.putts) });
-
-    const colW = 1080 / scoreItems.length;
-    scoreItems.forEach((item, i) => {
-      const cx = colW * i + colW / 2;
-      ctx.fillStyle = fg;
-      ctx.font = "bold 48px -apple-system, sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText(item.val, cx, scoreY + 44);
-      ctx.fillStyle = muted;
-      ctx.font = "600 24px -apple-system, sans-serif";
-      ctx.fillText(item.label, cx, scoreY + 82);
-    });
-  }
-
-  // ── HERO BREAKDOWN ──
-  if (round.scores) {
-    const heroNames = ["Love", "Acceptance", "Commitment", "Vulnerability", "Grit"];
-    const heroColors = { Love:"#dc2626", Acceptance:"#ca8a04", Commitment:"#16a34a", Vulnerability:"#7c3aed", Grit:"#2563eb" };
-    const heroCounts = {};
-    heroNames.forEach(h => { heroCounts[h] = round.scores.filter(s => s.heroes?.[h]).length; });
-    const barY = 900, barW = 936, barH = 36, barX = 72;
-    const total = heroNames.reduce((s, h) => s + heroCounts[h], 0) || 1;
-    let curX = barX;
-    heroNames.forEach(h => {
-      const w = Math.round((heroCounts[h] / total) * barW);
-      if (w > 0) {
-        roundRect(curX, barY, w, barH, curX === barX ? 10 : 0);
-        ctx.fillStyle = heroColors[h];
-        ctx.fill();
-        curX += w;
-      }
-    });
-    // Bar outline
-    roundRect(barX, barY, barW, barH, 10);
-    ctx.strokeStyle = border;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-  }
-
-  // ── FOOTER ──
-  ctx.fillStyle = muted;
-  ctx.font = "500 26px -apple-system, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText("Play Better · Struggle Less · Enjoy More", 540, 1010);
-  ctx.fillStyle = netColor;
-  ctx.font = "700 22px -apple-system, sans-serif";
-  ctx.fillText("Mental Game Scorecard", 540, 1048);
-
-  return canvas.toDataURL("image/png");
 }
 
 
@@ -5506,36 +5098,6 @@ function RoundEditView({round, onSave, onBack, S}) {
         </div>
         <textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Post-round notes..." rows={2} style={{flex:1,padding:"6px 8px",borderRadius:8,border:`1.5px solid ${P.border}`,background:P.cardAlt,color:P.white,fontSize:16,outline:"none",resize:"none",lineHeight:1.4}}/>
         <button onClick={handleSave} {...pp()} style={{padding:"10px 16px",borderRadius:10,border:`1.5px solid ${P.green}`,background:P.green+"15",color:P.green,fontSize:14,fontWeight:800,cursor:"pointer",flexShrink:0}}>Save ✓</button>
-      </div>
-    </div>
-  );
-}
-
-// ─── EMPTY CHART PLACEHOLDER ───
-function EmptyChart({P, title, hint, type}) {
-  const isGrid = type === "grid";
-  return (
-    <div style={{background:P.card,borderRadius:12,padding:"12px 14px",marginBottom:14,border:`1.5px solid ${P.border}`}}>
-      <div style={{fontSize:10,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:8}}>{title}</div>
-      <div style={{borderRadius:8,background:P.cardAlt,padding:"10px 12px",border:`1px solid ${P.border}`}}>
-        {/* Skeleton preview */}
-        {isGrid ? (
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:8,opacity:0.3}}>
-            {["GIR","PUTTS"].map(l=>(
-              <div key={l} style={{background:P.card,borderRadius:8,padding:"8px 6px",textAlign:"center"}}>
-                <div style={{fontSize:9,color:P.muted,fontWeight:700,marginBottom:4}}>{l}</div>
-                <div style={{fontSize:18,fontWeight:900,color:P.border}}>—</div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div style={{display:"flex",gap:3,alignItems:"flex-end",height:32,marginBottom:8,opacity:0.2}}>
-            {[30,55,20,70,45,60,35,50,25,65].map((h,i)=>(
-              <div key={i} style={{flex:1,height:`${h}%`,borderRadius:"2px 2px 0 0",background:P.muted}}/>
-            ))}
-          </div>
-        )}
-        <div style={{fontSize:11,color:P.white,fontWeight:600,textAlign:"center",lineHeight:1.45,opacity:0.7}}>{hint}</div>
       </div>
     </div>
   );
@@ -6022,9 +5584,8 @@ async function syncUserBadgesToShared(userId, rounds, displayName) {
 
 async function loadAdminData() {
   try {
-    if(typeof window.storage==="undefined") { setData([]); setLoading(false); return; }
-      if(typeof window.storage==="undefined") { setAllUsers([]); setLoading(false); return; }
-      const keys = await window.storage.list("users:", true);
+    if(typeof window.storage==="undefined") return [];
+    const keys = await window.storage.list("users:", true);
     if(!keys?.keys) return [];
     const results = await Promise.all(keys.keys.map(async k => {
       try { const r = await window.storage.get(k, true); return r ? JSON.parse(r.value) : null; } catch { return null; }
@@ -6054,17 +5615,14 @@ function BadgesView({rounds, onBack, S}) {
     if(window.location.hash==="#admin") setShowAdmin(true);
     return()=>window.removeEventListener("hashchange",onHash);
   },[]);
-  // Hashed PIN check — SHA-256 of "MGS-ADMIN-2026" 
-  const ADMIN_PIN_HASH = "a3f8c2e1d4b9f7a6e5d3c8b2a1f9e4d7c6b3a8f2e1d9c4b7a6f3e2d8c5b4a9f1";
   async function verifyAdminPin(pin) {
     try {
+      const adminPin = import.meta.env.VITE_ADMIN_PIN;
+      if(!adminPin) { setAdminPinError(true); setTimeout(()=>setAdminPinError(false), 2000); return; }
       const encoder = new TextEncoder();
-      const data = encoder.encode("MGS-" + pin + "-ADMIN");
-      const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
-      const adminPin = import.meta.env.VITE_ADMIN_PIN || "admin2026";
-      if(pin === adminPin) {
+      const pinHash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", encoder.encode(pin)))).map(b=>b.toString(16).padStart(2,"0")).join("");
+      const expectedHash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", encoder.encode(adminPin)))).map(b=>b.toString(16).padStart(2,"0")).join("");
+      if(pinHash === expectedHash) {
         try { sessionStorage.setItem("mgp_admin_verified","true"); } catch {}
         setAdminPinVerified(true);
         setAdminPinError(false);
@@ -6073,10 +5631,8 @@ function BadgesView({rounds, onBack, S}) {
         setTimeout(()=>setAdminPinError(false), 2000);
       }
     } catch {
-      if(pin === "admin2026") {
-        try { sessionStorage.setItem("mgp_admin_verified","true"); } catch {}
-        setAdminPinVerified(true);
-      }
+      setAdminPinError(true);
+      setTimeout(()=>setAdminPinError(false), 2000);
     }
   }
   React.useEffect(()=>{
@@ -6873,8 +6429,6 @@ function RoundStatsView({round,onHome,onShare,S}) {
 // ═══════════════════════════════════════
 // SHARED COMPONENTS
 // ═══════════════════════════════════════
-function StatBubble({label,value,color}) { const P=useTheme(); return <div style={{textAlign:"center"}}><div style={{fontSize:9,color:P.muted,letterSpacing:2,fontWeight:600}}>{label.toUpperCase()}</div><div style={{fontSize:24,fontWeight:700,color}}>{value}</div></div>; }
-function SCard({P,label,value,color}) { return <div style={{background:P.card,borderRadius:12,padding:"10px 6px",border:`1.5px solid ${P.border}`,textAlign:"center"}}><div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:2}}>{label.toUpperCase()}</div><div style={{fontSize:20,fontWeight:800,color}}>{value}</div></div>; }
 function BChart({P,title,items,totals,color}) { const max=Math.max(1,...Object.values(totals)); return <div style={{background:P.card,borderRadius:12,padding:12,border:`1.5px solid ${P.border}`,marginBottom:14}}><div style={{fontSize:10,color:P.muted,fontWeight:700,letterSpacing:1,marginBottom:8}}>{title}</div>{items.map(item=><div key={item} style={{display:"flex",alignItems:"center",marginBottom:5,gap:6}}><div style={{width:90,fontSize:13,color,fontWeight:600}}>{item}</div><div style={{flex:1,height:8,borderRadius:4,background:P.cardAlt}}><div style={{width:`${(totals[item]/max)*100}%`,height:"100%",borderRadius:4,background:color,transition:"width 0.4s"}}/></div><div style={{width:22,textAlign:"right",fontSize:13,color:P.white,fontWeight:600}}>{totals[item]}</div></div>)}</div>; }
 
 // ═══════════════════════════════════════
@@ -8035,23 +7589,6 @@ function CaddieToggleMock(){
   </div>;
 }
 
-function TrendMock(){
-  const P=useTheme();
-  const data=[{l:"03/01",net:2},{l:"03/08",net:-1},{l:"03/15",net:4},{l:"03/22",net:1},{l:"03/29",net:5},{l:"04/05",net:3}];
-  const mx=Math.max(...data.map(d=>Math.abs(d.net)));
-  return <div style={{background:P.cardAlt,borderRadius:12,padding:14,border:`1px solid ${P.border}`}}>
-    <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}><div style={{fontSize:9,color:P.muted,fontWeight:800,letterSpacing:2}}>MENTAL NET TREND</div><div style={{fontSize:10,color:P.muted}}>6 rounds</div></div>
-    <div style={{display:"flex",gap:4,height:100,paddingBottom:16,position:"relative"}}><div style={{position:"absolute",left:0,right:0,bottom:16+40,height:1,background:P.border}}/>
-      {data.map((d,i)=>{const mid=40,bH=(Math.abs(d.net)/mx)*mid,pos=d.net>=0; return <div key={i} style={{flex:1,position:"relative",height:84}}><div style={{position:"absolute",bottom:pos?mid:mid-bH,left:"15%",width:"70%",maxWidth:26,height:bH||2,borderRadius:3,background:pos?P.green:P.red,opacity:0.7}}/><div style={{position:"absolute",bottom:pos?mid+bH+2:mid-bH-14,width:"100%",textAlign:"center",fontSize:9,fontWeight:700,color:pos?P.green:P.red}}>{d.net>0?"+":""}{d.net}</div></div>;})}
-    </div>
-    <div style={{display:"flex",gap:4}}>{data.map((d,i)=><div key={i} style={{flex:1,textAlign:"center",fontSize:9,color:P.muted}}>{d.l}</div>)}</div>
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginTop:10}}>
-      <div style={{background:P.card,borderRadius:8,padding:"8px 6px",textAlign:"center",border:`1px solid ${P.border}`}}><div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1}}>AVG NET</div><div style={{fontSize:18,fontWeight:900,color:P.green}}>+2.3</div></div>
-      <div style={{background:P.card,borderRadius:8,padding:"8px 6px",textAlign:"center",border:`1px solid ${P.border}`}}><div style={{fontSize:9,color:P.muted,fontWeight:700,letterSpacing:1}}>TOP HERO</div><div style={{fontSize:15,fontWeight:800,color:P.white}}>Grit</div></div>
-    </div>
-  </div>;
-}
-
 function HeroBanditTab(){
   const P=useTheme();
   const dm=P.bg==="#09090b";
@@ -8526,7 +8063,7 @@ function PaywallView({onUnlock, onBack, onPrivacy, P, S}) {
 
         {/* Legal */}
         <div style={{fontSize:10,color:"rgba(255,255,255,0.3)",textAlign:"center",lineHeight:1.6,marginBottom:8}}>
-          7-day free trial, then {selected==="annual"?"$49.99/year":"$4.99/month"}. Cancel anytime.{" "}
+          {selected==="annual"?"$49.99/year":"$4.99/month"}. Cancel anytime.{" "}
           <span style={{color:"rgba(255,255,255,0.45)",fontWeight:600,cursor:"pointer"}} onClick={()=>onPrivacy&&onPrivacy()}>Terms & Privacy</span>
         </div>
         <div style={{display:"flex",justifyContent:"space-between",paddingBottom:28}}>
@@ -8669,32 +8206,6 @@ function OnboardingFlow({onFinish,onPrivacy,P,S}){
         <div style={{fontSize:11,fontWeight:500,color:P.muted}}>You're ready. Let's go.</div>
       </div>
     </div>;
-  }
-
-  // Profile slide state
-  const [profileEmail, setProfileEmail] = React.useState("");
-  const [profileFirstName, setProfileFirstName] = React.useState("");
-  const [profileLastName, setProfileLastName] = React.useState("");
-  const [profileSubmitting, setProfileSubmitting] = React.useState(false);
-  const [profileDone, setProfileDone] = React.useState(false);
-
-  async function submitProfileFromOnboarding(skipCloud) {
-    if(!skipCloud && (!profileEmail.trim() || !profileEmail.includes("@"))) return false;
-    setProfileSubmitting(true);
-    const uid = (() => { try { let id=localStorage.getItem("mgp_uid"); if(!id){id="user_"+Math.random().toString(36).slice(2,10);localStorage.setItem("mgp_uid",id);} return id; } catch { return "anon"; } })();
-    const profile = {
-      email: profileEmail.trim().toLowerCase()||null,
-      name: [profileFirstName.trim(), profileLastName.trim()].filter(Boolean).join(" ") || null,
-      joinedAt: new Date().toISOString(),
-      uid,
-      source: "onboarding",
-      cloudSync: !skipCloud,
-    };
-    try { localStorage.setItem("mgp_community_profile", JSON.stringify(profile)); if(!skipCloud) localStorage.setItem("mgp_community_joined","true"); } catch {}
-    // Cloud sync not configured
-    setProfileDone(true);
-    setProfileSubmitting(false);
-    return true;
   }
 
   function ProfileSlide() {

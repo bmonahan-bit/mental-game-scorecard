@@ -44,17 +44,18 @@ export const getMyRoster = query({
     const roster = await ctx.db
       .query("coachRoster")
       .withIndex("by_coach", (q) => q.eq("coachClerkId", identity.subject))
-      .collect();
-    // For each connected student, fetch their profile
-    return await Promise.all(roster.map(async (entry) => {
-      let profile = null;
-      if (entry.studentClerkId) {
-        profile = await ctx.db
-          .query("profiles")
-          .withIndex("by_clerk_id", (q) => q.eq("clerkId", entry.studentClerkId!))
-          .first();
-      }
-      return { ...entry, profile };
+      .take(100);
+    // Batch-fetch profiles for connected students
+    const studentIds = roster.filter(e => e.studentClerkId).map(e => e.studentClerkId!);
+    const profiles = await Promise.all(
+      [...new Set(studentIds)].map(id =>
+        ctx.db.query("profiles").withIndex("by_clerk_id", (q) => q.eq("clerkId", id)).first()
+      )
+    );
+    const profileMap = new Map(profiles.filter(Boolean).map(p => [p!.clerkId, p]));
+    return roster.map(entry => ({
+      ...entry,
+      profile: entry.studentClerkId ? profileMap.get(entry.studentClerkId) ?? null : null,
     }));
   },
 });
@@ -125,7 +126,7 @@ export const connectToCoach = mutation({
     const rosterEntries = await ctx.db
       .query("coachRoster")
       .withIndex("by_coach_code", (q) => q.eq("coachCode", args.coachCode.toUpperCase()))
-      .collect();
+      .take(100);
     const match = rosterEntries.find(
       (e) => !e.connected && (e.studentEmail === profile?.email || !e.studentClerkId)
     );
@@ -135,6 +136,6 @@ export const connectToCoach = mutation({
         connected: true,
       });
     }
-    return code.clerkId;
+    return code.coachName ?? "Coach";
   },
 });

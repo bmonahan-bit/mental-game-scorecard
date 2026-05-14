@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 
 // ── Get current user's profile ───────────────────────────────
@@ -90,18 +90,11 @@ export const upsertProfile = mutation({
   },
 });
 
-// ── Admin: list all profiles (requires admin check) ──────────
-export const listAllProfiles = query({
+// ── Admin: list all profiles (internal only) ──────────
+export const listAllProfiles = internalQuery({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    // Only allow if user has admin email
-    const adminEmails = (import.meta.env?.VITE_ADMIN_EMAILS || "").split(",");
-    if (!adminEmails.includes(identity.email)) {
-      throw new Error("Not authorized");
-    }
-    return await ctx.db.query("profiles").collect();
+    return await ctx.db.query("profiles").take(500);
   },
 });
 

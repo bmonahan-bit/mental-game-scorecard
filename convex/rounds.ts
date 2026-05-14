@@ -9,19 +9,19 @@ export const getRounds = query({
     if (!identity) return [];
     const userId = identity.subject;
 
-    // Fetch by new userId field
+    // Fetch by new userId field (bounded to 500 rounds per user)
     const byUserId = await ctx.db
       .query("rounds")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .order("desc")
-      .collect();
+      .take(500);
 
     // Also fetch legacy records stored under clerkId
     const byClerkId = await ctx.db
       .query("rounds")
       .withIndex("by_clerkId", (q) => q.eq("clerkId", userId))
       .order("desc")
-      .collect();
+      .take(500);
 
     // Merge, deduplicate by roundId
     const seen = new Set(byUserId.map(r => r.roundId));
@@ -47,6 +47,8 @@ export const upsertRound = mutation({
     totalStroke: v.optional(v.float64()),
     totalPar: v.optional(v.float64()),
     scores: v.any(),
+    heroes: v.optional(v.float64()),
+    bandits: v.optional(v.float64()),
     notes: v.optional(v.string()),
     savedAt: v.optional(v.float64()),
   },
@@ -67,8 +69,7 @@ export const upsertRound = mutation({
     if (!existing) {
       existing = await ctx.db
         .query("rounds")
-        .withIndex("by_clerkId", (q) => q.eq("clerkId", userId))
-        .filter((q) => q.eq(q.field("roundId"), args.roundId))
+        .withIndex("by_clerkId_roundId", (q) => q.eq("clerkId", userId).eq("roundId", args.roundId))
         .first();
     }
 
@@ -91,6 +92,8 @@ export const bulkUpsertRounds = mutation({
       totalStroke: v.optional(v.float64()),
       totalPar: v.optional(v.float64()),
       scores: v.any(),
+      heroes: v.optional(v.float64()),
+      bandits: v.optional(v.float64()),
       notes: v.optional(v.string()),
       savedAt: v.optional(v.float64()),
     })),
@@ -136,8 +139,7 @@ export const deleteRound = mutation({
     if (!existing) {
       existing = await ctx.db
         .query("rounds")
-        .withIndex("by_clerkId", (q) => q.eq("clerkId", userId))
-        .filter((q) => q.eq(q.field("roundId"), args.roundId))
+        .withIndex("by_clerkId_roundId", (q) => q.eq("clerkId", userId).eq("roundId", args.roundId))
         .first();
     }
 
