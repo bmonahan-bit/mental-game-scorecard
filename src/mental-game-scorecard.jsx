@@ -7878,30 +7878,20 @@ function AdminDashboardView({onBack, S}) {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
 
-  // Fetch admin stats directly via Convex client
+  // Use Convex useQuery hook directly
+  const useQuery = window.__convexUseQuery;
+  const api = window.__convexApi;
+  const queryResult = useQuery && api ? useQuery(api.admin.getGroupStats, {}) : undefined;
+
   React.useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const client = window.__convexClient;
-        const api = window.__convexApi;
-        if (!client || !api) { setLoading(false); setError("Convex not initialized"); return; }
-        const result = await client.query(api.admin.getGroupStats, {});
-        if (cancelled) return;
-        if (result && result.overview) {
-          setStats(result); setLoading(false);
-          try { sessionStorage.setItem("mgp_is_admin", "true"); } catch {}
-        } else {
-          setLoading(false); setError("Not authorized. Your account is not in the admin list.");
-        }
-      } catch (e) {
-        if (cancelled) return;
-        setLoading(false); setError(e?.message || "Failed to load admin data.");
-      }
+    if (queryResult === undefined) return; // still loading
+    if (queryResult && queryResult.overview) {
+      setStats(queryResult); setLoading(false); setError(null);
+      try { sessionStorage.setItem("mgp_is_admin", "true"); } catch {}
+    } else {
+      setLoading(false); setError("Not authorized. Your account is not in the admin list.");
     }
-    load();
-    return () => { cancelled = true; };
-  }, []);
+  }, [queryResult]);
 
   function StatCard({label, value, sub, color}) {
     return (

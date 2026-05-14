@@ -11,8 +11,9 @@ import { api } from '../convex/_generated/api';
 import App from './mental-game-scorecard.jsx';
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
-// Expose for direct query from admin dashboard
-window.__convexClient = convex;
+
+// Expose useQuery and api so the admin dashboard can call Convex directly
+window.__convexUseQuery = useQuery;
 window.__convexApi = api;
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
