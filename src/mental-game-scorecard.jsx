@@ -2478,12 +2478,13 @@ export default function App() {
           const cardTop = t.cardPos==="below" ? clampedBelowTop : clampedAboveTop;
           return(
             <div style={{position:"fixed",inset:0,zIndex:991,pointerEvents:"none"}}>
-              <div onClick={skipTips} style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.75)",pointerEvents:"auto"}}/>
+              {/* Clickable backdrop — behind the cutout */}
+              <div onClick={skipTips} style={{position:"absolute",inset:0,pointerEvents:"auto"}}/>
               {tipRect&&<div style={{
                 position:"absolute",
                 top:tipRect.top-6,left:tipRect.left-6,width:tipRect.width+12,height:tipRect.height+12,
                 borderRadius:12,background:"transparent",
-                boxShadow:`0 0 0 9999px rgba(0,0,0,0.8), inset 0 0 0 2px ${P.green}`,
+                boxShadow:`0 0 0 9999px rgba(0,0,0,0.82), inset 0 0 0 2px ${P.green}`,
                 pointerEvents:"none",zIndex:992,
               }}/>}
               <div style={{
