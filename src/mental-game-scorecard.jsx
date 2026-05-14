@@ -3397,17 +3397,17 @@ function HomeScreen({onNav,onStartRound,onContinueRound,roundInProgress,roundCou
         </div>
 
         {/* Heroes vs Bandits logos */}
-        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:14,marginTop:20,opacity:loaded?1:0,transition:"opacity 0.6s ease 0.75s"}}>
-          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
-            <img src={logoSrc} alt="Heroes" onClick={()=>tapLogo("hero")} style={{height:56,width:"auto",objectFit:"contain",filter:`drop-shadow(0 4px 16px rgba(22,163,74,${darkMode?0.5:0.3}))`,cursor:"pointer",animation:heroBounce?"logoBounce 0.5s cubic-bezier(0.36,0.07,0.19,0.97)":undefined}}/>
-            <span style={{fontSize:8,fontWeight:800,letterSpacing:2,color:heroLabel}}>HEROES</span>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,marginTop:20,opacity:loaded?1:0,transition:"opacity 0.6s ease 0.75s"}}>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5}}>
+            <img src={logoSrc} alt="Heroes" onClick={()=>tapLogo("hero")} style={{height:76,width:"auto",objectFit:"contain",filter:`drop-shadow(0 4px 16px rgba(22,163,74,${darkMode?0.5:0.3}))`,cursor:"pointer",animation:heroBounce?"logoBounce 0.5s cubic-bezier(0.36,0.07,0.19,0.97)":undefined}}/>
+            <span style={{fontSize:9,fontWeight:800,letterSpacing:2,color:heroLabel}}>HEROES</span>
           </div>
-          <div style={{width:24,height:24,borderRadius:"50%",background:"linear-gradient(135deg,#ca8a04,#fbbf24)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 16px rgba(202,138,4,0.6)",flexShrink:0}}>
-            <span style={{fontSize:8,fontWeight:900,color:"#fff",letterSpacing:0.5}}>VS</span>
+          <div style={{width:30,height:30,borderRadius:"50%",background:"linear-gradient(135deg,#ca8a04,#fbbf24)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 16px rgba(202,138,4,0.6)",flexShrink:0}}>
+            <span style={{fontSize:9,fontWeight:900,color:"#fff",letterSpacing:0.5}}>VS</span>
           </div>
-          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
-            <img src={banditSrc} alt="Bandits" onClick={()=>tapLogo("bandit")} style={{height:56,width:"auto",objectFit:"contain",filter:`drop-shadow(0 4px 16px rgba(220,38,38,${darkMode?0.5:0.3}))`,cursor:"pointer",animation:banditBounce?"logoBounce 0.5s cubic-bezier(0.36,0.07,0.19,0.97)":undefined}}/>
-            <span style={{fontSize:8,fontWeight:800,letterSpacing:2,color:heroLabel}}>BANDITS</span>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5}}>
+            <img src={banditSrc} alt="Bandits" onClick={()=>tapLogo("bandit")} style={{height:76,width:"auto",objectFit:"contain",filter:`drop-shadow(0 4px 16px rgba(220,38,38,${darkMode?0.5:0.3}))`,cursor:"pointer",animation:banditBounce?"logoBounce 0.5s cubic-bezier(0.36,0.07,0.19,0.97)":undefined}}/>
+            <span style={{fontSize:9,fontWeight:800,letterSpacing:2,color:heroLabel}}>BANDITS</span>
           </div>
         </div>
       </div>
