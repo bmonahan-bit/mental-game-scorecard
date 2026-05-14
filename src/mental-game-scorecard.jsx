@@ -2451,14 +2451,21 @@ export default function App() {
           const t=tips[tipStep];
           const isLast=tipStep===TOTAL_TIPS-1;
           const Tic=Icons[t.icon];
+          // Position card so it doesn't cover the highlighted element
+          const el=tipRefs[TIP_REF_KEYS[tipStep]]?.current;
+          const elRect=el?el.getBoundingClientRect():null;
+          const screenH=window.innerHeight;
+          const elCenter=elRect?(elRect.top+elRect.height/2):0;
+          const cardOnTop=elCenter>screenH*0.4; // if element is in lower portion, put card on top
           return(
             <>
               {/* Dark overlay — sits between normal content and the highlighted element */}
               <div onClick={skipTips} style={{position:"fixed",inset:0,zIndex:992,background:"rgba(0,0,0,0.75)",pointerEvents:"auto"}}/>
-              {/* Tooltip card — fixed center */}
+              {/* Tooltip card — positioned to avoid covering the highlight */}
               <div style={{
                 position:"fixed",left:"50%",transform:"translateX(-50%)",
-                bottom:32,width:Math.min(window.innerWidth*0.88,340),
+                ...(cardOnTop?{top:Math.max(16,elRect?elRect.top-220:16)}:{top:elRect?elRect.bottom+14:screenH*0.5}),
+                width:Math.min(window.innerWidth*0.88,340),
                 background:P.card,borderRadius:16,padding:"16px 18px 14px",
                 border:`1.5px solid ${P.green}66`,
                 boxShadow:"0 12px 40px rgba(0,0,0,0.6)",
