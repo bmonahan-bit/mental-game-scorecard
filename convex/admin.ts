@@ -7,18 +7,28 @@ function getAdminEmails(): string[] {
   return raw.split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
 }
 
+// ── Check if current user is admin ──────────────────────────
+export const isAdmin = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return false;
+    const adminEmails = getAdminEmails();
+    const email = (identity.email ?? "").toLowerCase();
+    return adminEmails.includes(email);
+  },
+});
+
 // ── Admin: get aggregate stats across all users ─────────────
 export const getGroupStats = query({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    if (!identity) return null;
 
     const adminEmails = getAdminEmails();
     const email = (identity.email ?? "").toLowerCase();
-    if (!adminEmails.includes(email)) {
-      throw new Error("Not authorized");
-    }
+    if (!adminEmails.includes(email)) return null;
 
     // Fetch all rounds (Option A: in-memory aggregation)
     const allRounds = await ctx.db.query("rounds").take(10000);

@@ -4759,7 +4759,7 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
           <Row label="Built with">
             <span style={{fontSize:12,color:P.muted,fontWeight:500}}>Paul Monahan × Claude</span>
           </Row>
-          {onAdminDash&&<Row label="Admin Dashboard" sub="Group stats for administrators">
+          {onAdminDash&&window.__convexIsAdmin&&<Row label="Admin Dashboard" sub="Group stats for administrators">
             <button onClick={onAdminDash} {...pp()} style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${PM_GOLD}`,background:PM_GOLD+"12",color:PM_GOLD,fontSize:12,fontWeight:700,cursor:"pointer"}}>Open</button>
           </Row>}
           <Row label="Scorecard Tour" sub="Replay the in-play tutorial" last>
@@ -7885,14 +7885,19 @@ function AdminDashboardView({onBack, S}) {
 
   // Poll for admin stats from Convex bridge
   React.useEffect(() => {
-    const interval = setInterval(() => {
+    function check() {
       const d = window.__convexAdminStats;
-      if (d) { setStats(d); setLoading(false); setError(null); }
-    }, 500);
-    // Timeout after 10s
+      if (d && typeof d === "object" && d.overview) {
+        setStats(d); setLoading(false); setError(null);
+        return true;
+      }
+      return false;
+    }
+    if (check()) return;
+    const interval = setInterval(check, 300);
     const timeout = setTimeout(() => {
       if (!stats) { setLoading(false); setError("Could not load admin data. Make sure your email is in the ADMIN_EMAILS environment variable in the Convex dashboard."); }
-    }, 10000);
+    }, 12000);
     return () => { clearInterval(interval); clearTimeout(timeout); };
   }, []);
 
