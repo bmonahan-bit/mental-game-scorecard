@@ -1,10 +1,15 @@
 import { query } from "./_generated/server";
 import { v } from "convex/values";
 
-// Admin email list from Convex environment variable (set via dashboard, NOT VITE_ prefix)
-function getAdminEmails(): string[] {
-  const raw = process.env.ADMIN_EMAILS ?? "";
-  return raw.split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+// Admin user IDs from Convex environment variable (Clerk subject/user IDs)
+function getAdminIds(): string[] {
+  const raw = process.env.ADMIN_USER_IDS ?? "";
+  return raw.split(",").map((e) => e.trim()).filter(Boolean);
+}
+
+function checkAdmin(identity: { subject: string } | null): boolean {
+  if (!identity) return false;
+  return getAdminIds().includes(identity.subject);
 }
 
 // ── Check if current user is admin ──────────────────────────
@@ -13,10 +18,7 @@ export const isAdmin = query({
   handler: async (ctx) => {
     try {
       const identity = await ctx.auth.getUserIdentity();
-      if (!identity) return false;
-      const adminEmails = getAdminEmails();
-      const email = (identity.email ?? "").toLowerCase();
-      return adminEmails.includes(email);
+      return checkAdmin(identity);
     } catch {
       return false;
     }
@@ -28,19 +30,7 @@ export const getGroupStats = query({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
-
-    const raw = process.env.ADMIN_EMAILS ?? "";
-    const adminList = raw.split(",").map((e) => e.trim());
-    const email = identity.email ?? (identity as any).emailAddress ?? "";
-    const subject = identity.subject ?? "";
-    const isAdmin = adminList.some(a =>
-      a.toLowerCase() === email.toLowerCase() ||
-      a === subject ||
-      a.toLowerCase() === subject.toLowerCase()
-    );
-    console.log("Admin check —", JSON.stringify({ email, subject, rawEnv: raw, adminList, isAdmin }));
-    if (!isAdmin) return null;
+    if (!checkAdmin(identity)) return null;
 
     // Fetch all rounds (Option A: in-memory aggregation)
     const allRounds = await ctx.db.query("rounds").take(10000);

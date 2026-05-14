@@ -3249,6 +3249,7 @@ function HomeScreen({onNav,onStartRound,onContinueRound,roundInProgress,roundCou
     {key:"transform",IconKey:"Star",label:"Framework",color:"#fbbf24"},
     {key:"guide",IconKey:"Info",label:"Help",color:"#64748b"},
     {key:"settings",IconKey:"Gear",label:"Settings",color:"#475569"},
+    ...(window.__convexIsAdmin ? [{key:"admindash",IconKey:"Shield",label:"Admin",color:PM_GOLD}] : []),
   ];
 
   // Theme-aware colour tokens for this screen
@@ -4759,7 +4760,7 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
           <Row label="Built with">
             <span style={{fontSize:12,color:P.muted,fontWeight:500}}>Paul Monahan × Claude</span>
           </Row>
-          {onAdminDash&&(()=>{try{return sessionStorage.getItem("mgp_is_admin")==="true";}catch{return false;}})()&&<Row label="Admin Dashboard" sub="Group stats for administrators">
+          {onAdminDash&&window.__convexIsAdmin&&<Row label="Admin Dashboard" sub="Group stats for administrators">
             <button onClick={onAdminDash} {...pp()} style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${PM_GOLD}`,background:PM_GOLD+"12",color:PM_GOLD,fontSize:12,fontWeight:700,cursor:"pointer"}}>Open</button>
           </Row>}
           <Row label="Scorecard Tour" sub="Replay the in-play tutorial" last>

@@ -11,8 +11,6 @@ import { api } from '../convex/_generated/api';
 import App from './mental-game-scorecard.jsx';
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
-
-// Expose useQuery and api so the admin dashboard can call Convex directly
 window.__convexUseQuery = useQuery;
 window.__convexApi = api;
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -43,8 +41,9 @@ if (sentryDsn) {
 function ConvexBridge() {
   const { isSignedIn } = useUser();
 
-  const rounds   = useQuery(api.rounds.getRounds,   isSignedIn ? {} : "skip");
+  const rounds   = useQuery(api.rounds.getRounds,    isSignedIn ? {} : "skip");
   const settings = useQuery(api.settings.getSettings, isSignedIn ? {} : "skip");
+  const isAdmin  = useQuery(api.admin.isAdmin,        isSignedIn ? {} : "skip");
 
   const upsertRoundMut        = useMutation(api.rounds.upsertRound);
   const bulkUpsertRoundsMut   = useMutation(api.rounds.bulkUpsertRounds);
@@ -56,6 +55,7 @@ function ConvexBridge() {
     window.__convexRounds   = rounds ?? null;
     window.__convexSettings = settings ?? null;
     window.__convexReady    = isSignedIn && rounds !== undefined;
+    window.__convexIsAdmin  = isAdmin === true;
 
     // Expose mutations to the app
     window.__convexUpsertRound = (round) => {
