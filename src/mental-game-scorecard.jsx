@@ -672,7 +672,7 @@ function CourseSearchBar({ P, S, courseName, setCourseName, onCourseLoaded, sele
   }
 
   return (
-    <div style={{ padding: "0 20px 6px", position: "relative" }}>
+    <div style={{ padding: "0 12px 6px", position: "relative" }}>
       {/* Course name input row */}
       {!localCourseData ? (
         <div style={{ position: "relative" }}>
@@ -1713,10 +1713,6 @@ export default function App() {
   const [completedRound, setCompletedRound] = useState(null);
   const [showOpenRoundModal, setShowOpenRoundModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [isPro, setIsPro] = useState(()=>{try{return localStorage.getItem("mgp_pro")==="true";}catch{return false;}});
-  const [showShare, setShowShare] = useState(false);
-  const [showPaywall, setShowPaywall] = useState(()=>{try{return localStorage.getItem("mgp_pro")!=="true";}catch{return true;}});
-  const [showCancelPro, setShowCancelPro] = useState(false);
   const [showRateApp, setShowRateApp] = useState(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -1898,7 +1894,6 @@ export default function App() {
   function finishOnboarding(){
     setShowOnboarding(false);
     try{if(window.__hideSplash)window.__hideSplash();}catch{}
-    if(!isPro && hasProfile) setTimeout(()=>setShowPaywall(true), 600);
     setTimeout(async ()=>{
       try {
         if("Notification" in window && Notification.permission === "default") {
@@ -1909,13 +1904,6 @@ export default function App() {
     }, 1500);
     try{localStorage.setItem("mgp_onboarded","true");}catch{}
     // paywall disabled - app is free
-  }
-  function unlockPro(plan) {
-    // TODO: wire to Stripe/Apple IAP — for now sets flag directly for testing
-    setIsPro(true);
-    setShowPaywall(false);
-    try{localStorage.setItem("mgp_pro","true");localStorage.setItem("mgp_pro_plan",plan);localStorage.setItem("mgp_pro_date",new Date().toISOString());}catch{}
-    showToast("Welcome to Mental Game Pro!", "success", 3000);
   }
   function persistRounds(rounds) {
     setSavedRounds(rounds);
@@ -2347,24 +2335,6 @@ export default function App() {
   }
 
   // ─── GLOBAL MODALS ───
-  function CancelProModal() {
-    if(!showCancelPro) return null;
-    return (
-      <div style={{position:"fixed",inset:0,zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",padding:"env(safe-area-inset-top,0px) 20px env(safe-area-inset-bottom,0px)"}}>
-        <div style={{background:P.card,borderRadius:20,padding:"24px 20px",width:"100%",maxWidth:360,border:`1.5px solid ${P.border}`}}>
-          <div style={{textAlign:"center",marginBottom:20}}>
-            <div style={{fontSize:18,fontWeight:900,color:P.white,marginBottom:8}}>Cancel Subscription?</div>
-            <div style={{fontSize:14,color:P.muted,lineHeight:1.6}}>You'll lose access to all Pro features at the end of your billing period. Your round history will still be saved.</div>
-          </div>
-          <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            <button onClick={()=>{setIsPro(false);try{localStorage.removeItem("mgp_pro");}catch{}setShowCancelPro(false);showToast("Subscription cancelled","info");}} {...pressProps()} style={{width:"100%",padding:"13px",borderRadius:12,border:`1.5px solid ${P.red}44`,background:P.red+"12",color:P.red,fontSize:14,fontWeight:700,cursor:"pointer"}}>Yes, Cancel</button>
-            <button onClick={()=>setShowCancelPro(false)} {...pressProps()} style={{width:"100%",padding:"13px",borderRadius:12,border:`1.5px solid ${P.border}`,background:P.green,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer"}}>Keep Pro Access</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   function RateAppModal() {
     if(!showRateApp) return null;
     function dismiss(rated) {
@@ -2387,13 +2357,11 @@ export default function App() {
   }
 
   // ─── ROUTING ───
-  if (showPaywall) return <ThemeCtx.Provider value={P}><PaywallView onUnlock={(plan)=>unlockPro(plan)} onBack={()=>setShowPaywall(false)} onPrivacy={()=>setShowPrivacyPolicy(true)} P={P} S={S}/></ThemeCtx.Provider>;
-  if (showOnboarding) return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><OpenRoundModal/><OnboardingFlow onFinish={finishOnboarding} onPrivacy={()=>setShowPrivacyPolicy(true)} P={P} S={S}/></ThemeCtx.Provider>;
-  if (showShare) return <ThemeCtx.Provider value={P}><ShareView onBack={()=>setShowShare(false)} P={P}/></ThemeCtx.Provider>;
+  if (showOnboarding) return <ThemeCtx.Provider value={P}><ToastLayer/><RateAppModal/><OpenRoundModal/><OnboardingFlow onFinish={finishOnboarding} onPrivacy={()=>setShowPrivacyPolicy(true)} P={P} S={S}/></ThemeCtx.Provider>;
   if (view==="home") return <ThemeCtx.Provider value={P}><ToastLayer/><OpenRoundModal/><LaunchScreen onStartRound={startNewRound} onContinueRound={()=>{const lastTouched=scores.reduce((last,h,i)=>{const hasData=h.strokeScore||h.putts||Object.values(h.heroes).some(v=>v>0)||Object.values(h.bandits).some(v=>v>0);return hasData?i:last;},-1);setCurrentHole(Math.max(0,lastTouched));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} onHub={()=>setView("hub")} savedRounds={savedRounds} themeToggle={themeToggle} S={S} hasProfile={hasProfile} clerkUser={clerkUser} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }}/></ThemeCtx.Provider>;
-  if (view==="hub") return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><OpenRoundModal/><HomeScreen onNav={(v)=>{if(v==="upgrade"){setShowPaywall(true);return;}if(v==="share"){setShowShare(true);return;}navTo(v);}} onStartRound={startNewRound} onContinueRound={()=>{const lastTouched=scores.reduce((last,h,i)=>{const hasData=h.strokeScore||h.putts||Object.values(h.heroes).some(v=>v>0)||Object.values(h.bandits).some(v=>v>0);return hasData?i:last;},-1);setCurrentHole(Math.max(0,lastTouched));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} isPro={isPro} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }} onUpgrade={()=>setShowPaywall(true)} /></ThemeCtx.Provider>;
+  if (view==="hub") return <ThemeCtx.Provider value={P}><ToastLayer/><RateAppModal/><OpenRoundModal/><HomeScreen onNav={(v)=>navTo(v)} onStartRound={startNewRound} onContinueRound={()=>{const lastTouched=scores.reduce((last,h,i)=>{const hasData=h.strokeScore||h.putts||Object.values(h.heroes).some(v=>v>0)||Object.values(h.bandits).some(v=>v>0);return hasData?i:last;},-1);setCurrentHole(Math.max(0,lastTouched));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }} /></ThemeCtx.Provider>;
   if (view==="checklist") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist key={preroundKey} onBack={nav("hub")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",todayET());const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setView("play");}} onSkip={()=>{setView("play");}} S={S} lastIntention={carryForward} settings={settings} updateSetting={updateSetting} /></ThemeCtx.Provider>;
-  if (view==="courseselect") return <ThemeCtx.Provider value={P}><ToastLayer/><div style={{height:"100%",background:P.bg,position:"relative"}}><HomeScreen onNav={()=>{}} onStartRound={()=>{}} onContinueRound={()=>{}} roundInProgress={false} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} isPro={isPro} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }}/><CourseSelectModal P={P} S={S} settings={settings} onSkip={()=>resetAndStartNew()} onConfirm={(data)=>resetAndStartNew(data)}/></div></ThemeCtx.Provider>;
+  if (view==="courseselect") return <ThemeCtx.Provider value={P}><ToastLayer/><div style={{height:"100%",background:P.bg,position:"relative"}}><HomeScreen onNav={()=>{}} onStartRound={()=>{}} onContinueRound={()=>{}} roundInProgress={false} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }}/><CourseSelectModal P={P} S={S} settings={settings} onSkip={()=>resetAndStartNew()} onConfirm={(data)=>resetAndStartNew(data)}/></div></ThemeCtx.Provider>;
   if (view==="preround") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist key={preroundKey} onBack={nav("hub")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",todayET());const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setView("play");}} onSkip={()=>{setView("play");}} S={S} lastIntention={carryForward} settings={settings} updateSetting={updateSetting} /></ThemeCtx.Provider>;
   if (view==="tiger5") return <ThemeCtx.Provider value={P}><ToastLayer/><Tiger5View onBack={()=>setView(prevView||"home")} S={S}/></ThemeCtx.Provider>;
   if (view==="caddie") return <ThemeCtx.Provider value={P}><ToastLayer/><InnerCaddieView onBack={nav(prevView)} S={S} /></ThemeCtx.Provider>;
@@ -2404,9 +2372,9 @@ export default function App() {
   if (view==="dashboard") return <ThemeCtx.Provider value={P}><ToastLayer/><DashboardView rounds={savedRounds} onBack={nav("hub")} isHome={true} S={S} onSelectRound={r=>{setSelectedRound(r);setView("rounddetail");}}/></ThemeCtx.Provider>;
   if (view==="history") return <ThemeCtx.Provider value={P}><ToastLayer/><RateAppModal/><HistoryView rounds={savedRounds} onBack={()=>{setView("home");setSelectedRound(null);}} onDelete={deleteRound} selectedRound={selectedRound} setSelectedRound={setSelectedRound} onShare={(r)=>shareRound(r,darkMode)} onEdit={r=>{setEditingRound(r);setView("editround");}} S={S} /></ThemeCtx.Provider>;
   if (view==="rounddetail") return <ThemeCtx.Provider value={P}><ToastLayer/><RoundDetailView round={selectedRound} onBack={nav("dashboard")} onShare={(r)=>shareRound(r,darkMode)} S={S} /></ThemeCtx.Provider>;
-  if (showPrivacyPolicy) return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><RateAppModal/><PrivacyPolicyView onBack={()=>setShowPrivacyPolicy(false)} S={S}/></ThemeCtx.Provider>;
+  if (showPrivacyPolicy) return <ThemeCtx.Provider value={P}><ToastLayer/><RateAppModal/><PrivacyPolicyView onBack={()=>setShowPrivacyPolicy(false)} S={S}/></ThemeCtx.Provider>;
   if (showHelp) return <ThemeCtx.Provider value={P}><ToastLayer/><HelpView onBack={()=>setShowHelp(false)} S={S}/></ThemeCtx.Provider>;
-  if (view==="settings") return <ThemeCtx.Provider value={P}><ToastLayer/><CancelProModal/><SettingsView settings={settings} updateSetting={updateSetting} darkMode={darkMode} toggleTheme={toggleTheme} onBack={nav("hub")} S={S} savedRounds={savedRounds} inGameCaddie={inGameCaddie} setInGameCaddie={setInGameCaddie} onResetTour={()=>{try{localStorage.removeItem("mgp_tip_step");}catch{}setTipStep(0);setView("play");}} isPro={isPro} onManageSubscription={()=>setShowPaywall(true)} onCancelPro={()=>setShowCancelPro(true)} onPrivacyPolicy={()=>setShowPrivacyPolicy(true)} onHelp={()=>setShowHelp(true)} onGuide={()=>setView("guide")} onShare={()=>setShowShare(true)} /></ThemeCtx.Provider>;
+  if (view==="settings") return <ThemeCtx.Provider value={P}><ToastLayer/><SettingsView settings={settings} updateSetting={updateSetting} darkMode={darkMode} toggleTheme={toggleTheme} onBack={nav("hub")} S={S} savedRounds={savedRounds} inGameCaddie={inGameCaddie} setInGameCaddie={setInGameCaddie} onResetTour={()=>{try{localStorage.removeItem("mgp_tip_step");}catch{}setTipStep(0);setView("play");}} onPrivacyPolicy={()=>setShowPrivacyPolicy(true)} onHelp={()=>setShowHelp(true)} onGuide={()=>setView("guide")} /></ThemeCtx.Provider>;
   if (view==="scorecard") return <ThemeCtx.Provider value={P}><ToastLayer/><ScorecardView scores={scores} front={front} back={back} total={total} courseName={courseName} roundDate={roundDate} onBack={()=>setView(prevView||"play")} onHome={()=>setView("hub")} onSelectHole={h=>{setCurrentHole(h);setView("play");}} S={S} handicap={settings.handicap} /></ThemeCtx.Provider>;
   if (view==="editround") return <ThemeCtx.Provider value={P}><ToastLayer/><RateAppModal/><RoundEditView round={editingRound} onSave={updatedRound=>{const updated=savedRounds.map(r=>r.id===updatedRound.id?updatedRound:r);persistRounds(updated);setEditingRound(null);setView("history");}} onBack={()=>{setEditingRound(null);setView("history");}} S={S} /></ThemeCtx.Provider>;
   if (view==="badges") return <ThemeCtx.Provider value={P}><ToastLayer/><BadgesView rounds={savedRounds} onBack={nav("hub")} S={S} /></ThemeCtx.Provider>;
@@ -2684,7 +2652,7 @@ export default function App() {
         </div>
 
         {/* Hole Grid */}
-        <div ref={tipRefs.grid} style={{padding:"0 10px 2px",flexShrink:0}}>
+        <div ref={tipRefs.grid} style={{padding:"0 12px 2px",flexShrink:0}}>
           {/* Grid toggle header */}
           <button onClick={()=>setHoleGridOpen(o=>!o)} {...pp()} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",padding:"2px 2px",background:"transparent",border:"none",cursor:"pointer",marginBottom:holeGridOpen?2:0}}>
             <div style={{transform:holeGridOpen?"rotate(-90deg)":"rotate(90deg)",transition:"transform 0.2s",lineHeight:0}}><Icons.Chev color={P.muted} size={11}/></div>
@@ -2726,7 +2694,7 @@ export default function App() {
           const runningPar = completedPar + curPar;
           const runningDiff = (completedHoles.length > 0 || (hasCurrentScore && hasCurrentPar)) ? runningStroke - runningPar : null;
           return (
-        <div ref={tipRefs.scoreRow} key={animKey} style={{padding:"2px 8px 4px",display:"flex",flexDirection:"column",gap:0,animation:"fadeSlide 0.25s ease-out",flexShrink:0}}>
+        <div ref={tipRefs.scoreRow} key={animKey} style={{padding:"2px 12px 4px",display:"flex",flexDirection:"column",gap:0,animation:"fadeSlide 0.25s ease-out",flexShrink:0}}>
 
           {/* Row 1: Hole info + nav arrows */}
           <div style={{display:"flex",alignItems:"center",gap:6}}>
@@ -2735,7 +2703,7 @@ export default function App() {
               {notation&&notation.diff!==0&&<div style={{fontSize:9,fontWeight:700,color:notation.diff<0?P.green:P.red,letterSpacing:0.5}}>{notation.label}</div>}
               <div style={{display:"flex",alignItems:"baseline",gap:6,flexWrap:"nowrap",justifyContent:"center"}}>
                 <span style={{fontSize:20,fontWeight:900,lineHeight:1,color:P.white,whiteSpace:"nowrap"}}>Hole {currentHole+1}</span>
-                {scores[currentHole].yardage&&<span style={{fontSize:12,fontWeight:600,color:P.muted}}>{scores[currentHole].yardage} yds</span>}
+                {scores[currentHole].yardage&&<span style={{fontSize:20,fontWeight:600,color:P.muted}}>{scores[currentHole].yardage} yds</span>}
                 {runningDiff!==null&&<span style={{fontSize:13,fontWeight:700,color:runningDiff<0?P.green:runningDiff>0?P.red:P.gold,whiteSpace:"nowrap"}}>{runningDiff>0?"+":""}{runningDiff===0?"E":runningDiff}</span>}
                 {streak>=3&&<div style={{display:"flex",alignItems:"center",gap:2,padding:"1px 5px",borderRadius:20,background:P.green+"15",border:`1px solid ${P.green}33`}}><Icons.Fire color={P.green} size={10}/><span style={{fontSize:10,fontWeight:700,color:P.green}}>{streak}</span></div>}
               </div>
@@ -2827,7 +2795,7 @@ export default function App() {
 
         {/* Matchup Grid — collapsible */}
         <div ref={tipRefs.matchup} style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minHeight:0}}>
-        <div style={{padding:"0 10px 2px",flexShrink:0}}>
+        <div style={{padding:"0 12px 2px",flexShrink:0}}>
 
           {/* Toggle header */}
           <button onClick={()=>setMatchupOpen(o=>!o)} {...pp()} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"3px 2px",background:"transparent",border:"none",cursor:"pointer",transition:"transform 0.1s"}}>
@@ -2838,7 +2806,7 @@ export default function App() {
           </button>
         </div>
 
-        {matchupOpen&&<div style={{flex:1,overflowY:"auto",overflowX:"hidden",padding:"0 10px 4px",animation:"fadeIn 0.15s ease-out",display:"flex",flexDirection:"column",gap:2}}>
+        {matchupOpen&&<div style={{flex:1,overflowY:"auto",overflowX:"hidden",padding:"0 12px 4px",animation:"fadeIn 0.15s ease-out",display:"flex",flexDirection:"column",gap:2}}>
           {MATCHUPS.map(({hero,verb,bandit},idx)=>{
             const heroColor = P.green;
             const hVal = hH[hero]||0, bVal = hB[bandit]||0;
@@ -2856,7 +2824,7 @@ export default function App() {
         </div>{/* end matchup ref wrapper */}
 
         {/* Hole Note — above intentions */}
-        <div ref={tipRefs.notes5} style={{margin:"0 10px 6px",flexShrink:0}}>
+        <div ref={tipRefs.notes5} style={{margin:"0 12px 6px",flexShrink:0}}>
           <button onClick={()=>setHoleNoteOpen(!holeNoteOpen)} style={{width:"100%",padding:"6px 12px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.card,color:P.white,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",transition:"transform 0.1s ease"}} {...pp()}>
             <span style={{display:"flex",alignItems:"center",gap:5}}><Icons.Note color={scores[currentHole].holeNote?P.accent:P.muted} size={13}/> {scores[currentHole].holeNote?"Hole Note ✓":"Add Hole Note"}</span>
             <span style={{fontSize:10,color:P.muted,transition:"transform 0.2s",transform:holeNoteOpen?"rotate(180deg)":"rotate(0)"}}>▼</span>
@@ -3233,7 +3201,7 @@ function LaunchScreen({onStartRound,onContinueRound,roundInProgress,onHub,savedR
   );
 }
 
-function HomeScreen({onNav,onStartRound,onContinueRound,roundInProgress,roundCount,themeToggle,S,savedRounds,settings,isPro,hasProfile,onSettings,onSignOut}) {
+function HomeScreen({onNav,onStartRound,onContinueRound,roundInProgress,roundCount,themeToggle,S,savedRounds,settings,hasProfile,onSettings,onSignOut}) {
   const P=useTheme();
   const darkMode = P.bg === "#09090b";
   const [loaded,setLoaded]=useState(false);
@@ -3379,34 +3347,6 @@ function HomeScreen({onNav,onStartRound,onContinueRound,roundInProgress,roundCou
             + New Round
           </button>
         )}
-
-        {/* Upgrade to Pro — shown for non-pro users */}
-        {!isPro&&(
-          <button onClick={()=>onNav("upgrade")} {...pp()} style={{
-            marginBottom:8,padding:"10px 20px",borderRadius:14,
-            background:`linear-gradient(135deg,${PM_NAVY},#1a3a5c)`,
-            border:`1.5px solid ${PM_GOLD}55`,color:PM_GOLD,
-            fontSize:13,fontWeight:700,cursor:"pointer",
-            display:"flex",alignItems:"center",gap:8,
-            opacity:loaded?1:0,transition:"opacity 0.6s ease 0.58s",
-          }}>
-            <Icons.Star color={PM_GOLD} size={14}/>
-            Upgrade to Pro
-          </button>
-        )}
-
-        {/* Share button */}
-        <button onClick={()=>onNav("share")} {...pp()} style={{
-          marginBottom:12,padding:"10px 20px",borderRadius:14,
-          background:"transparent",
-          border:`1.5px solid ${P.border}`,color:P.muted,
-          fontSize:13,fontWeight:700,cursor:"pointer",
-          display:"flex",alignItems:"center",gap:8,
-          opacity:loaded?1:0,transition:"opacity 0.6s ease 0.59s",
-        }}>
-          <Icons.Share color={P.muted} size={14}/>
-          Share the app
-        </button>
 
         {/* Personal bests strip */}
         {savedRounds&&savedRounds.length>=2&&(()=>{
@@ -4614,7 +4554,7 @@ function CourseSelectModal({onConfirm, onSkip, settings, P, S}) {
   );
 }
 
-function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,savedRounds,inGameCaddie,setInGameCaddie,onResetTour,isPro,onManageSubscription,onCancelPro,onPrivacyPolicy,onHelp,onGuide,onShare}) {
+function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,savedRounds,inGameCaddie,setInGameCaddie,onResetTour,onPrivacyPolicy,onHelp,onGuide}) {
   const P = useTheme();
   const pp = pressProps;
   const [confirmClear, setConfirmClear] = React.useState(false);
@@ -4788,9 +4728,6 @@ function SettingsView({settings,updateSetting,darkMode,toggleTheme,onBack,S,save
         </Section>
 
         <Section title="About">
-          <Row label="Share the App" sub="Invite a friend to play better">
-            <button onClick={()=>onShare&&onShare()} {...pp()} style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,cursor:"pointer"}}>Share</button>
-          </Row>
           <Row label="Help & FAQ" sub="Common questions answered">
             <button onClick={()=>onHelp&&onHelp()} {...pp()} style={{padding:"5px 10px",borderRadius:8,border:`1px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,cursor:"pointer"}}>View</button>
           </Row>
@@ -7906,176 +7843,7 @@ function HelpView({onBack, S}) {
   );
 }
 
-// ═══════════════════════════════════════
-// PAYWALL
-// ═══════════════════════════════════════
-// ═══════════════════════════════════════
-// SHARE VIEW
-// ═══════════════════════════════════════
-function ShareView({onBack, P}) {
-  const [shared, setShared] = React.useState(false);
-  const APP_URL = "https://mental-game-scorecard.netlify.app";
-  const shareText = `I've been tracking my mental game hole by hole with Mental Game Scorecard — Heroes vs Bandits, every round. Check it out: ${APP_URL}`;
 
-  async function handleShare() {
-    try {
-      if(navigator.share) {
-        await navigator.share({ title:"Mental Game Scorecard", text:shareText, url:APP_URL });
-        setShared(true);
-      } else {
-        await navigator.clipboard.writeText(shareText);
-        setShared(true);
-      }
-    } catch(e) { if(e?.name!=="AbortError") { try{await navigator.clipboard.writeText(shareText);setShared(true);}catch{} } }
-  }
-
-  return (
-    <div style={{height:"100%",display:"flex",flexDirection:"column",background:`linear-gradient(170deg,${PM_NAVY} 0%,#0d1f0f 60%,#0a1a0d 100%)`,maxWidth:480,margin:"0 auto",position:"relative",overflow:"hidden"}}>
-      <button onClick={onBack} {...pp()} style={{position:"absolute",top:16,left:16,zIndex:10,width:36,height:36,borderRadius:"50%",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M11 4L6 9l5 5" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-      </button>
-      <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"0 32px",textAlign:"center"}}>
-        <div style={{opacity:0.1,marginBottom:24}}>
-          <img src={HEROES_LOGO_WHITE} alt="" style={{width:120,height:120,objectFit:"contain"}}/>
-        </div>
-        <div style={{fontSize:11,fontWeight:800,letterSpacing:3,color:PM_GOLD,marginBottom:12}}>TAP TO SHARE</div>
-        <div style={{fontSize:26,fontWeight:900,color:"#fff",lineHeight:1.2,marginBottom:12}}>Bring a Friend<br/>to the Game</div>
-        <div style={{fontSize:14,color:"rgba(255,255,255,0.5)",lineHeight:1.6,marginBottom:36,maxWidth:280}}>
-          Share Mental Game Scorecard with your playing partners and help them play better too.
-        </div>
-        <button onClick={handleShare} {...pp()} style={{
-          width:"100%",maxWidth:320,padding:"18px",borderRadius:16,
-          background:shared?"rgba(74,222,128,0.15)":"linear-gradient(135deg,#16a34a,#22c55e)",
-          border:shared?"1.5px solid rgba(74,222,128,0.4)":"none",
-          color:"#fff",fontSize:16,fontWeight:800,cursor:"pointer",
-          boxShadow:shared?"none":"0 4px 28px rgba(22,163,74,0.35)",
-          transition:"all 0.3s",marginBottom:16,
-        }}>
-          {shared?"✓ Shared!":"Share Your Invite"}
-        </button>
-        <div style={{fontSize:12,color:"rgba(255,255,255,0.3)",lineHeight:1.6,maxWidth:260}}>
-          Opens your share sheet or copies the link to clipboard
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PaywallView({onUnlock, onBack, onPrivacy, P, S}) {
-  const [selected, setSelected] = React.useState("annual");
-  const [loading, setLoading] = React.useState(false);
-  const dm = P.bg === "#09090b";
-
-  const plans = {
-    monthly: { label:"Monthly", price:"$4.99", sub:"/month", detail:"Billed monthly · Cancel anytime", save:null },
-    annual:  { label:"Annual",  price:"$49.99", sub:"/year", detail:"Just $4.17/mo · Best value", save:"SAVE 17%" },
-  };
-
-  const features = [
-    "Track Heroes & Bandits hole by hole",
-    "In-Game Caddie mental guidance",
-    "Full dashboard & mental trends",
-    "Round history & stats",
-    "Pre-round mental checklist",
-  ];
-
-  async function handleSubscribe() {
-    setLoading(true);
-    await new Promise(r=>setTimeout(r,1500));
-    onUnlock(selected);
-    setLoading(false);
-  }
-
-  return (
-    <div style={{height:"100%",display:"flex",flexDirection:"column",background:`linear-gradient(170deg,${PM_NAVY} 0%,#0d1f0f 60%,#0a1a0d 100%)`,maxWidth:480,margin:"0 auto",overflow:"hidden",position:"relative"}}>
-
-      {/* Close button */}
-      <button onClick={onBack} {...pp()} style={{position:"absolute",top:16,right:16,zIndex:10,width:36,height:36,borderRadius:"50%",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="rgba(255,255,255,0.5)" strokeWidth="2" strokeLinecap="round"/></svg>
-      </button>
-
-      {/* Hero section */}
-      <div style={{padding:"52px 28px 24px",flexShrink:0,position:"relative",overflow:"hidden",textAlign:"center"}}>
-        {/* Shield watermark */}
-        <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",opacity:0.05,pointerEvents:"none"}}>
-          <img src={HEROES_LOGO_WHITE} alt="" style={{width:220,height:220,objectFit:"contain"}}/>
-        </div>
-        {/* Gold accent line */}
-        <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${PM_GOLD}66,transparent)`}}/>
-        <div style={{fontSize:22,fontWeight:800,letterSpacing:3,color:PM_GOLD,marginBottom:8,opacity:0.95}}>MENTAL GAME SCORECARD</div>
-        <div style={{fontSize:18,fontWeight:900,color:"#fff",letterSpacing:-0.5,lineHeight:1.2,marginBottom:6}}>
-          Play Better. Struggle Less.<br/><span style={{color:"#4ade80"}}>Enjoy More.</span>
-        </div>
-        <div style={{fontSize:12,color:"rgba(255,255,255,0.4)",lineHeight:1.5}}>The scorecard for your mental game.</div>
-      </div>
-
-      {/* Features — fill remaining space evenly */}
-      <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",padding:"0 24px"}}>
-        {features.map((f,i)=>(
-          <div key={i} style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
-            <div style={{width:20,height:20,borderRadius:"50%",background:"rgba(74,222,128,0.12)",border:"1.5px solid rgba(74,222,128,0.35)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <svg width="9" height="7" viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </div>
-            <span style={{fontSize:14,color:"rgba(255,255,255,0.85)",fontWeight:500,lineHeight:1.4}}>{f}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Plan selector + CTA — always visible */}
-      <div style={{padding:"12px 20px 0",flexShrink:0}}>
-        {/* Plan pills */}
-        <div style={{display:"flex",gap:10,marginBottom:12}}>
-          {Object.entries(plans).map(([key, plan])=>(
-            <button key={key} onClick={()=>setSelected(key)} {...pp()} style={{
-              flex:1,padding:"12px 10px",borderRadius:14,cursor:"pointer",textAlign:"center",
-              border:`2px solid ${selected===key?"#4ade80":"rgba(255,255,255,0.1)"}`,
-              background:selected===key?"rgba(74,222,128,0.08)":"rgba(255,255,255,0.03)",
-              transition:"all 0.15s",position:"relative",
-            }}>
-              {plan.save&&<div style={{position:"absolute",top:-10,left:"50%",transform:"translateX(-50%)",background:"#16a34a",color:"#fff",fontSize:9,fontWeight:800,padding:"2px 8px",borderRadius:20,letterSpacing:1,whiteSpace:"nowrap"}}>{plan.save}</div>}
-              <div style={{fontSize:11,fontWeight:700,color:selected===key?"#4ade80":"rgba(255,255,255,0.35)",marginBottom:2,letterSpacing:0.5}}>{plan.label.toUpperCase()}</div>
-              <div style={{fontSize:22,fontWeight:900,color:"#fff",lineHeight:1}}>{plan.price}</div>
-              <div style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginTop:2}}>{plan.sub}</div>
-              <div style={{fontSize:10,color:selected===key?"#4ade80":"rgba(255,255,255,0.3)",fontWeight:600,marginTop:2}}>{plan.detail}</div>
-            </button>
-          ))}
-        </div>
-        <button onClick={handleSubscribe} disabled={loading} {...pp()} style={{
-          width:"100%",padding:"17px",borderRadius:16,border:"none",
-          background:loading?"rgba(22,163,74,0.5)":"linear-gradient(135deg,#16a34a,#22c55e)",
-          color:"#fff",fontSize:16,fontWeight:800,cursor:loading?"default":"pointer",
-          boxShadow:"0 4px 28px rgba(22,163,74,0.35)",transition:"all 0.2s",
-          display:"flex",alignItems:"center",justifyContent:"center",
-          flexDirection:"column",lineHeight:1.2,marginBottom:10,
-        }}>
-          {loading?(
-            <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <div style={{width:16,height:16,borderRadius:"50%",border:"2px solid rgba(255,255,255,0.3)",borderTopColor:"#fff",animation:"spin 0.7s linear infinite"}}/>
-              Processing...
-            </div>
-          ):(
-            <>
-              <span>Start my free 7 days</span>
-              <span style={{fontSize:11,fontWeight:600,opacity:0.75}}>Don't love it? Pay nothing.</span>
-            </>
-          )}
-        </button>
-
-        {/* Legal */}
-        <div style={{fontSize:10,color:"rgba(255,255,255,0.3)",textAlign:"center",lineHeight:1.6,marginBottom:8}}>
-          {selected==="annual"?"$49.99/year":"$4.99/month"}. Cancel anytime.{" "}
-          <span style={{color:"rgba(255,255,255,0.45)",fontWeight:600,cursor:"pointer"}} onClick={()=>onPrivacy&&onPrivacy()}>Terms & Privacy</span>
-        </div>
-        <div style={{display:"flex",justifyContent:"space-between",paddingBottom:28}}>
-          <button onClick={()=>{}} {...pp()} style={{background:"none",border:"none",fontSize:11,color:"rgba(255,255,255,0.25)",cursor:"pointer",fontWeight:600}}>Restore Purchase</button>
-          <button onClick={()=>onPrivacy&&onPrivacy()} {...pp()} style={{background:"none",border:"none",fontSize:11,color:"rgba(255,255,255,0.25)",cursor:"pointer",fontWeight:600}}>Terms & Conditions</button>
-        </div>
-      </div>
-
-      <style>{`@keyframes spin{to{transform:rotate(360deg);}}`}</style>
-    </div>
-  );
-}
 
 // ═══════════════════════════════════════
 // ONBOARDING
