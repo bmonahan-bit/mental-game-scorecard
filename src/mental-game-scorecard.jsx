@@ -2455,8 +2455,12 @@ export default function App() {
           const el=tipRefs[TIP_REF_KEYS[tipStep]]?.current;
           const elRect=el?el.getBoundingClientRect():null;
           const screenH=window.innerHeight;
-          const elCenter=elRect?(elRect.top+elRect.height/2):0;
-          const cardOnTop=elCenter>screenH*0.4; // if element is in lower portion, put card on top
+          const elBottom=elRect?elRect.bottom:0;
+          const elTop=elRect?elRect.top:screenH;
+          const spaceBelow=screenH-elBottom;
+          const spaceAbove=elTop;
+          const cardH=240; // estimated card height with padding
+          const cardOnTop=spaceBelow<cardH&&spaceAbove>spaceBelow;
           return(
             <>
               {/* Dark overlay — sits between normal content and the highlighted element */}
@@ -2464,7 +2468,7 @@ export default function App() {
               {/* Tooltip card — positioned to avoid covering the highlight */}
               <div style={{
                 position:"fixed",left:"50%",transform:"translateX(-50%)",
-                ...(cardOnTop?{top:Math.max(16,elRect?elRect.top-220:16)}:{top:elRect?elRect.bottom+14:screenH*0.5}),
+                ...(cardOnTop?{top:Math.max(16,elTop-cardH-14)}:{top:Math.min(elBottom+14,screenH-cardH-16)}),
                 width:Math.min(window.innerWidth*0.88,340),
                 background:P.card,borderRadius:16,padding:"16px 18px 14px",
                 border:`1.5px solid ${P.green}66`,
@@ -2811,7 +2815,8 @@ export default function App() {
         </div>{/* end matchup ref wrapper */}
 
         {/* Hole Note — above intentions */}
-        <div ref={tipRefs.notes5} style={{margin:"0 12px 6px",flexShrink:0,...tipHighlightStyle("notes5")}}>
+        <div ref={tipRefs.notes5} style={{...tipHighlightStyle("notes5")}}>
+        <div style={{margin:"0 12px 6px",flexShrink:0}}>
           <button onClick={()=>setHoleNoteOpen(!holeNoteOpen)} style={{width:"100%",padding:"6px 12px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.card,color:P.white,fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",transition:"transform 0.1s ease"}} {...pp()}>
             <span style={{display:"flex",alignItems:"center",gap:5}}><Icons.Note color={scores[currentHole].holeNote?P.accent:P.muted} size={13}/> {scores[currentHole].holeNote?"Hole Note ✓":"Add Hole Note"}</span>
             <span style={{fontSize:10,color:P.muted,transition:"transform 0.2s",transform:holeNoteOpen?"rotate(180deg)":"rotate(0)"}}>▼</span>
@@ -2906,6 +2911,7 @@ export default function App() {
           )}
         </div>
         <div style={{height:"calc(4px + env(safe-area-inset-bottom, 0px))"}}/>
+        </div>{/* end notes5 ref wrapper */}
 
         {/* Intention modal */}
         {showIntentionModal&&(
