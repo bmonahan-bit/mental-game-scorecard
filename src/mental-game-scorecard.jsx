@@ -7879,18 +7879,15 @@ function AdminDashboardView({onBack, S}) {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
 
-  // Use Convex useQuery hook directly
-  const useQuery = window.__convexUseQuery;
-  const api = window.__convexApi;
-  const queryResult = useQuery && api ? useQuery(api.admin.getGroupStats, {}) : undefined;
+  // Use Convex useQuery hook directly (must be called unconditionally)
+  const queryResult = window.__convexUseQuery(window.__convexApi.admin.getGroupStats, {});
 
   React.useEffect(() => {
     if (queryResult === undefined) return; // still loading
     if (queryResult && queryResult.overview) {
       setStats(queryResult); setLoading(false); setError(null);
-      try { sessionStorage.setItem("mgp_is_admin", "true"); } catch {}
-    } else {
-      setLoading(false); setError("Not authorized. Your account is not in the admin list.");
+    } else if (queryResult === null) {
+      setLoading(false); setError("Not authorized.");
     }
   }, [queryResult]);
 
