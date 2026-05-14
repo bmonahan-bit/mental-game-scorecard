@@ -36,22 +36,33 @@ if (sentryDsn) {
 // ─── Convex Bridge ──────────────────────────────────────────
 // Subscribes to the user's cloud rounds and settings, and exposes
 // mutation helpers as window globals that the app calls.
-function ConvexBridge() {
+// Isolated admin bridge — errors here won't crash the main app
+function AdminBridge() {
   const { isSignedIn } = useUser();
-  const [adminActive, setAdminActive] = React.useState(false);
+  const [active, setActive] = React.useState(false);
 
-  // Listen for admin dashboard activation
   React.useEffect(() => {
-    const on = () => setAdminActive(true);
-    const off = () => setAdminActive(false);
+    const on = () => setActive(true);
+    const off = () => setActive(false);
     window.addEventListener("admin_stats_on", on);
     window.addEventListener("admin_stats_off", off);
     return () => { window.removeEventListener("admin_stats_on", on); window.removeEventListener("admin_stats_off", off); };
   }, []);
 
+  const adminStats = useQuery(api.admin.getGroupStats, (isSignedIn && active) ? {} : "skip");
+
+  React.useEffect(() => {
+    window.__convexAdminStats = adminStats ?? null;
+  }, [adminStats]);
+
+  return null;
+}
+
+function ConvexBridge() {
+  const { isSignedIn } = useUser();
+
   const rounds   = useQuery(api.rounds.getRounds,   isSignedIn ? {} : "skip");
   const settings = useQuery(api.settings.getSettings, isSignedIn ? {} : "skip");
-  const adminStats = useQuery(api.admin.getGroupStats, (isSignedIn && adminActive) ? {} : "skip");
 
   const upsertRoundMut        = useMutation(api.rounds.upsertRound);
   const bulkUpsertRoundsMut   = useMutation(api.rounds.bulkUpsertRounds);
@@ -84,9 +95,6 @@ function ConvexBridge() {
       if (!isSignedIn) return;
       upsertSettingsMut({ data, carryForward }).catch(e => console.error('convexUpsertSettings', e));
     };
-
-    // Admin — derive admin status from whether stats loaded successfully
-    window.__convexAdminStats = adminStats ?? null;
 
     // Dispatch an event so the app re-checks Convex data
     window.dispatchEvent(new Event('convex_ready'));
@@ -196,6 +204,7 @@ root.render(
         <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
           <ClerkBridge />
           <ConvexBridge />
+          <Sentry.ErrorBoundary fallback={null}><AdminBridge /></Sentry.ErrorBoundary>
           <App />
         </ConvexProviderWithClerk>
       </ClerkProviderWithTheme>
