@@ -61,6 +61,20 @@ export default defineSchema({
     .index("by_clerk_id", ["clerkId"])
     .index("by_code", ["code"]),
 
+  subscriptions: defineTable({
+    userId: v.string(),
+    status: v.string(), // "trialing" | "active" | "expired" | "cancelled"
+    plan: v.string(), // "monthly" | "semiannual" | "annual"
+    appleTransactionId: v.optional(v.string()),
+    appleOriginalTransactionId: v.optional(v.string()),
+    startsAt: v.float64(),
+    expiresAt: v.float64(),
+    cancelledAt: v.optional(v.float64()),
+    updatedAt: v.float64(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_apple_txn", ["appleOriginalTransactionId"]),
+
   coachRoster: defineTable({
     coachClerkId: v.string(),
     studentName: v.string(),

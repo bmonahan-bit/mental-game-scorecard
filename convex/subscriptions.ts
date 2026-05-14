@@ -1,0 +1,90 @@
+import { mutation, query } from "./_generated/server";
+import { v } from "convex/values";
+
+// ── Check if current user has an active subscription ────────
+export const getMySubscription = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+    const sub = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .first();
+    if (!sub) return null;
+    // Check if still active
+    const now = Date.now();
+    if (sub.status === "active" || sub.status === "trialing") {
+      if (sub.expiresAt > now) return sub;
+      // Expired — update status
+      await ctx.db.patch(sub._id, { status: "expired", updatedAt: now });
+      return { ...sub, status: "expired" };
+    }
+    return sub;
+  },
+});
+
+// ── Activate subscription (called after StoreKit purchase) ──
+export const activateSubscription = mutation({
+  args: {
+    plan: v.string(),
+    appleTransactionId: v.optional(v.string()),
+    appleOriginalTransactionId: v.optional(v.string()),
+    expiresAt: v.float64(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const userId = identity.subject;
+    const now = Date.now();
+
+    // Check for existing subscription
+    const existing = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        status: "active",
+        plan: args.plan,
+        appleTransactionId: args.appleTransactionId,
+        appleOriginalTransactionId: args.appleOriginalTransactionId,
+        expiresAt: args.expiresAt,
+        updatedAt: now,
+      });
+      return existing._id;
+    }
+
+    return await ctx.db.insert("subscriptions", {
+      userId,
+      status: "active",
+      plan: args.plan,
+      appleTransactionId: args.appleTransactionId,
+      appleOriginalTransactionId: args.appleOriginalTransactionId,
+      startsAt: now,
+      expiresAt: args.expiresAt,
+      updatedAt: now,
+    });
+  },
+});
+
+// ── Cancel subscription ─────────────────────────────────────
+export const cancelSubscription = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const sub = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .first();
+    if (sub) {
+      await ctx.db.patch(sub._id, {
+        status: "cancelled",
+        cancelledAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+    }
+  },
+});

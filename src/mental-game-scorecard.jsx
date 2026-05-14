@@ -112,6 +112,10 @@ const TOTAL_HOLES = 18;
 const STORAGE_KEY = "mental_game_rounds";
 const THEME_KEY = "mental_game_theme";
 
+// ─── SUBSCRIPTION GATE ───
+// Set to true to enable the subscription paywall. When false, all users have full access.
+const SUBSCRIPTION_ENABLED = false;
+
 // ─── THEME PALETTES ───
 const LIGHT = {
   bg: "#f6f7f4", card: "#ffffff", cardAlt: "#f0f1ed",
@@ -2359,6 +2363,13 @@ export default function App() {
   }
 
   // ─── ROUTING ───
+  // Subscription gate — when enabled, blocks app access for users without active subscription
+  // TODO: wire onSubscribe to StoreKit purchase flow
+  if (SUBSCRIPTION_ENABLED && hasProfile && view!=="admindash") {
+    // Check subscription status (placeholder — will be replaced with Convex query)
+    const hasSub = false; // TODO: check window.__convexSubscription
+    if (!hasSub) return <ThemeCtx.Provider value={P}><SubscriptionPaywallView onSubscribe={(plan)=>{console.log("Subscribe:",plan);/* TODO: StoreKit */}} onRestore={()=>{console.log("Restore");/* TODO: StoreKit restore */}} onPrivacy={()=>setShowPrivacyPolicy(true)} onSignOut={()=>handleSignOut()} S={S}/></ThemeCtx.Provider>;
+  }
   if (showOnboarding) return <ThemeCtx.Provider value={P}><ToastLayer/><RateAppModal/><OpenRoundModal/><OnboardingFlow onFinish={finishOnboarding} onPrivacy={()=>setShowPrivacyPolicy(true)} P={P} S={S}/></ThemeCtx.Provider>;
   if (view==="home") return <ThemeCtx.Provider value={P}><ToastLayer/><OpenRoundModal/><LaunchScreen onStartRound={startNewRound} onContinueRound={()=>{const lastTouched=scores.reduce((last,h,i)=>{const hasData=h.strokeScore||h.putts||Object.values(h.heroes).some(v=>v>0)||Object.values(h.bandits).some(v=>v>0);return hasData?i:last;},-1);setCurrentHole(Math.max(0,lastTouched));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} onHub={()=>setView("hub")} savedRounds={savedRounds} themeToggle={themeToggle} S={S} hasProfile={hasProfile} clerkUser={clerkUser} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }}/></ThemeCtx.Provider>;
   if (view==="hub") return <ThemeCtx.Provider value={P}><ToastLayer/><RateAppModal/><OpenRoundModal/><HomeScreen onNav={(v)=>navTo(v)} onStartRound={startNewRound} onContinueRound={()=>{const lastTouched=scores.reduce((last,h,i)=>{const hasData=h.strokeScore||h.putts||Object.values(h.heroes).some(v=>v>0)||Object.values(h.bandits).some(v=>v>0);return hasData?i:last;},-1);setCurrentHole(Math.max(0,lastTouched));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }} /></ThemeCtx.Provider>;
@@ -8082,6 +8093,274 @@ function AdminDashboardView({onBack, S}) {
       ) : null}
 
       <style>{`@keyframes spin{to{transform:rotate(360deg);}}`}</style>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════
+// SUBSCRIPTION PAYWALL
+// ═══════════════════════════════════════
+function SubscriptionPaywallView({onSubscribe,onRestore,onPrivacy,onSignOut,S}){
+  const pp=pressProps;
+  const [slide,setSlide]=useState(0);
+  const [selectedPlan,setSelectedPlan]=useState("annual");
+  const [showActions,setShowActions]=useState(false);
+
+  const C={bg:"#0a0a0a",card:"#1a1a1e",border:"#2a2a2e",white:"#f8fafc",muted:"#71717a",green:"#22c55e",red:"#f87171",gold:"#ca8a04"};
+
+  const totalSlides=6;
+  const isFeatureSlide=slide>=0&&slide<=3;
+  const isWhatYouGet=slide===4;
+  const isChoosePlan=slide===5;
+
+  function advance(){if(slide<totalSlides-1)setSlide(slide+1);}
+  function goBack(){if(slide>0)setSlide(slide-1);}
+
+  // shared styles
+  const mockCard={background:C.card,borderRadius:20,border:`1px solid ${C.border}`,padding:16,width:"100%",maxWidth:300};
+  const titleStyle={fontSize:28,fontWeight:800,color:C.white,textTransform:"uppercase",textAlign:"center",letterSpacing:1,marginBottom:16};
+  const arrowBtn=(side)=>({position:"absolute",[side]:8,top:"50%",transform:"translateY(-50%)",background:"rgba(255,255,255,0.08)",border:"none",borderRadius:"50%",width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",zIndex:2});
+
+  // ── Slide 0: Track Your Mental Game ──
+  function SlideTrack(){
+    return (<div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"0 24px",flex:1,justifyContent:"center"}}>
+      <div style={titleStyle}>Track Your Mental Game</div>
+      <div style={mockCard}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:12}}>
+          <span style={{fontSize:16,fontWeight:700,color:C.white}}>Hole 1</span>
+          <span style={{fontSize:12,color:C.muted}}>350 yds</span>
+        </div>
+        <div style={{display:"flex",gap:8,marginBottom:14}}>
+          {[["PAR","4"],["SCORE","4"],["PUTTS","2"],["PSR","\u2713"]].map(([l,v])=>(
+            <div key={l} style={{flex:1,textAlign:"center"}}>
+              <div style={{fontSize:9,fontWeight:700,color:C.muted,letterSpacing:0.5,marginBottom:4}}>{l}</div>
+              <div style={{fontSize:16,fontWeight:700,color:l==="PSR"?C.green:C.white,background:"rgba(255,255,255,0.06)",borderRadius:8,padding:"6px 0"}}>{v}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:14}}>
+          {[["Love","Fear"],["Grit","Quit"]].map(([h,b])=>(
+            <div key={h} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 12px",borderRadius:10,background:"rgba(255,255,255,0.03)",border:`1px solid ${C.border}`}}>
+              <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:10,height:10,borderRadius:"50%",background:C.green}}/><span style={{fontSize:13,fontWeight:600,color:C.green}}>{h}</span></div>
+              <span style={{fontSize:11,color:C.muted}}>vs</span>
+              <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:13,fontWeight:600,color:C.red}}>{b}</span><div style={{width:10,height:10,borderRadius:"50%",background:C.red}}/></div>
+            </div>
+          ))}
+        </div>
+        <div style={{display:"flex",justifyContent:"space-around",padding:"8px 0",borderTop:`1px solid ${C.border}`}}>
+          {[["HEROES","2",C.green],["NET","+1",C.white],["BANDITS","1",C.red]].map(([l,v,c])=>(
+            <div key={l} style={{textAlign:"center"}}>
+              <div style={{fontSize:9,fontWeight:700,color:C.muted,letterSpacing:0.5}}>{l}</div>
+              <div style={{fontSize:15,fontWeight:700,color:c}}>{v}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>);
+  }
+
+  // ── Slide 1: 5 Heroes vs 5 Bandits ──
+  function SlideMatchups(){
+    const pairs=[
+      {hero:"Love",verb:"conquers",bandit:"Fear"},
+      {hero:"Acceptance",verb:"eliminates",bandit:"Frustration"},
+      {hero:"Commitment",verb:"removes",bandit:"Doubt"},
+      {hero:"Vulnerability",verb:"prevents",bandit:"Shame"},
+      {hero:"Grit",verb:"beats",bandit:"Quit"},
+    ];
+    return (<div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"0 24px",flex:1,justifyContent:"center"}}>
+      <div style={titleStyle}>5 Heroes vs 5 Bandits</div>
+      <div style={mockCard}>
+        {pairs.map((p,i)=>(
+          <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderBottom:i<4?`1px solid ${C.border}`:"none"}}>
+            <span style={{fontSize:14,fontWeight:700,color:C.green}}>{p.hero}</span>
+            <span style={{fontSize:11,color:C.muted,fontStyle:"italic"}}>{p.verb}</span>
+            <span style={{fontSize:14,fontWeight:700,color:C.red}}>{p.bandit}</span>
+          </div>
+        ))}
+      </div>
+    </div>);
+  }
+
+  // ── Slide 2: Know Your Numbers ──
+  function SlideNumbers(){
+    const bars=[{h:40,c:C.green},{h:25,c:C.red},{h:55,c:C.green},{h:30,c:C.red},{h:60,c:C.green},{h:20,c:C.red}];
+    return (<div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"0 24px",flex:1,justifyContent:"center"}}>
+      <div style={titleStyle}>Know Your Numbers</div>
+      <div style={mockCard}>
+        <div style={{display:"flex",justifyContent:"space-around",marginBottom:16}}>
+          {[["Mental Net","+3",C.green],["Best Net","+7",C.green],["Rounds","12",C.white]].map(([l,v,c])=>(
+            <div key={l} style={{textAlign:"center"}}>
+              <div style={{fontSize:9,fontWeight:700,color:C.muted,letterSpacing:0.5,marginBottom:4}}>{l}</div>
+              <div style={{fontSize:18,fontWeight:800,color:c}}>{v}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{display:"flex",alignItems:"flex-end",justifyContent:"center",gap:6,height:70,marginBottom:16}}>
+          {bars.map((b,i)=>(<div key={i} style={{width:24,height:b.h,borderRadius:4,background:b.c,opacity:0.7}}/>))}
+        </div>
+        <div style={{display:"flex",justifyContent:"space-around",padding:"10px 0",borderTop:`1px solid ${C.border}`}}>
+          <div style={{textAlign:"center"}}><div style={{fontSize:9,fontWeight:700,color:C.muted}}>TOP HERO</div><div style={{fontSize:14,fontWeight:700,color:C.green}}>Grit</div></div>
+          <div style={{textAlign:"center"}}><div style={{fontSize:9,fontWeight:700,color:C.muted}}>TOP BANDIT</div><div style={{fontSize:14,fontWeight:700,color:C.red}}>Fear</div></div>
+        </div>
+      </div>
+    </div>);
+  }
+
+  // ── Slide 3: In-Game Caddie ──
+  function SlideCaddie(){
+    return (<div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"0 24px",flex:1,justifyContent:"center"}}>
+      <div style={titleStyle}>In-Game Caddie</div>
+      <div style={mockCard}>
+        <div style={{textAlign:"center",marginBottom:12}}><Icons.Brain color={C.green} size={32}/></div>
+        <div style={{fontSize:11,fontWeight:700,color:C.green,textTransform:"uppercase",letterSpacing:1,textAlign:"center",marginBottom:8}}>Your Caddie Noticed</div>
+        <div style={{fontSize:15,fontWeight:600,color:C.white,textAlign:"center",marginBottom:12}}>Fear showed up — Love conquers it.</div>
+        <div style={{padding:12,borderRadius:12,background:"rgba(255,255,255,0.04)",border:`1px solid ${C.border}`,marginBottom:14}}>
+          <div style={{fontSize:13,color:C.muted,fontStyle:"italic",lineHeight:1.5,textAlign:"center"}}>"Remind yourself how much you LOVE and appreciate hitting that first tee shot."</div>
+        </div>
+        <div style={{textAlign:"center",padding:"10px 20px",borderRadius:10,background:"rgba(255,255,255,0.06)",border:`1px solid ${C.border}`,color:C.white,fontSize:13,fontWeight:600}}>Next Hole &rarr;</div>
+      </div>
+    </div>);
+  }
+
+  // ── Slide 4: What You Get ──
+  function SlideFeatures(){
+    const features=[
+      {Icon:Icons.Shield,title:"Track Heroes & Bandits hole by hole",desc:"See which mental skills showed up and which held you back"},
+      {Icon:Icons.Brain,title:"In-Game Caddie",desc:"Real-time mental coaching based on your Heroes and Bandits"},
+      {Icon:Icons.Chart,title:"Full mental game dashboard",desc:"Track trends, patterns, and progress across every round"},
+      {Icon:Icons.Clipboard,title:"Pre-round mental checklist",desc:"Get locked in before you tee off"},
+      {Icon:Icons.Flag,title:"Course auto-fill with yardages",desc:"Search any course and auto-populate hole data"},
+      {Icon:Icons.Target,title:"Milestones & achievements",desc:"Earn badges as you build your mental game"},
+    ];
+    return (<div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"0 24px",flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",justifyContent:"flex-start",paddingTop:8}}>
+      <div style={titleStyle}>What You Get</div>
+      <div style={{width:"100%",maxWidth:340}}>
+        {features.map((f,i)=>(
+          <div key={i}>
+            <div style={{display:"flex",gap:12,alignItems:"flex-start",padding:"12px 0"}}>
+              <div style={{flexShrink:0,marginTop:2}}><f.Icon color={C.muted} size={24}/></div>
+              <div>
+                <div style={{fontSize:14,fontWeight:700,color:C.white,marginBottom:2}}>{f.title}</div>
+                <div style={{fontSize:12,color:C.muted,lineHeight:1.4}}>{f.desc}</div>
+              </div>
+            </div>
+            {i<features.length-1&&<div style={{height:1,background:C.border,marginLeft:36}}/>}
+          </div>
+        ))}
+      </div>
+    </div>);
+  }
+
+  // ── Slide 5: Choose a Plan ──
+  function SlidePlans(){
+    const plans=[
+      {id:"monthly",label:"1 Month",price:"$9.99",perMo:"$9.99/mo",badge:null},
+      {id:"annual",label:"12 Months",price:"$71.99",perMo:"$5.99/mo",strikePrice:"$119.88",badge:"Most Popular"},
+      {id:"semiannual",label:"6 Months",price:"$47.99",perMo:"$7.99/mo",badge:null},
+    ];
+    return (<div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"0 24px",flex:1,justifyContent:"center"}}>
+      <div style={titleStyle}>Choose a Plan</div>
+      <div style={{fontSize:13,color:C.muted,textAlign:"center",marginBottom:20}}>7-day free trial on all plans</div>
+      <div style={{width:"100%",maxWidth:340,display:"flex",flexDirection:"column",gap:10}}>
+        {plans.map(p=>{
+          const isSelected=selectedPlan===p.id;
+          const isPopular=p.id==="annual";
+          return (
+            <button key={p.id} onClick={()=>setSelectedPlan(p.id)} {...pp()} style={{position:"relative",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 14px",borderRadius:14,border:isPopular?`2px solid ${C.white}`:`1.5px solid ${isSelected?C.white:C.border}`,background:isPopular?"#fff":C.bg,cursor:"pointer",width:"100%",textAlign:"left"}}>
+              {p.badge&&<div style={{position:"absolute",top:-10,left:14,padding:"2px 10px",borderRadius:6,background:C.gold,fontSize:10,fontWeight:800,color:"#000",letterSpacing:0.5}}>{p.badge}</div>}
+              <div>
+                <div style={{fontSize:15,fontWeight:700,color:isPopular?"#000":C.white,marginBottom:2}}>{p.label}</div>
+                {p.strikePrice&&<div style={{fontSize:12,color:isPopular?"#666":C.muted}}><span style={{textDecoration:"line-through"}}>{p.strikePrice}</span> <span style={{fontWeight:700,color:isPopular?"#000":C.white}}>{p.price}</span></div>}
+                {!p.strikePrice&&<div style={{fontSize:12,color:isPopular?"#666":C.muted}}>{p.price}</div>}
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:13,fontWeight:600,color:isPopular?"#000":C.muted}}>{p.perMo}</span>
+                <div style={{width:22,height:22,borderRadius:"50%",border:`2px solid ${isSelected?(isPopular?"#000":C.white):isPopular?"#ccc":C.border}`,display:"flex",alignItems:"center",justifyContent:"center",background:isSelected?(isPopular?"#000":"transparent"):"transparent"}}>
+                  {isSelected&&<Icons.Check color={isPopular?"#fff":C.white} size={12}/>}
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      {selectedPlan==="annual"&&<div style={{fontSize:11,color:C.muted,textAlign:"center",marginTop:8}}>Billed annually after you subscribe</div>}
+    </div>);
+  }
+
+  // ── Action Sheet ──
+  function ActionSheet(){
+    if(!showActions)return null;
+    const rows=[
+      {label:"Sign Out",icon:<Icons.User color={C.muted} size={18}/>,action:()=>{setShowActions(false);onSignOut&&onSignOut();}},
+      {label:"Restore Subscription",icon:<Icons.Clock color={C.muted} size={18}/>,action:()=>{setShowActions(false);onRestore&&onRestore();}},
+      {label:"Contact Support",icon:<Icons.Note color={C.muted} size={18}/>,action:()=>{setShowActions(false);window.open("mailto:support@mentalgamescorecard.com");}},
+      {label:"Privacy Policy",icon:<Icons.Shield color={C.muted} size={18}/>,action:()=>{setShowActions(false);onPrivacy&&onPrivacy();}},
+    ];
+    return (
+      <div onClick={()=>setShowActions(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:9999,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+        <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:420,background:C.card,borderRadius:"18px 18px 0 0",padding:"16px 20px 32px",animation:"slideUp 0.25s ease-out"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <div style={{fontSize:16,fontWeight:700,color:C.white}}>Actions</div>
+            <button onClick={()=>setShowActions(false)} {...pp()} style={{background:"none",border:"none",color:C.muted,fontSize:20,cursor:"pointer",padding:4}}>&times;</button>
+          </div>
+          {rows.map((r,i)=>(
+            <div key={i}>
+              <button onClick={r.action} {...pp()} style={{display:"flex",alignItems:"center",gap:12,width:"100%",padding:"14px 4px",background:"none",border:"none",cursor:"pointer",textAlign:"left"}}>
+                {r.icon}
+                <span style={{fontSize:15,fontWeight:500,color:C.white}}>{r.label}</span>
+              </button>
+              {i<rows.length-1&&<div style={{height:1,background:C.border,marginLeft:30}}/>}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Render ──
+  const slideContent=[<SlideTrack key={0}/>,<SlideMatchups key={1}/>,<SlideNumbers key={2}/>,<SlideCaddie key={3}/>,<SlideFeatures key={4}/>,<SlidePlans key={5}/>];
+
+  return (
+    <div style={{position:"fixed",inset:0,background:C.bg,display:"flex",flexDirection:"column",zIndex:1000,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"}}>
+      {/* Top bar */}
+      <div style={{display:"flex",justifyContent:isChoosePlan?"space-between":"flex-end",alignItems:"center",padding:"12px 16px",flexShrink:0}}>
+        {isChoosePlan&&<button onClick={goBack} {...pp()} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><Icons.Back color={C.muted} size={20}/></button>}
+        <button onClick={()=>setShowActions(true)} {...pp()} style={{background:"none",border:"none",color:C.muted,fontSize:22,cursor:"pointer",padding:4,letterSpacing:2}}>&sdot;&sdot;&sdot;</button>
+      </div>
+
+      {/* Slide content */}
+      <div style={{flex:1,display:"flex",flexDirection:"column",position:"relative",overflow:"hidden",minHeight:0}}>
+        {isFeatureSlide&&<button onClick={goBack} disabled={slide===0} {...pp()} style={{...arrowBtn("left"),opacity:slide===0?0.2:1}}><Icons.Back color={C.white} size={16}/></button>}
+        {isFeatureSlide&&<button onClick={advance} {...pp()} style={arrowBtn("right")}><Icons.Chev color={C.white} size={16}/></button>}
+        {slideContent[slide]}
+      </div>
+
+      {/* Dot indicators */}
+      <div style={{display:"flex",justifyContent:"center",gap:6,padding:"12px 0",flexShrink:0}}>
+        {Array.from({length:totalSlides}).map((_,i)=>(<div key={i} style={{width:i===slide?20:6,height:6,borderRadius:3,background:i===slide?C.white:"rgba(255,255,255,0.2)",transition:"all 0.3s"}}/>))}
+      </div>
+
+      {/* Bottom button */}
+      <div style={{padding:"0 24px 12px",flexShrink:0}}>
+        {isChoosePlan?(
+          <button onClick={()=>onSubscribe&&onSubscribe(selectedPlan)} {...pp()} style={{width:"100%",padding:16,borderRadius:14,border:"none",background:C.green,color:"#fff",fontSize:16,fontWeight:700,cursor:"pointer"}}>Subscribe</button>
+        ):(
+          <button onClick={advance} {...pp()} style={{width:"100%",padding:16,borderRadius:14,border:"none",background:"#fff",color:"#000",fontSize:16,fontWeight:700,cursor:"pointer"}}>Continue</button>
+        )}
+      </div>
+
+      {/* Tagline */}
+      <div style={{textAlign:"center",padding:"0 24px 20px",flexShrink:0}}>
+        {isChoosePlan?(
+          <div style={{fontSize:12,color:C.muted}}>Cancel in the App Store anytime</div>
+        ):(
+          <div style={{fontSize:12,color:C.muted}}>Play better. Struggle less. Enjoy more.</div>
+        )}
+      </div>
+
+      <ActionSheet/>
+      <style>{`@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}`}</style>
     </div>
   );
 }
