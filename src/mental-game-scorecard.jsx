@@ -3153,7 +3153,6 @@ function LaunchScreen({onStartRound,onContinueRound,roundInProgress,onHub,savedR
         {/* Title */}
         <div style={{textAlign:"center",marginBottom:28,opacity:loaded?1:0,transform:loaded?"translateY(0)":"translateY(16px)",transition:"all 0.6s cubic-bezier(0.16,1,0.3,1) 0.3s"}}>
           <div style={{fontSize:26,fontWeight:900,color:textHigh,letterSpacing:-0.5,lineHeight:1.15}}>Mental Game Scorecard</div>
-          <div style={{fontSize:11,fontWeight:600,color:PM_GOLD,letterSpacing:1.5,marginTop:6,textTransform:"uppercase"}}>by Paul Monahan</div>
         </div>
 
         {/* Glanceable stats — only if rounds exist */}
@@ -3326,7 +3325,6 @@ function HomeScreen({onNav,onStartRound,onContinueRound,roundInProgress,roundCou
         {/* Title */}
         <div style={{textAlign:"center",marginBottom:10,opacity:loaded?1:0,transform:loaded?"translateY(0)":"translateY(16px)",transition:"all 0.7s cubic-bezier(0.16,1,0.3,1) 0.4s"}}>
           <div style={{fontSize:28,fontWeight:900,color:textMid,letterSpacing:-0.5,lineHeight:1}}>Mental Game Scorecard</div>
-          <div style={{fontSize:11,fontWeight:600,color:PM_GOLD,letterSpacing:1.5,marginTop:4,textTransform:"uppercase"}}>by Paul Monahan</div>
         </div>
 
         {/* Quote */}
