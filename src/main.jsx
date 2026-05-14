@@ -11,6 +11,9 @@ import { api } from '../convex/_generated/api';
 import App from './mental-game-scorecard.jsx';
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
+// Expose for direct query from admin dashboard
+window.__convexClient = convex;
+window.__convexApi = api;
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 // Sentry
@@ -36,28 +39,6 @@ if (sentryDsn) {
 // ─── Convex Bridge ──────────────────────────────────────────
 // Subscribes to the user's cloud rounds and settings, and exposes
 // mutation helpers as window globals that the app calls.
-// Isolated admin bridge — errors here won't crash the main app
-function AdminBridge() {
-  const { isSignedIn } = useUser();
-  const [active, setActive] = React.useState(false);
-
-  React.useEffect(() => {
-    const on = () => setActive(true);
-    const off = () => setActive(false);
-    window.addEventListener("admin_stats_on", on);
-    window.addEventListener("admin_stats_off", off);
-    return () => { window.removeEventListener("admin_stats_on", on); window.removeEventListener("admin_stats_off", off); };
-  }, []);
-
-  const adminStats = useQuery(api.admin.getGroupStats, (isSignedIn && active) ? {} : "skip");
-
-  React.useEffect(() => {
-    window.__convexAdminStats = adminStats ?? null;
-  }, [adminStats]);
-
-  return null;
-}
-
 function ConvexBridge() {
   const { isSignedIn } = useUser();
 
@@ -204,7 +185,6 @@ root.render(
         <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
           <ClerkBridge />
           <ConvexBridge />
-          <Sentry.ErrorBoundary fallback={null}><AdminBridge /></Sentry.ErrorBoundary>
           <App />
         </ConvexProviderWithClerk>
       </ClerkProviderWithTheme>

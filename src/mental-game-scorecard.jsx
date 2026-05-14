@@ -7878,30 +7878,29 @@ function AdminDashboardView({onBack, S}) {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
 
+  // Fetch admin stats directly via Convex client
   React.useEffect(() => {
-    // Fire repeatedly to make sure AdminBridge picks it up
-    window.dispatchEvent(new Event("admin_stats_on"));
-    const kick = setInterval(() => window.dispatchEvent(new Event("admin_stats_on")), 1000);
-    return () => { clearInterval(kick); window.dispatchEvent(new Event("admin_stats_off")); };
-  }, []);
-
-  // Poll for admin stats from Convex bridge
-  React.useEffect(() => {
-    function check() {
-      const d = window.__convexAdminStats;
-      if (d && typeof d === "object" && d.overview) {
-        setStats(d); setLoading(false); setError(null);
-        try { sessionStorage.setItem("mgp_is_admin", "true"); } catch {}
-        return true;
+    let cancelled = false;
+    async function load() {
+      try {
+        const client = window.__convexClient;
+        const api = window.__convexApi;
+        if (!client || !api) { setLoading(false); setError("Convex not initialized"); return; }
+        const result = await client.query(api.admin.getGroupStats, {});
+        if (cancelled) return;
+        if (result && result.overview) {
+          setStats(result); setLoading(false);
+          try { sessionStorage.setItem("mgp_is_admin", "true"); } catch {}
+        } else {
+          setLoading(false); setError("Not authorized. Your account is not in the admin list.");
+        }
+      } catch (e) {
+        if (cancelled) return;
+        setLoading(false); setError(e?.message || "Failed to load admin data.");
       }
-      return false;
     }
-    if (check()) return;
-    const interval = setInterval(check, 500);
-    const timeout = setTimeout(() => {
-      if (!stats) { setLoading(false); setError("Could not load admin data. Check Convex logs for details."); }
-    }, 15000);
-    return () => { clearInterval(interval); clearTimeout(timeout); };
+    load();
+    return () => { cancelled = true; };
   }, []);
 
   function StatCard({label, value, sub, color}) {
