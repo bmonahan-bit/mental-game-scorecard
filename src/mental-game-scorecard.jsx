@@ -8169,107 +8169,20 @@ function SubscriptionPaywallView({onSubscribe,onRestore,onPrivacy,onSignOut,S}){
   const titleStyle={fontSize:28,fontWeight:800,color:C.white,textTransform:"uppercase",textAlign:"center",letterSpacing:1,marginBottom:16};
   const arrowBtn=(side)=>({position:"absolute",[side]:8,top:"50%",transform:"translateY(-50%)",background:"rgba(255,255,255,0.08)",border:"none",borderRadius:"50%",width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",zIndex:2});
 
-  // ── Slide 0: Track Your Mental Game ──
-  function SlideTrack(){
-    return (<div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"0 24px",flex:1,justifyContent:"center"}}>
-      <div style={titleStyle}>Track Your Mental Game</div>
-      <div style={mockCard}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:12}}>
-          <span style={{fontSize:16,fontWeight:700,color:C.white}}>Hole 1</span>
-          <span style={{fontSize:12,color:C.muted}}>350 yds</span>
-        </div>
-        <div style={{display:"flex",gap:8,marginBottom:14}}>
-          {[["PAR","4"],["SCORE","4"],["PUTTS","2"],["PSR","\u2713"]].map(([l,v])=>(
-            <div key={l} style={{flex:1,textAlign:"center"}}>
-              <div style={{fontSize:9,fontWeight:700,color:C.muted,letterSpacing:0.5,marginBottom:4}}>{l}</div>
-              <div style={{fontSize:16,fontWeight:700,color:l==="PSR"?C.green:C.white,background:"rgba(255,255,255,0.06)",borderRadius:8,padding:"6px 0"}}>{v}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:14}}>
-          {[["Love","Fear"],["Grit","Quit"]].map(([h,b])=>(
-            <div key={h} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 12px",borderRadius:10,background:"rgba(255,255,255,0.03)",border:`1px solid ${C.border}`}}>
-              <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:10,height:10,borderRadius:"50%",background:C.green}}/><span style={{fontSize:13,fontWeight:600,color:C.green}}>{h}</span></div>
-              <span style={{fontSize:11,color:C.muted}}>vs</span>
-              <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:13,fontWeight:600,color:C.red}}>{b}</span><div style={{width:10,height:10,borderRadius:"50%",background:C.red}}/></div>
-            </div>
-          ))}
-        </div>
-        <div style={{display:"flex",justifyContent:"space-around",padding:"8px 0",borderTop:`1px solid ${C.border}`}}>
-          {[["HEROES","2",C.green],["NET","+1",C.white],["BANDITS","1",C.red]].map(([l,v,c])=>(
-            <div key={l} style={{textAlign:"center"}}>
-              <div style={{fontSize:9,fontWeight:700,color:C.muted,letterSpacing:0.5}}>{l}</div>
-              <div style={{fontSize:15,fontWeight:700,color:c}}>{v}</div>
-            </div>
-          ))}
-        </div>
+  // Screenshot slide helper
+  function ScreenshotSlide({title, src}) {
+    return (<div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"0 20px",flex:1,justifyContent:"center",overflow:"hidden"}}>
+      <div style={titleStyle}>{title}</div>
+      <div style={{width:"100%",maxWidth:280,borderRadius:24,overflow:"hidden",border:`1.5px solid ${C.border}`,boxShadow:"0 20px 60px rgba(0,0,0,0.5)"}}>
+        <img src={src} alt={title} style={{width:"100%",height:"auto",display:"block"}}/>
       </div>
     </div>);
   }
 
-  // ── Slide 1: 5 Heroes vs 5 Bandits ──
-  function SlideMatchups(){
-    const pairs=[
-      {hero:"Love",verb:"conquers",bandit:"Fear"},
-      {hero:"Acceptance",verb:"eliminates",bandit:"Frustration"},
-      {hero:"Commitment",verb:"removes",bandit:"Doubt"},
-      {hero:"Vulnerability",verb:"prevents",bandit:"Shame"},
-      {hero:"Grit",verb:"beats",bandit:"Quit"},
-    ];
-    return (<div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"0 24px",flex:1,justifyContent:"center"}}>
-      <div style={titleStyle}>5 Heroes vs 5 Bandits</div>
-      <div style={mockCard}>
-        {pairs.map((p,i)=>(
-          <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderBottom:i<4?`1px solid ${C.border}`:"none"}}>
-            <span style={{fontSize:14,fontWeight:700,color:C.green}}>{p.hero}</span>
-            <span style={{fontSize:11,color:C.muted,fontStyle:"italic"}}>{p.verb}</span>
-            <span style={{fontSize:14,fontWeight:700,color:C.red}}>{p.bandit}</span>
-          </div>
-        ))}
-      </div>
-    </div>);
-  }
-
-  // ── Slide 2: Know Your Numbers ──
-  function SlideNumbers(){
-    const bars=[{h:40,c:C.green},{h:25,c:C.red},{h:55,c:C.green},{h:30,c:C.red},{h:60,c:C.green},{h:20,c:C.red}];
-    return (<div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"0 24px",flex:1,justifyContent:"center"}}>
-      <div style={titleStyle}>Know Your Numbers</div>
-      <div style={mockCard}>
-        <div style={{display:"flex",justifyContent:"space-around",marginBottom:16}}>
-          {[["Mental Net","+3",C.green],["Best Net","+7",C.green],["Rounds","12",C.white]].map(([l,v,c])=>(
-            <div key={l} style={{textAlign:"center"}}>
-              <div style={{fontSize:9,fontWeight:700,color:C.muted,letterSpacing:0.5,marginBottom:4}}>{l}</div>
-              <div style={{fontSize:18,fontWeight:800,color:c}}>{v}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{display:"flex",alignItems:"flex-end",justifyContent:"center",gap:6,height:70,marginBottom:16}}>
-          {bars.map((b,i)=>(<div key={i} style={{width:24,height:b.h,borderRadius:4,background:b.c,opacity:0.7}}/>))}
-        </div>
-        <div style={{display:"flex",justifyContent:"space-around",padding:"10px 0",borderTop:`1px solid ${C.border}`}}>
-          <div style={{textAlign:"center"}}><div style={{fontSize:9,fontWeight:700,color:C.muted}}>TOP HERO</div><div style={{fontSize:14,fontWeight:700,color:C.green}}>Grit</div></div>
-          <div style={{textAlign:"center"}}><div style={{fontSize:9,fontWeight:700,color:C.muted}}>TOP BANDIT</div><div style={{fontSize:14,fontWeight:700,color:C.red}}>Fear</div></div>
-        </div>
-      </div>
-    </div>);
-  }
-
-  // ── Slide 3: In-Game Caddie ──
-  function SlideCaddie(){
-    return (<div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"0 24px",flex:1,justifyContent:"center"}}>
-      <div style={titleStyle}>In-Game Caddie</div>
-      <div style={mockCard}>
-        <div style={{textAlign:"center",marginBottom:12}}><Icons.Brain color={C.green} size={32}/></div>
-        <div style={{fontSize:11,fontWeight:700,color:C.green,textTransform:"uppercase",letterSpacing:1,textAlign:"center",marginBottom:8}}>Your Caddie Noticed</div>
-        <div style={{fontSize:15,fontWeight:600,color:C.white,textAlign:"center",marginBottom:12}}>Fear showed up — Love conquers it.</div>
-        <div style={{padding:12,borderRadius:12,background:"rgba(255,255,255,0.04)",border:`1px solid ${C.border}`,marginBottom:14}}>
-          <div style={{fontSize:13,color:C.muted,fontStyle:"italic",lineHeight:1.5,textAlign:"center"}}>"Remind yourself how much you LOVE and appreciate hitting that first tee shot."</div>
-        </div>
-        <div style={{textAlign:"center",padding:"10px 20px",borderRadius:10,background:"rgba(255,255,255,0.06)",border:`1px solid ${C.border}`,color:C.white,fontSize:13,fontWeight:600}}>Next Hole &rarr;</div>
-      </div>
-    </div>);
-  }
+  function SlideTrack(){ return <ScreenshotSlide title="Track Your Mental Game" src="/paywall/scorecard.png"/>; }
+  function SlideMatchups(){ return <ScreenshotSlide title="Prepare to Play" src="/paywall/checklist.png"/>; }
+  function SlideNumbers(){ return <ScreenshotSlide title="Know Your Numbers" src="/paywall/dashboard.png"/>; }
+  function SlideCaddie(){ return <ScreenshotSlide title="In-Game Caddie" src="/paywall/caddie.png"/>; }
 
   // ── Slide 4: What You Get ──
   function SlideFeatures(){
