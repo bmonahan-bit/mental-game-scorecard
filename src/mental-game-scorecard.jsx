@@ -1769,6 +1769,7 @@ export default function App() {
     ? window.__convexUseQuery(window.__convexApi.subscriptions.getMySubscription, hasProfile ? {} : "skip")
     : undefined;
   const hasActiveSubscription = _subQuery?.isActive === true;
+  const subQueryLoading = SUBSCRIPTION_ENABLED && hasProfile && _subQuery === undefined;
 
   // identity sync removed — handled by Clerk
 
@@ -2363,6 +2364,8 @@ export default function App() {
   }
 
   // ─── ROUTING ───
+  // Show blank screen while subscription status loads (prevents launch screen flash)
+  if (subQueryLoading) return <div style={{position:"fixed",inset:0,background:"#0a0a0a",zIndex:1000}}/>;
   // Subscription gate — when enabled, blocks app access for users without active subscription
   if (SUBSCRIPTION_ENABLED && hasProfile && !hasActiveSubscription && view!=="admindash") {
     return <ThemeCtx.Provider value={P}><SubscriptionPaywallView
@@ -8288,28 +8291,26 @@ function SubscriptionPaywallView({onSubscribe,onRestore,onPrivacy,onSignOut,S}){
   }
 
   // ── Render ──
+  // Arrow style — fixed height from top so both are always aligned
+  const navArrow=(side)=>({position:"absolute",[side]:6,top:"45%",background:"rgba(255,255,255,0.1)",border:"none",borderRadius:"50%",width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",zIndex:3});
+
   return (
-    <div style={{...S.shell,background:C.bg,position:"fixed",inset:0,zIndex:1000,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+    <div style={{position:"fixed",inset:0,background:C.bg,display:"flex",flexDirection:"column",overflow:"hidden",zIndex:1000}}>
       {/* Top bar — ellipsis only */}
-      <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",padding:"env(safe-area-inset-top,8px) 16px 4px",flexShrink:0}}>
+      <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",padding:"max(env(safe-area-inset-top,12px),12px) 16px 4px",flexShrink:0}}>
         <button onClick={()=>setShowActions(true)} {...pp()} style={{background:"none",border:"none",color:C.muted,fontSize:22,cursor:"pointer",padding:4,letterSpacing:2}}>&sdot;&sdot;&sdot;</button>
       </div>
 
-      {/* Slide content with left/right arrows on ALL slides */}
-      <div style={{flex:1,display:"flex",alignItems:"center",position:"relative",overflow:"hidden",minHeight:0}}>
-        {/* Left arrow — all slides except first */}
-        {slide>0&&<button onClick={goBack} {...pp()} style={{position:"absolute",left:6,top:"50%",transform:"translateY(-50%)",background:"rgba(255,255,255,0.08)",border:"none",borderRadius:"50%",width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",zIndex:3}}><Icons.Back color={C.white} size={16}/></button>}
-        {/* Right arrow — all slides except last */}
-        {slide<totalSlides-1&&<button onClick={advance} {...pp()} style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"rgba(255,255,255,0.08)",border:"none",borderRadius:"50%",width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",zIndex:3}}><Icons.Chev color={C.white} size={16}/></button>}
-        {/* Slide — render all, show only active via display */}
-        <div style={{width:"100%",height:"100%",display:"flex",flexDirection:"column",overflow:isWhatYouGet||isChoosePlan?"auto":"hidden"}}>
-          {slide===0&&<SlideTrack/>}
-          {slide===1&&<SlideMatchups/>}
-          {slide===2&&<SlideNumbers/>}
-          {slide===3&&<SlideCaddie/>}
-          {slide===4&&<SlideFeatures/>}
-          {slide===5&&<SlidePlans/>}
-        </div>
+      {/* Slide area with nav arrows */}
+      <div style={{flex:1,position:"relative",overflow:"hidden",minHeight:0}}>
+        {slide>0&&<button onClick={goBack} {...pp()} style={navArrow("left")}><Icons.Back color={C.white} size={16}/></button>}
+        {slide<totalSlides-1&&<button onClick={advance} {...pp()} style={navArrow("right")}><Icons.Chev color={C.white} size={16}/></button>}
+        {/* All slides always mounted — hidden via display:none for instant switching */}
+        {[SlideTrack,SlideMatchups,SlideNumbers,SlideCaddie,SlideFeatures,SlidePlans].map((Comp,i)=>(
+          <div key={i} style={{position:"absolute",inset:0,display:slide===i?"flex":"none",flexDirection:"column",overflow:i>=4?"auto":"hidden"}}>
+            <Comp/>
+          </div>
+        ))}
       </div>
 
       {/* Dot indicators */}
@@ -8327,13 +8328,16 @@ function SubscriptionPaywallView({onSubscribe,onRestore,onPrivacy,onSignOut,S}){
       </div>
 
       {/* Tagline */}
-      <div style={{textAlign:"center",padding:"0 24px calc(8px + env(safe-area-inset-bottom,8px))",flexShrink:0}}>
+      <div style={{textAlign:"center",padding:"0 24px max(env(safe-area-inset-bottom,8px),8px)",flexShrink:0}}>
         {isChoosePlan?(
           <div style={{fontSize:12,color:C.muted}}>Cancel in the App Store anytime</div>
         ):(
           <div style={{fontSize:12,color:C.muted}}>Play better. Struggle less. Enjoy more.</div>
         )}
       </div>
+
+      {/* Preload all screenshot images */}
+      <div style={{display:"none"}}>{["/paywall/scorecard.png","/paywall/checklist.png","/paywall/dashboard.png","/paywall/caddie.png"].map(s=><img key={s} src={s} alt=""/>)}</div>
 
       <ActionSheet/>
       <style>{`@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}`}</style>
