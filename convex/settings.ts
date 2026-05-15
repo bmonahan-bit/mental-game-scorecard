@@ -54,12 +54,14 @@ export const upsertSettings = mutation({
         userId,
         data: args.data,
         carryForward: args.carryForward,
+        updatedAt: Date.now(),
       });
     } else {
       await ctx.db.insert("settings", {
         userId,
         data: args.data,
         carryForward: args.carryForward,
+        updatedAt: Date.now(),
       });
     }
   },

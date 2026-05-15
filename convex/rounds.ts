@@ -104,12 +104,20 @@ export const bulkUpsertRounds = mutation({
     const userId = identity.subject;
 
     for (const round of args.rounds) {
-      const existing = await ctx.db
+      let existing = await ctx.db
         .query("rounds")
         .withIndex("by_user_roundId", (q) =>
           q.eq("userId", userId).eq("roundId", round.roundId)
         )
         .first();
+
+      // Fall back to legacy clerkId match
+      if (!existing) {
+        existing = await ctx.db
+          .query("rounds")
+          .withIndex("by_clerkId_roundId", (q) => q.eq("clerkId", userId).eq("roundId", round.roundId))
+          .first();
+      }
 
       if (existing) {
         await ctx.db.patch(existing._id, { ...round, userId });

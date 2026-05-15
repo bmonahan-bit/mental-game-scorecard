@@ -1,5 +1,4 @@
 import { query } from "./_generated/server";
-import { v } from "convex/values";
 
 // Admin user IDs from Convex environment variable (Clerk subject/user IDs)
 function getAdminIds(): string[] {

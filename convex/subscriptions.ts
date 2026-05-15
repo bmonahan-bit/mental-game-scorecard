@@ -12,15 +12,10 @@ export const getMySubscription = query({
       .withIndex("by_user", (q) => q.eq("userId", identity.subject))
       .first();
     if (!sub) return null;
-    // Check if still active
+    // Return sub with computed active flag (queries can't write)
     const now = Date.now();
-    if (sub.status === "active" || sub.status === "trialing") {
-      if (sub.expiresAt > now) return sub;
-      // Expired — update status
-      await ctx.db.patch(sub._id, { status: "expired", updatedAt: now });
-      return { ...sub, status: "expired" };
-    }
-    return sub;
+    const isActive = (sub.status === "active" || sub.status === "trialing") && sub.expiresAt > now;
+    return { ...sub, isActive };
   },
 });
 
