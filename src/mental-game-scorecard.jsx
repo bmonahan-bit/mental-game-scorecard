@@ -114,7 +114,7 @@ const THEME_KEY = "mental_game_theme";
 
 // ─── SUBSCRIPTION GATE ───
 // Set to true to enable the subscription paywall. When false, all users have full access.
-const SUBSCRIPTION_ENABLED = false;
+const SUBSCRIPTION_ENABLED = true;
 
 // ─── THEME PALETTES ───
 const LIGHT = {
@@ -8187,12 +8187,16 @@ function SubscriptionPaywallView({onSubscribe,onRestore,onPrivacy,onSignOut,S}){
   // ── Slide 4: What You Get ──
   function SlideFeatures(){
     const features=[
-      {Icon:Icons.Shield,title:"Track Heroes & Bandits hole by hole",desc:"See which mental skills showed up and which held you back"},
-      {Icon:Icons.Brain,title:"In-Game Caddie",desc:"Real-time mental coaching based on your Heroes and Bandits"},
-      {Icon:Icons.Chart,title:"Full mental game dashboard",desc:"Track trends, patterns, and progress across every round"},
-      {Icon:Icons.Clipboard,title:"Pre-round mental checklist",desc:"Get locked in before you tee off"},
-      {Icon:Icons.Flag,title:"Course auto-fill with yardages",desc:"Search any course and auto-populate hole data"},
-      {Icon:Icons.Target,title:"Milestones & achievements",desc:"Earn badges as you build your mental game"},
+      {Icon:Icons.Shield,title:"Track 5 Heroes & 5 Bandits",desc:"Log which mental strengths showed up and which traps crept in — every hole, every round"},
+      {Icon:Icons.Brain,title:"In-Game Caddie",desc:"Personalized mental coaching after each hole based on your Heroes and Bandits"},
+      {Icon:Icons.Chart,title:"Full mental game dashboard",desc:"Mental net trends, hero activation rates, bandit combos, recovery rate, and more"},
+      {Icon:Icons.Clipboard,title:"Pre-round mental checklist",desc:"3-minute guided routine to set your intention, connect to gratitude, and embrace curiosity"},
+      {Icon:Icons.Flag,title:"Course auto-fill with yardages",desc:"Search 40,000+ courses and auto-populate par, yardage, and handicap for every hole"},
+      {Icon:Icons.Target,title:"Milestones & achievements",desc:"Earn badges for streaks, clean rounds, and mental game growth"},
+      {Icon:Icons.Heart,title:"Hole-by-hole mental map",desc:"See which holes are your mental strongholds and which ones need work"},
+      {Icon:Icons.Note,title:"Hole notes & round reflections",desc:"Capture what happened in the moment — review it later to find patterns"},
+      {Icon:Icons.Grid,title:"Full stroke scorecard",desc:"Par, score, putts, GIR, and pre-shot routine tracking alongside your mental game"},
+      {Icon:Icons.Star,title:"Paul Monahan's framework",desc:"Built on the 4-step transformation system from The Most Important Game"},
     ];
     return (<div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"0 24px",flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",justifyContent:"flex-start",paddingTop:8}}>
       <div style={titleStyle}>What You Get</div>
