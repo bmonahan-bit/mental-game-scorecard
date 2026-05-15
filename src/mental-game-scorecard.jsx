@@ -1769,10 +1769,20 @@ export default function App() {
     ? window.__convexUseQuery(window.__convexApi.subscriptions.getMySubscription, hasProfile ? {} : "skip")
     : undefined;
   const hasActiveSubscription = _subQuery?.isActive === true;
-  // When subscriptions enabled: show paywall immediately while auth loads (no blank screen)
+  // When subscriptions enabled: check cached sub status so returning subscribers skip paywall
   const clerkLoaded = clerkUser?.isLoaded !== undefined ? clerkUser.isLoaded : (clerkUser !== null);
+  const cachedSub = (() => { try { return localStorage.getItem("mgp_sub_active") === "true"; } catch { return false; } })();
   const subCheckDone = !SUBSCRIPTION_ENABLED || !hasProfile || _subQuery !== undefined;
-  const showPaywallEarly = SUBSCRIPTION_ENABLED && (!clerkLoaded || !subCheckDone);
+  // Show paywall early only for non-cached users while auth loads
+  const showPaywallEarly = SUBSCRIPTION_ENABLED && !cachedSub && (!clerkLoaded || !subCheckDone);
+  // Cache subscription status when it resolves
+  React.useEffect(() => {
+    if (_subQuery === undefined) return;
+    try {
+      if (_subQuery?.isActive) localStorage.setItem("mgp_sub_active", "true");
+      else localStorage.removeItem("mgp_sub_active");
+    } catch {}
+  }, [_subQuery]);
 
   // identity sync removed — handled by Clerk
 
@@ -2286,7 +2296,7 @@ export default function App() {
   }
   function handleSignOut() {
     // Clear user data but keep mgp_onboarded so onboarding doesn't re-trigger
-    const keysToRemove = ["mental_game_rounds","mgp_settings","mgp_carry_forward","mgp_carry_forward_draft","mgp_avatar","mgp_avatar_changed","mgp_badge_tiers","mgp_milestones","mgp_pro_date","mgp_rated","mgp_checklist_count","mgp_coach_code","mgp_coach_code_own","mgp_coach_name","mgp_coach_roster","mgp_community_joined","mgp_display_name","mgp_uid","mgp_tip_step","mgp_is_admin"];
+    const keysToRemove = ["mental_game_rounds","mgp_settings","mgp_carry_forward","mgp_carry_forward_draft","mgp_avatar","mgp_avatar_changed","mgp_badge_tiers","mgp_milestones","mgp_pro_date","mgp_rated","mgp_checklist_count","mgp_coach_code","mgp_coach_code_own","mgp_coach_name","mgp_coach_roster","mgp_community_joined","mgp_display_name","mgp_uid","mgp_tip_step","mgp_is_admin","mgp_sub_active"];
     keysToRemove.forEach(k=>{try{localStorage.removeItem(k);}catch{}});
     try{sessionStorage.clear();}catch{}
     setView("home");
@@ -2368,6 +2378,10 @@ export default function App() {
 
   // ─── ROUTING ───
   // Subscription gate — show paywall immediately (even while auth loads) to avoid blank screen
+  // Cached subscribers: show brief loading while auth confirms (not launch screen or paywall)
+  if (SUBSCRIPTION_ENABLED && cachedSub && !subCheckDone) {
+    return <div style={{position:"fixed",inset:0,background:"#09090b",zIndex:1000}}/>;
+  }
   if (showPaywallEarly || (SUBSCRIPTION_ENABLED && hasProfile && !hasActiveSubscription && view!=="admindash")) {
     return <ThemeCtx.Provider value={P}><SubscriptionPaywallView
       onSubscribe={async (plan)=>{
