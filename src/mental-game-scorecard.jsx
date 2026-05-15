@@ -2296,7 +2296,7 @@ export default function App() {
   }
   function handleSignOut() {
     // Clear user data but keep mgp_onboarded so onboarding doesn't re-trigger
-    const keysToRemove = ["mental_game_rounds","mgp_settings","mgp_carry_forward","mgp_carry_forward_draft","mgp_avatar","mgp_avatar_changed","mgp_badge_tiers","mgp_milestones","mgp_pro_date","mgp_rated","mgp_checklist_count","mgp_coach_code","mgp_coach_code_own","mgp_coach_name","mgp_coach_roster","mgp_community_joined","mgp_display_name","mgp_uid","mgp_tip_step","mgp_is_admin","mgp_sub_active"];
+    const keysToRemove = ["mental_game_rounds","mgp_settings","mgp_carry_forward","mgp_carry_forward_draft","mgp_avatar_changed","mgp_badge_tiers","mgp_milestones","mgp_pro_date","mgp_rated","mgp_checklist_count","mgp_coach_code","mgp_coach_code_own","mgp_coach_name","mgp_coach_roster","mgp_community_joined","mgp_display_name","mgp_uid","mgp_tip_step","mgp_is_admin","mgp_sub_active"];
     keysToRemove.forEach(k=>{try{localStorage.removeItem(k);}catch{}});
     try{sessionStorage.clear();}catch{}
     setView("home");
