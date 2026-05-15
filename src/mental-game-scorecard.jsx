@@ -1764,6 +1764,12 @@ export default function App() {
   const clerkUser = window.__useUser ? window.__useUser() : null;
   const hasProfile = !!(clerkUser?.isSignedIn);
 
+  // Subscription status — always call useQuery unconditionally (Rules of Hooks)
+  const _subQuery = window.__convexUseQuery && window.__convexApi
+    ? window.__convexUseQuery(window.__convexApi.subscriptions.getMySubscription, hasProfile ? {} : "skip")
+    : undefined;
+  const hasActiveSubscription = _subQuery?.isActive === true;
+
   // identity sync removed — handled by Clerk
 
   // Auto-load favCourse on mount so par/yardage pre-fill
@@ -2358,12 +2364,8 @@ export default function App() {
 
   // ─── ROUTING ───
   // Subscription gate — when enabled, blocks app access for users without active subscription
-  if (SUBSCRIPTION_ENABLED && hasProfile && view!=="admindash") {
-    const subQuery = window.__convexUseQuery && window.__convexApi
-      ? window.__convexUseQuery(window.__convexApi.subscriptions.getMySubscription, {})
-      : undefined;
-    const hasSub = subQuery?.isActive === true;
-    if (!hasSub) return <ThemeCtx.Provider value={P}><SubscriptionPaywallView
+  if (SUBSCRIPTION_ENABLED && hasProfile && !hasActiveSubscription && view!=="admindash") {
+    return <ThemeCtx.Provider value={P}><SubscriptionPaywallView
       onSubscribe={async (plan)=>{
         try {
           const { purchaseSubscription } = await import("./purchases.js");
