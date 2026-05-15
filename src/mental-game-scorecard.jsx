@@ -8171,12 +8171,14 @@ function SubscriptionPaywallView({onSubscribe,onRestore,onPrivacy,onSignOut,S}){
   const titleStyle={fontSize:28,fontWeight:800,color:C.white,textTransform:"uppercase",textAlign:"center",letterSpacing:1,marginBottom:16};
   const arrowBtn=(side)=>({position:"absolute",[side]:8,top:"50%",transform:"translateY(-50%)",background:"rgba(255,255,255,0.08)",border:"none",borderRadius:"50%",width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",zIndex:2});
 
-  // Screenshot slide helper
+  // Screenshot slide helper — constrained to fit without overflow
   function ScreenshotSlide({title, src}) {
-    return (<div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"0 20px",flex:1,justifyContent:"center",overflow:"hidden"}}>
-      <div style={titleStyle}>{title}</div>
-      <div style={{width:"100%",maxWidth:280,borderRadius:24,overflow:"hidden",border:`1.5px solid ${C.border}`,boxShadow:"0 20px 60px rgba(0,0,0,0.5)"}}>
-        <img src={src} alt={title} style={{width:"100%",height:"auto",display:"block"}}/>
+    return (<div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"0 48px",flex:1,justifyContent:"center",overflow:"hidden",minHeight:0}}>
+      <div style={{fontSize:24,fontWeight:800,color:C.white,textTransform:"uppercase",textAlign:"center",letterSpacing:1,marginBottom:12,flexShrink:0}}>{title}</div>
+      <div style={{flex:1,minHeight:0,display:"flex",alignItems:"center",justifyContent:"center",width:"100%",maxWidth:260}}>
+        <div style={{width:"100%",borderRadius:20,overflow:"hidden",border:`1.5px solid ${C.border}`,boxShadow:"0 16px 48px rgba(0,0,0,0.5)"}}>
+          <img src={src} alt={title} style={{width:"100%",height:"auto",display:"block"}}/>
+        </div>
       </div>
     </div>);
   }
@@ -8286,33 +8288,37 @@ function SubscriptionPaywallView({onSubscribe,onRestore,onPrivacy,onSignOut,S}){
   }
 
   // ── Render ──
-  const slides=[SlideTrack,SlideMatchups,SlideNumbers,SlideCaddie,SlideFeatures,SlidePlans];
-  const CurrentSlide=slides[slide];
-
   return (
-    <div style={{position:"fixed",inset:0,background:C.bg,display:"flex",flexDirection:"column",zIndex:1000,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"}}>
-      {/* Top bar */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",flexShrink:0}}>
-        {slide>0?(
-          <button onClick={goBack} {...pp()} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><Icons.Back color={C.muted} size={20}/></button>
-        ):<div style={{width:28}}/>}
+    <div style={{...S.shell,background:C.bg,position:"fixed",inset:0,zIndex:1000,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+      {/* Top bar — ellipsis only */}
+      <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",padding:"env(safe-area-inset-top,8px) 16px 4px",flexShrink:0}}>
         <button onClick={()=>setShowActions(true)} {...pp()} style={{background:"none",border:"none",color:C.muted,fontSize:22,cursor:"pointer",padding:4,letterSpacing:2}}>&sdot;&sdot;&sdot;</button>
       </div>
 
-      {/* Slide content — no key remount to prevent flash */}
-      <div style={{flex:1,display:"flex",flexDirection:"column",position:"relative",overflow:"hidden",minHeight:0}}>
-        {isFeatureSlide&&slide>0&&<button onClick={goBack} {...pp()} style={{...arrowBtn("left"),opacity:1}}><Icons.Back color={C.white} size={16}/></button>}
-        {isFeatureSlide&&<button onClick={advance} {...pp()} style={arrowBtn("right")}><Icons.Chev color={C.white} size={16}/></button>}
-        <CurrentSlide/>
+      {/* Slide content with left/right arrows on ALL slides */}
+      <div style={{flex:1,display:"flex",alignItems:"center",position:"relative",overflow:"hidden",minHeight:0}}>
+        {/* Left arrow — all slides except first */}
+        {slide>0&&<button onClick={goBack} {...pp()} style={{position:"absolute",left:6,top:"50%",transform:"translateY(-50%)",background:"rgba(255,255,255,0.08)",border:"none",borderRadius:"50%",width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",zIndex:3}}><Icons.Back color={C.white} size={16}/></button>}
+        {/* Right arrow — all slides except last */}
+        {slide<totalSlides-1&&<button onClick={advance} {...pp()} style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"rgba(255,255,255,0.08)",border:"none",borderRadius:"50%",width:40,height:40,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",zIndex:3}}><Icons.Chev color={C.white} size={16}/></button>}
+        {/* Slide — render all, show only active via display */}
+        <div style={{width:"100%",height:"100%",display:"flex",flexDirection:"column",overflow:isWhatYouGet||isChoosePlan?"auto":"hidden"}}>
+          {slide===0&&<SlideTrack/>}
+          {slide===1&&<SlideMatchups/>}
+          {slide===2&&<SlideNumbers/>}
+          {slide===3&&<SlideCaddie/>}
+          {slide===4&&<SlideFeatures/>}
+          {slide===5&&<SlidePlans/>}
+        </div>
       </div>
 
       {/* Dot indicators */}
-      <div style={{display:"flex",justifyContent:"center",gap:6,padding:"12px 0",flexShrink:0}}>
+      <div style={{display:"flex",justifyContent:"center",gap:6,padding:"10px 0 8px",flexShrink:0}}>
         {Array.from({length:totalSlides}).map((_,i)=>(<div key={i} style={{width:i===slide?20:6,height:6,borderRadius:3,background:i===slide?C.white:"rgba(255,255,255,0.2)",transition:"all 0.3s"}}/>))}
       </div>
 
       {/* Bottom button */}
-      <div style={{padding:"0 24px 12px",flexShrink:0}}>
+      <div style={{padding:"0 24px 8px",flexShrink:0}}>
         {isChoosePlan?(
           <button onClick={()=>onSubscribe&&onSubscribe(selectedPlan)} {...pp()} style={{width:"100%",padding:16,borderRadius:14,border:"none",background:C.green,color:"#fff",fontSize:16,fontWeight:700,cursor:"pointer"}}>Subscribe</button>
         ):(
@@ -8321,7 +8327,7 @@ function SubscriptionPaywallView({onSubscribe,onRestore,onPrivacy,onSignOut,S}){
       </div>
 
       {/* Tagline */}
-      <div style={{textAlign:"center",padding:"0 24px 20px",flexShrink:0}}>
+      <div style={{textAlign:"center",padding:"0 24px calc(8px + env(safe-area-inset-bottom,8px))",flexShrink:0}}>
         {isChoosePlan?(
           <div style={{fontSize:12,color:C.muted}}>Cancel in the App Store anytime</div>
         ):(
