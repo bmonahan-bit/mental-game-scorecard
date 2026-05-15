@@ -1769,9 +1769,10 @@ export default function App() {
     ? window.__convexUseQuery(window.__convexApi.subscriptions.getMySubscription, hasProfile ? {} : "skip")
     : undefined;
   const hasActiveSubscription = _subQuery?.isActive === true;
-  // Show blank screen until we know auth + subscription state (prevents launch screen flash)
+  // When subscriptions enabled: show paywall immediately while auth loads (no blank screen)
   const clerkLoaded = clerkUser?.isLoaded !== undefined ? clerkUser.isLoaded : (clerkUser !== null);
-  const subQueryLoading = SUBSCRIPTION_ENABLED && (!clerkLoaded || (hasProfile && _subQuery === undefined));
+  const subCheckDone = !SUBSCRIPTION_ENABLED || !hasProfile || _subQuery !== undefined;
+  const showPaywallEarly = SUBSCRIPTION_ENABLED && (!clerkLoaded || !subCheckDone);
 
   // identity sync removed — handled by Clerk
 
@@ -2366,10 +2367,8 @@ export default function App() {
   }
 
   // ─── ROUTING ───
-  // Show blank screen while subscription status loads (prevents launch screen flash)
-  if (subQueryLoading) return <div style={{position:"fixed",inset:0,background:"#0a0a0a",zIndex:1000}}/>;
-  // Subscription gate — when enabled, blocks app access for users without active subscription
-  if (SUBSCRIPTION_ENABLED && hasProfile && !hasActiveSubscription && view!=="admindash") {
+  // Subscription gate — show paywall immediately (even while auth loads) to avoid blank screen
+  if (showPaywallEarly || (SUBSCRIPTION_ENABLED && hasProfile && !hasActiveSubscription && view!=="admindash")) {
     return <ThemeCtx.Provider value={P}><SubscriptionPaywallView
       onSubscribe={async (plan)=>{
         try {
