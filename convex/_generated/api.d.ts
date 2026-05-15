@@ -8,10 +8,12 @@
  * @module
  */
 
+import type * as admin from "../admin.js";
 import type * as coach from "../coach.js";
 import type * as profiles from "../profiles.js";
 import type * as rounds from "../rounds.js";
 import type * as settings from "../settings.js";
+import type * as subscriptions from "../subscriptions.js";
 
 import type {
   ApiFromModules,
@@ -20,10 +22,12 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  admin: typeof admin;
   coach: typeof coach;
   profiles: typeof profiles;
   rounds: typeof rounds;
   settings: typeof settings;
+  subscriptions: typeof subscriptions;
 }>;
 
 /**

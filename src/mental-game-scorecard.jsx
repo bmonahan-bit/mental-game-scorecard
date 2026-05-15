@@ -536,31 +536,18 @@ function useCourseSearch() {
       setResults([]);
       return;
     }
-    debounceRef.current = setTimeout(async () => {
+    debounceRef.current = setTimeout(async () => {  // 200ms debounce for responsive feel
       const ac = new AbortController();
       abortRef.current = ac;
       setLoading(true);
       try {
-        // Try exact query first, then append wildcard for partial matching
         const res = await fetch(
-          `${GOLF_API_BASE}/search?search_query=${encodeURIComponent(val + "*")}`,
+          `${GOLF_API_BASE}/search?search_query=${encodeURIComponent(val)}`,
           { headers: { Authorization: `Key ${GOLF_API_KEY}` }, signal: ac.signal }
         );
         if (!res.ok) { setResults([]); return; }
         const data = await res.json();
-        const courses = data.courses || [];
-        // If wildcard returns nothing, try without it
-        if (courses.length === 0) {
-          const res2 = await fetch(
-            `${GOLF_API_BASE}/search?search_query=${encodeURIComponent(val)}`,
-            { headers: { Authorization: `Key ${GOLF_API_KEY}` }, signal: ac.signal }
-          );
-          if (!res2.ok) { setResults([]); return; }
-          const data2 = await res2.json();
-          setResults((data2.courses || []).slice(0, 20));
-        } else {
-          setResults(courses.slice(0, 20));
-        }
+        setResults((data.courses || []).slice(0, 20));
       } catch(e) {
         if (e?.name === "AbortError") return;
         // Offline or API error — fail silently, user can still enter course name manually
@@ -568,7 +555,7 @@ function useCourseSearch() {
         logError(e, { context: "course_search" });
       }
       finally { setLoading(false); }
-    }, 300);
+    }, 200);
   }, []);
 
   const loadCourse = useCallback(async (courseId) => {
@@ -2286,8 +2273,13 @@ export default function App() {
     </div>;
   }
   function handleSignOut() {
-    const keysToRemove = ["mental_game_rounds","mgp_settings","mgp_carry_forward","mgp_carry_forward_draft","mgp_avatar","mgp_avatar_changed","mgp_badge_tiers","mgp_milestones","mgp_onboarded","mgp_pro_date","mgp_rated","mgp_checklist_count","mgp_coach_code","mgp_coach_code_own","mgp_coach_name","mgp_coach_roster","mgp_community_joined","mgp_display_name","mgp_uid","mgp_tip_step"];
+    // Clear user data but keep mgp_onboarded so onboarding doesn't re-trigger
+    const keysToRemove = ["mental_game_rounds","mgp_settings","mgp_carry_forward","mgp_carry_forward_draft","mgp_avatar","mgp_avatar_changed","mgp_badge_tiers","mgp_milestones","mgp_pro_date","mgp_rated","mgp_checklist_count","mgp_coach_code","mgp_coach_code_own","mgp_coach_name","mgp_coach_roster","mgp_community_joined","mgp_display_name","mgp_uid","mgp_tip_step","mgp_is_admin"];
     keysToRemove.forEach(k=>{try{localStorage.removeItem(k);}catch{}});
+    try{sessionStorage.clear();}catch{}
+    setView("home");
+    setSavedRounds([]);
+    setSettings({favCourse:"",favTee:"",handicap:"",units:"imperial",preroundChecklist:true,holeNoteDefault:false,caddieDefault:true});
     if(window.__clerkSignOut) window.__clerkSignOut(); else window.location.href="/";
   }
   window.__handleSignOut = handleSignOut;
@@ -2374,8 +2366,8 @@ export default function App() {
   if (view==="home") return <ThemeCtx.Provider value={P}><ToastLayer/><OpenRoundModal/><LaunchScreen onStartRound={startNewRound} onContinueRound={()=>{const lastTouched=scores.reduce((last,h,i)=>{const hasData=h.strokeScore||h.putts||Object.values(h.heroes).some(v=>v>0)||Object.values(h.bandits).some(v=>v>0);return hasData?i:last;},-1);setCurrentHole(Math.max(0,lastTouched));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} onHub={()=>setView("hub")} savedRounds={savedRounds} themeToggle={themeToggle} S={S} hasProfile={hasProfile} clerkUser={clerkUser} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }}/></ThemeCtx.Provider>;
   if (view==="hub") return <ThemeCtx.Provider value={P}><ToastLayer/><RateAppModal/><OpenRoundModal/><HomeScreen onNav={(v)=>navTo(v)} onStartRound={startNewRound} onContinueRound={()=>{const lastTouched=scores.reduce((last,h,i)=>{const hasData=h.strokeScore||h.putts||Object.values(h.heroes).some(v=>v>0)||Object.values(h.bandits).some(v=>v>0);return hasData?i:last;},-1);setCurrentHole(Math.max(0,lastTouched));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }} /></ThemeCtx.Provider>;
   if (view==="checklist") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist key={preroundKey} onBack={nav("hub")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",todayET());const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setView("play");}} onSkip={()=>{setView("play");}} S={S} lastIntention={carryForward} settings={settings} updateSetting={updateSetting} /></ThemeCtx.Provider>;
-  if (view==="courseselect") return <ThemeCtx.Provider value={P}><ToastLayer/><div style={{height:"100%",background:P.bg,position:"relative"}}><HomeScreen onNav={()=>{}} onStartRound={()=>{}} onContinueRound={()=>{}} roundInProgress={false} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }}/><CourseSelectModal P={P} S={S} settings={settings} updateSetting={updateSetting} onSkip={()=>resetAndStartNew()} onConfirm={(data)=>resetAndStartNew(data)}/></div></ThemeCtx.Provider>;
-  if (view==="preround") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist key={preroundKey} onBack={nav("hub")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",todayET());const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setView("play");}} onSkip={()=>{setView("play");}} S={S} lastIntention={carryForward} settings={settings} updateSetting={updateSetting} /></ThemeCtx.Provider>;
+  if (view==="courseselect") return <ThemeCtx.Provider value={P}><ToastLayer/><div style={{height:"100%",background:P.bg,position:"relative"}}><HomeScreen onNav={()=>{}} onStartRound={()=>{}} onContinueRound={()=>{}} roundInProgress={false} roundCount={savedRounds.length} themeToggle={themeToggle} S={S} savedRounds={savedRounds} settings={settings} hasProfile={hasProfile} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }}/><CourseSelectModal P={P} S={S} settings={settings} updateSetting={updateSetting} onSkip={()=>resetAndStartNew()} onConfirm={(data)=>resetAndStartNew(data)} onBack={()=>setView("hub")}/></div></ThemeCtx.Provider>;
+  if (view==="preround") return <ThemeCtx.Provider value={P}><ToastLayer/><PreRoundChecklist key={preroundKey} onBack={nav("courseselect")} onStartRound={()=>{try{localStorage.setItem("mgp_checklist_date",todayET());const cc=parseInt(localStorage.getItem("mgp_checklist_count")||"0");localStorage.setItem("mgp_checklist_count",cc+1);}catch{}setView("play");}} onSkip={()=>{setView("play");}} S={S} lastIntention={carryForward} settings={settings} updateSetting={updateSetting} /></ThemeCtx.Provider>;
   if (view==="tiger5") return <ThemeCtx.Provider value={P}><ToastLayer/><Tiger5View onBack={()=>setView(prevView||"home")} S={S}/></ThemeCtx.Provider>;
   if (view==="caddie") return <ThemeCtx.Provider value={P}><ToastLayer/><InnerCaddieView onBack={nav(prevView)} S={S} /></ThemeCtx.Provider>;
   if (view==="coach") return <ThemeCtx.Provider value={P}><ToastLayer/><CoachDashboardView onBack={nav("hub")} S={S}/></ThemeCtx.Provider>;
@@ -4077,8 +4069,8 @@ function HistoryView({rounds,onBack,onDelete,selectedRound,setSelectedRound,onSh
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                     <div style={{transform:selectedRound?.id===r.id?"rotate(90deg)":"rotate(0)",transition:"transform 0.2s"}}><Icons.Chev color={P.muted} size={14}/></div>
-                    <button onClick={e=>{e.stopPropagation();if(isC){onDelete(r.id);setConfirmId(null);}else{setConfirmId(r.id);setTimeout(()=>setConfirmId(c=>c===r.id?null:c),3000);}}} style={{width:36,height:36,borderRadius:9,border:`1.5px solid ${isC?P.red:P.border}`,background:isC?P.red+"15":"transparent",color:isC?P.red:P.muted,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}} {...pp()}>
-                      {isC?<Icons.Check color={P.red} size={11}/>:"✕"}
+                    <button onClick={e=>{e.stopPropagation();if(isC){onDelete(r.id);setConfirmId(null);}else{setConfirmId(r.id);setTimeout(()=>setConfirmId(c=>c===r.id?null:c),3000);}}} style={{minWidth:44,height:44,borderRadius:10,border:`1.5px solid ${isC?P.red:P.border}`,background:isC?P.red+"15":"transparent",color:isC?P.red:P.muted,fontSize:isC?11:15,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 10px",gap:4}} {...pp()}>
+                      {isC?<><Icons.Check color={P.red} size={13}/> Delete</>:"✕"}
                     </button>
                   </div>
                 </div>
@@ -4392,7 +4384,7 @@ function FavCourseSearch({settings, updateSetting, P}) {
           onBlur={()=>setTimeout(()=>setOpen(false),150)}
           placeholder="Search course..."
           onKeyDown={e=>e.key==="Escape"&&setOpen(false)}
-          style={{width:"100%",padding:"8px 10px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:13,outline:"none",boxSizing:"border-box"}}
+          style={{width:"100%",padding:"10px 12px",borderRadius:9,border:`1.5px solid ${P.border}`,background:P.inputBg,color:P.white,fontSize:13,outline:"none",boxSizing:"border-box",caretColor:P.accent}}
         />
         {loading&&<div style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",width:12,height:12,borderRadius:"50%",border:`2px solid ${P.border}`,borderTopColor:P.accent,animation:"spin 0.7s linear infinite"}}/>}
         {/* Dropdown always below input */}
@@ -4429,7 +4421,7 @@ function FavCourseSearch({settings, updateSetting, P}) {
   );
 }
 
-function CourseSelectModal({onConfirm, onSkip, settings, updateSetting, P, S}) {
+function CourseSelectModal({onConfirm, onSkip, onBack, settings, updateSetting, P, S}) {
   const pp = pressProps;
   const [query, setQuery] = React.useState("");
   const [results, setResults] = React.useState([]);
@@ -4485,14 +4477,17 @@ function CourseSelectModal({onConfirm, onSkip, settings, updateSetting, P, S}) {
   const displayName = selectedName || query;
 
   return (
-    <div onClick={onSkip} style={{position:"fixed",inset:0,zIndex:9998,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"env(safe-area-inset-top,0px) 20px env(safe-area-inset-bottom,0px)"}}>
+    <div onClick={onBack||onSkip} style={{position:"fixed",inset:0,zIndex:9998,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:"env(safe-area-inset-top,0px) 20px env(safe-area-inset-bottom,0px)"}}>
       <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:400,background:P.bg,borderRadius:24,border:`1.5px solid ${P.border}`,boxShadow:"0 32px 80px rgba(0,0,0,0.5)",maxHeight:"82vh",display:"flex",flexDirection:"column"}}>
 
         {/* Header */}
         <div style={{padding:"20px 20px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
-          <div>
-            <div style={{fontSize:18,fontWeight:900,color:P.white,letterSpacing:-0.3}}>Select Course</div>
-            <div style={{fontSize:12,color:P.muted,marginTop:2,fontWeight:500}}>Search or use your favorite</div>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            {onBack&&<button onClick={onBack} {...pp()} style={{width:32,height:32,borderRadius:8,border:`1px solid ${P.border}`,background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}><Icons.Back color={P.muted} size={16}/></button>}
+            <div>
+              <div style={{fontSize:18,fontWeight:900,color:P.white,letterSpacing:-0.3}}>Select Course</div>
+              <div style={{fontSize:12,color:P.muted,marginTop:2,fontWeight:500}}>Search or use your favorite</div>
+            </div>
           </div>
           <button onClick={onSkip} style={{padding:"7px 16px",borderRadius:10,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:12,fontWeight:700,cursor:"pointer"}} {...pp()}>Skip</button>
         </div>
