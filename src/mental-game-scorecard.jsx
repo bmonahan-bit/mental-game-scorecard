@@ -8286,21 +8286,24 @@ function SubscriptionPaywallView({onSubscribe,onRestore,onPrivacy,onSignOut,S}){
   }
 
   // ── Render ──
-  const slideContent=[<SlideTrack key={0}/>,<SlideMatchups key={1}/>,<SlideNumbers key={2}/>,<SlideCaddie key={3}/>,<SlideFeatures key={4}/>,<SlidePlans key={5}/>];
+  const slides=[SlideTrack,SlideMatchups,SlideNumbers,SlideCaddie,SlideFeatures,SlidePlans];
+  const CurrentSlide=slides[slide];
 
   return (
     <div style={{position:"fixed",inset:0,background:C.bg,display:"flex",flexDirection:"column",zIndex:1000,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"}}>
       {/* Top bar */}
-      <div style={{display:"flex",justifyContent:isChoosePlan?"space-between":"flex-end",alignItems:"center",padding:"12px 16px",flexShrink:0}}>
-        {isChoosePlan&&<button onClick={goBack} {...pp()} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><Icons.Back color={C.muted} size={20}/></button>}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",flexShrink:0}}>
+        {slide>0?(
+          <button onClick={goBack} {...pp()} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><Icons.Back color={C.muted} size={20}/></button>
+        ):<div style={{width:28}}/>}
         <button onClick={()=>setShowActions(true)} {...pp()} style={{background:"none",border:"none",color:C.muted,fontSize:22,cursor:"pointer",padding:4,letterSpacing:2}}>&sdot;&sdot;&sdot;</button>
       </div>
 
-      {/* Slide content */}
+      {/* Slide content — no key remount to prevent flash */}
       <div style={{flex:1,display:"flex",flexDirection:"column",position:"relative",overflow:"hidden",minHeight:0}}>
-        {isFeatureSlide&&<button onClick={goBack} disabled={slide===0} {...pp()} style={{...arrowBtn("left"),opacity:slide===0?0.2:1}}><Icons.Back color={C.white} size={16}/></button>}
+        {isFeatureSlide&&slide>0&&<button onClick={goBack} {...pp()} style={{...arrowBtn("left"),opacity:1}}><Icons.Back color={C.white} size={16}/></button>}
         {isFeatureSlide&&<button onClick={advance} {...pp()} style={arrowBtn("right")}><Icons.Chev color={C.white} size={16}/></button>}
-        {slideContent[slide]}
+        <CurrentSlide/>
       </div>
 
       {/* Dot indicators */}
