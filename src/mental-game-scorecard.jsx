@@ -1769,7 +1769,9 @@ export default function App() {
     ? window.__convexUseQuery(window.__convexApi.subscriptions.getMySubscription, hasProfile ? {} : "skip")
     : undefined;
   const hasActiveSubscription = _subQuery?.isActive === true;
-  const subQueryLoading = SUBSCRIPTION_ENABLED && hasProfile && _subQuery === undefined;
+  // Show blank screen until we know auth + subscription state (prevents launch screen flash)
+  const clerkLoaded = clerkUser?.isLoaded !== undefined ? clerkUser.isLoaded : (clerkUser !== null);
+  const subQueryLoading = SUBSCRIPTION_ENABLED && (!clerkLoaded || (hasProfile && _subQuery === undefined));
 
   // identity sync removed — handled by Clerk
 
