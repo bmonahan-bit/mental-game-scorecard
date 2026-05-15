@@ -8191,9 +8191,9 @@ function SubscriptionPaywallView({onSubscribe,onRestore,onPrivacy,onSignOut,S}){
 
   // Screenshot slide helper — constrained to fit without overflow
   function ScreenshotSlide({title, src}) {
-    return (<div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"0 48px",flex:1,justifyContent:"flex-end",overflow:"hidden",minHeight:0}}>
-      <div style={{fontSize:24,fontWeight:800,color:C.white,textTransform:"uppercase",textAlign:"center",letterSpacing:1,marginBottom:8,flexShrink:0}}>{title}</div>
-      <div style={{flex:1,minHeight:0,display:"flex",alignItems:"flex-start",justifyContent:"center",width:"100%",maxWidth:260}}>
+    return (<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flex:1,overflow:"hidden",minHeight:0}}>
+      <div style={{fontSize:24,fontWeight:800,color:C.white,textTransform:"uppercase",textAlign:"center",letterSpacing:1,marginBottom:16,flexShrink:0,padding:"0 48px"}}>{title}</div>
+      <div style={{width:260}}>
         <div style={{width:"100%",borderRadius:20,overflow:"hidden",border:`1.5px solid ${C.border}`,boxShadow:"0 16px 48px rgba(0,0,0,0.5)"}}>
           <img src={src} alt={title} style={{width:"100%",height:"auto",display:"block"}}/>
         </div>
