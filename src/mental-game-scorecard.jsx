@@ -114,7 +114,7 @@ const THEME_KEY = "mental_game_theme";
 
 // ─── SUBSCRIPTION GATE ───
 // Set to true to enable the subscription paywall. When false, all users have full access.
-const SUBSCRIPTION_ENABLED = true;
+const SUBSCRIPTION_ENABLED = false;
 
 // ─── THEME PALETTES ───
 const LIGHT = {
