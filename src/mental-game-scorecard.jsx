@@ -1873,7 +1873,9 @@ export default function App() {
     (async()=>{
       try{const r=localStorage.getItem(STORAGE_KEY);if(r)setSavedRounds(JSON.parse(r));}catch{}
       try{const t=localStorage.getItem(THEME_KEY);if(t)setDarkMode(t==="dark");}catch{}
-      try{const o=localStorage.getItem("mgp_onboarded");if(!o)setShowOnboarding(true);}catch{setShowOnboarding(true);}
+      // Onboarding shows after subscription purchase (or via Settings > App Guide)
+      // Don't auto-show on first launch — the paywall or launch screen handles that
+      try{if(!localStorage.getItem("mgp_onboarded"))localStorage.setItem("mgp_onboarded","true");}catch{}
       try{const cf=localStorage.getItem("mgp_carry_forward");if(cf)setCarryForward(cf);}catch{}
       try{const sv=localStorage.getItem("mgp_settings");if(sv){const s=JSON.parse(sv);setSettings(s);setInGameCaddie(s.caddieDefault!==false);}}catch{}
     })();
@@ -8491,42 +8493,6 @@ function OnboardingFlow({onFinish,onPrivacy,P,S}){
     </div>;
   }
 
-  function ProfileSlide() {
-    const { isSignedIn, user } = window.__useUser ? window.__useUser() : {};
-    return (
-      <div>
-        {isSignedIn ? (
-          <div style={{textAlign:"center",padding:"30px 0"}}>
-            <div style={{width:52,height:52,borderRadius:15,background:P.green+"18",border:`1.5px solid ${P.green}44`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px"}}><Icons.Check color={P.green} size={24}/></div>
-            <div style={{fontSize:18,fontWeight:900,color:P.white,marginBottom:8}}>You're signed in!</div>
-            <div style={{fontSize:13,color:P.muted,lineHeight:1.6}}>Welcome, {user?.firstName||"golfer"}. Your rounds will sync across devices and Paul will send you personalized insights.</div>
-          </div>
-        ) : (
-          <>
-            <div style={{fontSize:14,color:P.muted,lineHeight:1.7,marginBottom:16}}>
-              Create a free account to <span style={{color:P.white,fontWeight:700}}>save your rounds to the cloud</span>, sync across devices, and receive personalized mental game insights from Paul.
-            </div>
-            <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:16}}>
-              {[
-                {title:"Cloud backup", desc:"Your rounds are safe, even if you change phones."},
-                {title:"Personalized insights", desc:"Paul sends coaching content matched to your Heroes & Bandits."},
-                {title:"Track your journey", desc:"See how your mental game improves over time."},
-              ].map((f,i)=>(
-                <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"8px 10px",borderRadius:10,background:P.card,border:`1px solid ${P.border}`}}>
-                  <Icons.Check color={PM_GOLD} size={13} style={{marginTop:2,flexShrink:0}}/>
-                  <div><div style={{fontSize:12,fontWeight:700,color:P.white}}>{f.title}</div><div style={{fontSize:11,color:P.muted,marginTop:1}}>{f.desc}</div></div>
-                </div>
-              ))}
-            </div>
-            <div style={{fontSize:10,color:P.muted,lineHeight:1.5,textAlign:"center"}}>
-              Free forever. By continuing you agree to Paul Monahan Golf's{" "}
-              <span style={{color:PM_GOLD,cursor:"pointer"}} onClick={()=>onPrivacy&&onPrivacy()}>Privacy Policy</span>.
-            </div>
-          </>
-        )}
-      </div>
-    );
-  }
 
   const slides=[
     {IconKey:"GolfTee",iconColor:"#5cc8fa",title:"Welcome to the\nMental Game Scorecard",render:()=><Slide0/>},
@@ -8535,7 +8501,7 @@ function OnboardingFlow({onFinish,onPrivacy,P,S}){
     {IconKey:"FlagHole",iconColor:"#60a5fa",title:"Playing Your Round",subtitle:"The Mental Scorecard",render:()=><Slide3/>},
     {IconKey:"Brain",iconColor:"#a78bfa",title:"Your In-Game Caddie",subtitle:"Wisdom on Demand",render:()=><CaddieExample/>},
     {IconKey:"Chart",iconColor:"#34d87a",title:"Review & Grow",subtitle:"After Your Round",render:()=><Slide5/>},
-    {IconKey:"Shield",iconColor:PM_GOLD,title:"Create Your Profile",subtitle:"Save Your Progress",render:()=><ProfileSlide/>},
+    {IconKey:"Shield",iconColor:PM_GOLD,title:"Paul's Framework",subtitle:"Transform Your Game",render:()=><Slide6/>},
   ];
   const activeSlides=slides.filter(s=>!s.skip);
   const slide=activeSlides[cur]; const isLast=cur===activeSlides.length-1; const { isSignedIn:clerkSignedIn } = window.__useUser ? window.__useUser() : {}; const isProfile=isLast; const Ic=Icons[slide.IconKey];
@@ -8562,14 +8528,7 @@ function OnboardingFlow({onFinish,onPrivacy,P,S}){
       <button onClick={()=>{if(cur>0){setDir(-1);setCur(c=>c-1);}}} {...pp()} style={{width:42,height:42,borderRadius:12,border:`1.5px solid ${P.border}`,background:P.card,display:"flex",alignItems:"center",justifyContent:"center",cursor:cur===0?"default":"pointer",opacity:cur===0?0.3:1,flexShrink:0}}><Icons.Back color={P.muted} size={16}/></button>
       <div style={{flex:1,marginLeft:10}}>
       {isLast ? (
-        clerkSignedIn ? (
           <button onClick={onFinish} {...pp()} style={{width:"100%",padding:"13px",borderRadius:12,background:P.green,border:"none",color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",boxShadow:`0 4px 16px ${P.green}44`}}>Let's Play</button>
-        ) : (
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            <button onClick={()=>{ openWithClerk("signUp"); }} style={{width:"100%",padding:"13px",borderRadius:12,background:P.green,border:"none",color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer"}}>Create Free Account →</button>
-            <button onClick={onFinish} style={{width:"100%",padding:"12px",borderRadius:12,border:`1.5px solid ${P.border}`,background:"transparent",color:P.muted,fontSize:13,fontWeight:600,cursor:"pointer"}}>Continue without account</button>
-          </div>
-        )
       ) : (
         <button onClick={()=>{setDir(1);setCur(c=>c+1);}} {...pp()} style={{width:"100%",padding:"12px",borderRadius:12,border:"none",background:dm?"#fff":"#0f172a",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}><Icons.Chev color={dm?"#09090b":"#fff"} size={16}/></button>
       )}
