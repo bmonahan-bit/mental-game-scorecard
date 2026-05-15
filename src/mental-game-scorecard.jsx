@@ -8300,7 +8300,7 @@ function SubscriptionPaywallView({onSubscribe,onRestore,onPrivacy,onSignOut,S}){
     <div style={{position:"fixed",inset:0,background:C.bg,display:"flex",flexDirection:"column",overflow:"hidden",zIndex:1000}}>
       {/* Top bar — ellipsis only */}
       <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",padding:"max(env(safe-area-inset-top,12px),12px) 16px 4px",flexShrink:0}}>
-        <button onClick={()=>setShowActions(true)} {...pp()} style={{background:"none",border:"none",color:C.muted,fontSize:22,cursor:"pointer",padding:4,letterSpacing:2}}>&sdot;&sdot;&sdot;</button>
+        <button onClick={()=>setShowActions(true)} {...pp()} style={{background:"none",border:"none",color:C.muted,fontSize:22,cursor:"pointer",padding:4,letterSpacing:-1}}>&bull;&bull;&bull;</button>
       </div>
 
       {/* Slide area with nav arrows */}
