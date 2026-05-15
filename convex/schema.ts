@@ -65,15 +65,19 @@ export default defineSchema({
     userId: v.string(),
     status: v.string(), // "trialing" | "active" | "expired" | "cancelled"
     plan: v.string(), // "monthly" | "semiannual" | "annual"
+    platform: v.optional(v.string()), // "apple" | "google"
     appleTransactionId: v.optional(v.string()),
     appleOriginalTransactionId: v.optional(v.string()),
+    googleOrderId: v.optional(v.string()),
+    googlePurchaseToken: v.optional(v.string()),
     startsAt: v.float64(),
     expiresAt: v.float64(),
     cancelledAt: v.optional(v.float64()),
     updatedAt: v.float64(),
   })
     .index("by_user", ["userId"])
-    .index("by_apple_txn", ["appleOriginalTransactionId"]),
+    .index("by_apple_txn", ["appleOriginalTransactionId"])
+    .index("by_google_order", ["googleOrderId"]),
 
   coachRoster: defineTable({
     coachClerkId: v.string(),

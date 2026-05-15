@@ -28,8 +28,11 @@ export const getMySubscription = query({
 export const activateSubscription = mutation({
   args: {
     plan: v.string(),
+    platform: v.optional(v.string()),
     appleTransactionId: v.optional(v.string()),
     appleOriginalTransactionId: v.optional(v.string()),
+    googleOrderId: v.optional(v.string()),
+    googlePurchaseToken: v.optional(v.string()),
     expiresAt: v.float64(),
   },
   handler: async (ctx, args) => {
@@ -44,27 +47,27 @@ export const activateSubscription = mutation({
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
 
+    const fields = {
+      status: "active" as const,
+      plan: args.plan,
+      platform: args.platform,
+      appleTransactionId: args.appleTransactionId,
+      appleOriginalTransactionId: args.appleOriginalTransactionId,
+      googleOrderId: args.googleOrderId,
+      googlePurchaseToken: args.googlePurchaseToken,
+      expiresAt: args.expiresAt,
+      updatedAt: now,
+    };
+
     if (existing) {
-      await ctx.db.patch(existing._id, {
-        status: "active",
-        plan: args.plan,
-        appleTransactionId: args.appleTransactionId,
-        appleOriginalTransactionId: args.appleOriginalTransactionId,
-        expiresAt: args.expiresAt,
-        updatedAt: now,
-      });
+      await ctx.db.patch(existing._id, fields);
       return existing._id;
     }
 
     return await ctx.db.insert("subscriptions", {
+      ...fields,
       userId,
-      status: "active",
-      plan: args.plan,
-      appleTransactionId: args.appleTransactionId,
-      appleOriginalTransactionId: args.appleOriginalTransactionId,
       startsAt: now,
-      expiresAt: args.expiresAt,
-      updatedAt: now,
     });
   },
 });
