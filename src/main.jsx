@@ -49,6 +49,7 @@ function ConvexBridge() {
   const bulkUpsertRoundsMut   = useMutation(api.rounds.bulkUpsertRounds);
   const deleteRoundMut        = useMutation(api.rounds.deleteRound);
   const upsertSettingsMut     = useMutation(api.settings.upsertSettings);
+  const activateSubMut        = useMutation(api.subscriptions.activateSubscription);
 
   React.useEffect(() => {
     // Expose data to the app
@@ -76,6 +77,11 @@ function ConvexBridge() {
     window.__convexUpsertSettings = (data, carryForward) => {
       if (!isSignedIn) return;
       upsertSettingsMut({ data, carryForward }).catch(e => console.error('convexUpsertSettings', e));
+    };
+
+    window.__convexActivateSubscription = (sub) => {
+      if (!isSignedIn) return;
+      activateSubMut(sub).catch(e => console.error('convexActivateSub', e));
     };
 
     // Dispatch an event so the app re-checks Convex data

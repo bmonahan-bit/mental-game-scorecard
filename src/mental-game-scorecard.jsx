@@ -2358,11 +2358,62 @@ export default function App() {
 
   // ─── ROUTING ───
   // Subscription gate — when enabled, blocks app access for users without active subscription
-  // TODO: wire onSubscribe to StoreKit purchase flow
   if (SUBSCRIPTION_ENABLED && hasProfile && view!=="admindash") {
-    // Check subscription status (placeholder — will be replaced with Convex query)
-    const hasSub = false; // TODO: check window.__convexSubscription
-    if (!hasSub) return <ThemeCtx.Provider value={P}><SubscriptionPaywallView onSubscribe={(plan)=>{console.log("Subscribe:",plan);/* TODO: StoreKit */}} onRestore={()=>{console.log("Restore");/* TODO: StoreKit restore */}} onPrivacy={()=>setShowPrivacyPolicy(true)} onSignOut={()=>handleSignOut()} S={S}/></ThemeCtx.Provider>;
+    const subQuery = window.__convexUseQuery && window.__convexApi
+      ? window.__convexUseQuery(window.__convexApi.subscriptions.getMySubscription, {})
+      : undefined;
+    const hasSub = subQuery?.isActive === true;
+    if (!hasSub) return <ThemeCtx.Provider value={P}><SubscriptionPaywallView
+      onSubscribe={async (plan)=>{
+        try {
+          const { purchaseSubscription } = await import("./purchases.js");
+          const result = await purchaseSubscription(plan);
+          // Save to Convex
+          if(window.__convexActivateSubscription) {
+            window.__convexActivateSubscription({
+              plan: result.plan,
+              platform: result.platform,
+              appleTransactionId: result.appleTransactionId,
+              appleOriginalTransactionId: result.appleOriginalTransactionId,
+              googleOrderId: result.googleOrderId,
+              googlePurchaseToken: result.googlePurchaseToken,
+              expiresAt: result.expiresAt,
+            });
+          }
+          showToast("Welcome! Your subscription is active.", "success");
+        } catch(e) {
+          if(e?.message?.includes("cancelled")||e?.message?.includes("cancel")) return;
+          showToast(e?.message||"Purchase failed. Try again.", "error");
+        }
+      }}
+      onRestore={async ()=>{
+        try {
+          const { restorePurchases } = await import("./purchases.js");
+          const result = await restorePurchases();
+          if(result) {
+            if(window.__convexActivateSubscription) {
+              window.__convexActivateSubscription({
+                plan: result.plan,
+                platform: result.platform,
+                appleTransactionId: result.appleTransactionId,
+                appleOriginalTransactionId: result.appleOriginalTransactionId,
+                googleOrderId: result.googleOrderId,
+                googlePurchaseToken: result.googlePurchaseToken,
+                expiresAt: result.expiresAt,
+              });
+            }
+            showToast("Subscription restored!", "success");
+          } else {
+            showToast("No active subscription found.", "info");
+          }
+        } catch(e) {
+          showToast(e?.message||"Restore failed.", "error");
+        }
+      }}
+      onPrivacy={()=>setShowPrivacyPolicy(true)}
+      onSignOut={()=>handleSignOut()}
+      S={S}
+    /></ThemeCtx.Provider>;
   }
   if (showOnboarding) return <ThemeCtx.Provider value={P}><ToastLayer/><RateAppModal/><OpenRoundModal/><OnboardingFlow onFinish={finishOnboarding} onPrivacy={()=>setShowPrivacyPolicy(true)} P={P} S={S}/></ThemeCtx.Provider>;
   if (view==="home") return <ThemeCtx.Provider value={P}><ToastLayer/><OpenRoundModal/><LaunchScreen onStartRound={startNewRound} onContinueRound={()=>{const lastTouched=scores.reduce((last,h,i)=>{const hasData=h.strokeScore||h.putts||Object.values(h.heroes).some(v=>v>0)||Object.values(h.bandits).some(v=>v>0);return hasData?i:last;},-1);setCurrentHole(Math.max(0,lastTouched));setView("play");}} roundInProgress={scores.some(h=>Object.values(h.heroes).some(v=>v!==0)||Object.values(h.bandits).some(v=>v!==0)||h.strokeScore||h.putts)} onHub={()=>setView("hub")} savedRounds={savedRounds} themeToggle={themeToggle} S={S} hasProfile={hasProfile} clerkUser={clerkUser} onSettings={()=>setView("settings")} onSignOut={()=>{ handleSignOut(); }}/></ThemeCtx.Provider>;
